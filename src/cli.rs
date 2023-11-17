@@ -1,9 +1,10 @@
 use clap::Parser;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 
 #[derive(Parser, Debug)]
 pub struct VmmcConfig {
-    #[arg(long, default_value = None)]
-    seed: Option<u64>,
+    #[arg(long, default_value_t = SmallRng::from_entropy().gen::<u64>())]
+    seed: u64,
     #[arg(long, default_value = "snapshot.xyz")]
     start_frame: String,
     #[arg(long, default_value = "vmd.tcl")]
@@ -13,7 +14,7 @@ pub struct VmmcConfig {
 }
 
 impl VmmcConfig {
-    pub fn seed(&self) -> Option<u64> {
+    pub fn seed(&self) -> u64 {
         self.seed
     }
 
