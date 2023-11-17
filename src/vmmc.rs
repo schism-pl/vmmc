@@ -5,7 +5,7 @@ use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use crate::{params::DIMENSION, position::DimVec};
 use anyhow::{anyhow, Result};
-use rand::rngs::ThreadRng;
+use rand::rngs::SmallRng;
 use rand::Rng;
 use rand_distr::num_traits::Zero;
 use std::collections::{HashSet, VecDeque};
@@ -144,6 +144,10 @@ impl Vmmc {
         &self.potential
     }
 
+    pub fn particle(&self, p_id: ParticleId) -> &Particle {
+        &self.particles[p_id as usize]
+    }
+
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> f64 {
         let mut energy = 0.0;
@@ -151,7 +155,7 @@ impl Vmmc {
             .potential
             .determine_interactions(&self.simbox, &self.particles, p);
         for &neighbor_id in interactions.iter() {
-            let neighbor = &self.particles[neighbor_id];
+            let neighbor = self.particle(neighbor_id);
             energy += self
                 .potential
                 .compute_pair_energy(self.simbox(), p, neighbor);
@@ -179,7 +183,7 @@ impl Vmmc {
                 self.simbox.sep_in_box(vp.orig_pos(), center_of_mass)
             } else {
                 self.simbox
-                    .sep_in_box(vp.orig_pos(), self.particles[mov.seed_id].pos())
+                    .sep_in_box(vp.orig_pos(), self.particle(mov.seed_id).pos())
             };
 
             stokes_radius += delta.cross_prod_magnitude_sqd(mov.vec);
@@ -228,7 +232,7 @@ impl Vmmc {
         VParticle::new(particle.pos(), particle.or(), final_p, final_or)
     }
 
-    fn choose_random_move(&self, rng: &mut ThreadRng) -> ProposedMove {
+    fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {
         // 1. Choose a particle that will lead the move
         let seed_id = self.choose_seed(rng);
         // 2. Choose a direction (unit vector) for the move
@@ -253,8 +257,8 @@ impl Vmmc {
 
     // Note: each particle gets to attempt to link to every neighbor, even if neighbor
     // has tried to be recruited before
-    fn recruit_cluster(&self, rng: &mut ThreadRng, mov: &ProposedMove) -> Result<VirtualMoves> {
-        let seed: &Particle = &self.particles[mov.seed_id];
+    fn recruit_cluster(&self, rng: &mut SmallRng, mov: &ProposedMove) -> Result<VirtualMoves> {
+        let seed = self.particle(mov.seed_id);
         // particles in the cluster who still need to make their linking pass
         let mut worklist = VecDeque::from([mov.seed_id]);
         // particles who have made their linking pass
@@ -264,7 +268,7 @@ impl Vmmc {
         while !worklist.is_empty() {
             // A new particle tries to link to its neighbors
             let id = worklist.pop_front().unwrap();
-            let particle = &self.particles[id];
+            let particle = self.particle(id);
             seen.insert(id);
 
             let final_p = self.calculate_motion(particle, mov, seed, MoveDir::Forward);
@@ -279,7 +283,7 @@ impl Vmmc {
                     .determine_interactions(&self.simbox, &self.particles, particle);
 
             for &neighbor_id in interactions.iter() {
-                let neighbor = &self.particles[neighbor_id];
+                let neighbor = self.particle(neighbor_id);
 
                 let (link_weight, reverse_link_weight) =
                     self.compute_link_weights(particle, neighbor, &final_p, &reverse_p);
@@ -356,13 +360,13 @@ impl Vmmc {
         (link_weight, reverse_link_weight)
     }
 
-    fn choose_seed(&self, rng: &mut ThreadRng) -> ParticleId {
-        rng.gen_range(0..self.particles.len())
+    fn choose_seed(&self, rng: &mut SmallRng) -> ParticleId {
+        rng.gen_range(0..self.particles.len() as u16)
     }
 
     fn commit_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id];
+            let p = &mut self.particles[*p_id as usize];
             self.simbox.move_particle_tenancy(*p_id, p.pos(), vp.pos());
             p.update_pos(vp.pos());
             p.update_or(vp.or());
@@ -371,7 +375,7 @@ impl Vmmc {
 
     fn revert_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id];
+            let p = &mut self.particles[*p_id as usize];
             self.simbox
                 .move_particle_tenancy(*p_id, p.pos(), vp.orig_pos());
             p.update_pos(vp.orig_pos());
@@ -381,7 +385,7 @@ impl Vmmc {
 
     fn attempt_commit(
         &mut self,
-        rng: &mut ThreadRng,
+        rng: &mut SmallRng,
         mov: &ProposedMove,
         vmoves: &VirtualMoves,
     ) -> Result<()> {
@@ -400,7 +404,7 @@ impl Vmmc {
 
         // check for overlaps
         for (p_id, _) in vmoves.inner.iter() {
-            let p = &self.particles[*p_id];
+            let p = self.particle(*p_id);
             if self.overlaps(p) {
                 self.revert_moves(vmoves);
                 return Err(anyhow!("Overlapping particle"));
@@ -413,7 +417,7 @@ impl Vmmc {
     // check if a particle overlaps any other particles
     fn overlaps(&self, p: &Particle) -> bool {
         for neighbor_id in self.simbox.get_neighbors(p) {
-            let neighbor = &self.particles[neighbor_id];
+            let neighbor = self.particle(neighbor_id);
             if neighbor == p {
                 continue;
             }
@@ -484,7 +488,7 @@ impl Vmmc {
         true
     }
 
-    fn step(&mut self, rng: &mut ThreadRng, stats: &mut RunStats) -> Result<()> {
+    fn step(&mut self, rng: &mut SmallRng, stats: &mut RunStats) -> Result<()> {
         debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);
@@ -499,12 +503,11 @@ impl Vmmc {
         Ok(())
     }
 
-    pub fn step_n(&mut self, n: usize) {
-        let mut rng = rand::thread_rng();
+    pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
         let mut run_stats = RunStats::new(self.particles.len());
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
-            let _ = self.step(&mut rng, &mut run_stats);
+            let _ = self.step(rng, &mut run_stats);
         }
         // println!("{:?}", run_stats);
     }

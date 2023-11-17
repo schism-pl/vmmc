@@ -1,3 +1,5 @@
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 use std::f64::consts::PI;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZReader, XYZWriter},
@@ -11,13 +13,13 @@ use vmmc::{
 // Try to formalize correctness conditions of box / particles?
 
 // TODO: probably need to check for overlapping and particles and do some other checks
-fn randomized_particles(simbox: &SimBox, n: usize) -> Vec<Particle> {
+fn randomized_particles(simbox: &SimBox, n: usize, rng: &mut SmallRng) -> Vec<Particle> {
     let mut particles = Vec::new();
-    let mut rng = rand::thread_rng();
+
     for idx in 0..n {
-        let pos = simbox.random_pos(&mut rng);
-        let or = Orientation::unit_vector(&mut rng);
-        let particle = Particle::new(idx, pos, or);
+        let pos = simbox.random_pos(rng);
+        let or = Orientation::unit_vector(rng);
+        let particle = Particle::new(idx as u16, pos, or);
         particles.push(particle);
     }
     particles
@@ -37,7 +39,7 @@ fn particles_from_xyz(path: &str) -> Vec<Particle> {
         // let or = Orientation::unit_vector(&mut rng);
         let pos = positions[idx];
         let or = orientations[idx];
-        let particle = Particle::new(idx, pos, or);
+        let particle = Particle::new(idx as u16, pos, or);
         particles.push(particle);
     }
     particles
@@ -104,12 +106,15 @@ fn main() {
     println!("Cell dimensions: {:?}", cell_dimensions);
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
 
+    //let mut rng = rand::thread_rng();
+    let mut rng = SmallRng::seed_from_u64(1337);
+
     for idx in 0..10 {
-        vmmc.step_n(1000 * num_particles);
+        vmmc.step_n(1000 * num_particles, &mut rng);
         // writer.write_xyz_frame(&vmmc);
         println!(
             "Step {:?}: average particle energy = {:?}",
-            idx * 1000 * num_particles,
+            (idx + 1) * 1000 * num_particles,
             vmmc.get_average_energy()
         );
     }

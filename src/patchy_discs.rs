@@ -74,7 +74,7 @@ impl PatchyDiscsPotential {
         let or1 = particle1.or();
 
         // we could make this norm_sqd if that made things faster?
-        let dist = simbox.sep_in_box(p0, p1).norm();
+        let dist = simbox.sep_in_box(p0, p1).norm_sqd();
 
         if dist < 1.0 {
             return f64::INFINITY;
@@ -91,7 +91,7 @@ impl PatchyDiscsPotential {
                 let sqd_dist = simbox.sep_in_box(new_p0, new_p1).norm_sqd();
 
                 if sqd_dist < self.params.sqd_cutoff_distance {
-                    energy += self.params.interaction_energy;
+                    energy = self.params.interaction_energy;
                 }
             }
         }
@@ -108,7 +108,7 @@ impl PatchyDiscsPotential {
         log::debug!("Determining interactions for p{:?}", p.id());
         let mut interactions = Vec::new();
         for neighbor_id in simbox.get_neighbors(p) {
-            let neighbor = &particles[neighbor_id];
+            let neighbor = &particles[neighbor_id as usize];
             if neighbor == p {
                 continue;
             }
@@ -126,7 +126,7 @@ impl PatchyDiscsPotential {
                     println!("{:?} {:?}", p, interactions);
                     println!("--- {:?}", neighbor);
                     for &interacting_p_id in interactions.iter() {
-                        println!("--- {:?}", &particles[interacting_p_id]);
+                        println!("--- {:?}", &particles[interacting_p_id as usize]);
                     }
                 }
                 assert_ne!(interactions.len(), self.params.max_interactions);

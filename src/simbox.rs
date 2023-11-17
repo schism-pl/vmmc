@@ -1,4 +1,4 @@
-use rand::{rngs::ThreadRng, Rng};
+use rand::{rngs::SmallRng, Rng};
 
 use crate::params::MAX_PARTICLES_PER_CELL;
 use crate::{
@@ -288,7 +288,7 @@ impl SimBox {
         // Position::new([x, y])
     }
 
-    pub fn random_pos(&self, rng: &mut ThreadRng) -> Position {
+    pub fn random_pos(&self, rng: &mut SmallRng) -> Position {
         let x = rng.gen_range(self.min_x()..self.max_x());
         let y = rng.gen_range(self.min_y()..self.max_y());
         Position::new([x, y])

@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, Sub, SubAssign},
 };
 
-use rand::rngs::ThreadRng;
+use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Normal};
 
 use crate::params::DIMENSION;
@@ -56,7 +56,7 @@ impl DimVec {
         r
     }
 
-    pub fn random(rng: &mut ThreadRng) -> Self {
+    pub fn random(rng: &mut SmallRng) -> Self {
         let normal = Normal::new(0.0, 1.0).unwrap();
         let mut r = Position::zeroes();
         for idx in 0..DIMENSION {
@@ -66,7 +66,7 @@ impl DimVec {
     }
 
     // picks a random position then does a scalar div by maginitude
-    pub fn unit_vector(rng: &mut ThreadRng) -> Self {
+    pub fn unit_vector(rng: &mut SmallRng) -> Self {
         let rand_pos = Position::random(rng);
         let norm = rand_pos.norm();
         rand_pos.scalar_div(norm)

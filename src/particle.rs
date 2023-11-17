@@ -1,8 +1,8 @@
-use rand::rngs::ThreadRng;
+use rand::rngs::SmallRng;
 
 use crate::position::{Orientation, Position};
 
-pub type ParticleId = usize;
+pub type ParticleId = u16;
 
 pub trait IsParticle {
     fn pos(&self) -> Position;
@@ -47,7 +47,7 @@ impl Particle {
         self.or = self.or.rotated_by(other, theta)
     }
 
-    pub fn random(rng: &mut ThreadRng, id: ParticleId) -> Self {
+    pub fn random(rng: &mut SmallRng, id: ParticleId) -> Self {
         Particle::new(id, Position::random(rng), Orientation::random(rng))
     }
 }
