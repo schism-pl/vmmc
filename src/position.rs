@@ -6,7 +6,7 @@ use std::{
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Normal};
 
-use crate::params::DIMENSION;
+use crate::consts::DIMENSION;
 
 #[derive(Clone, PartialEq, Copy)]
 pub struct DimVec {
@@ -87,14 +87,6 @@ impl DimVec {
         }
         r
     }
-
-    // pub fn floor(&self) -> [usize; DIMENSION] {
-    //     let mut r = [0;DIMENSION];
-    //     for idx in 0..DIMENSION {
-    //         r[idx] = self.inner[idx].floor() as usize;
-    //     }
-    //     r
-    // }
 
     pub fn cross_prod_magnitude_sqd(&self, other: Position) -> f64 {
         if DIMENSION == 2 {

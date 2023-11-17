@@ -1,5 +1,6 @@
+pub mod cli;
+mod consts;
 pub mod io;
-mod params;
 pub mod particle;
 pub mod patchy_discs;
 pub mod position;

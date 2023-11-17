@@ -1,8 +1,7 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::params::MAX_PARTICLES_PER_CELL;
+use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
 use crate::{
-    params::DIMENSION,
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
 };

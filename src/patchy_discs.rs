@@ -1,4 +1,4 @@
-use crate::params::DIMENSION;
+use crate::consts::DIMENSION;
 use crate::particle::{IsParticle, Particle, ParticleId};
 use crate::position::{Orientation, Position};
 use crate::simbox::SimBox;
@@ -101,7 +101,6 @@ impl PatchyDiscsPotential {
                 if sqd_dist < self.params.sqd_cutoff_distance {
                     // theres no way for more than 2 patches to interaact between 2 particles
                     // TODO: write out exact conditions for this and assert it
-                    //energy += self.params.interaction_energy;
                     return -self.params.interaction_energy;
                 }
             }

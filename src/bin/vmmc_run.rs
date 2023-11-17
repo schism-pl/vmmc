@@ -1,6 +1,8 @@
+use clap::Parser;
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use std::f64::consts::PI;
+use vmmc::cli::VmmcConfig;
 use vmmc::particle::IsParticle;
 use vmmc::position::Position;
 use vmmc::{
@@ -63,6 +65,7 @@ fn particles_from_xyz(path: &str) -> Vec<Particle> {
 // TODO: builder pattern
 fn main() {
     env_logger::init();
+    let config = VmmcConfig::parse();
 
     let num_particles = 1000;
     let interaction_energy = 8.0; // kBT
@@ -75,7 +78,12 @@ fn main() {
     let max_trial_rotation = 0.2;
     let reference_radius = 0.5;
 
-    let seed = 1337;
+    let seed = if let Some(s) = config.seed() {
+        s
+    } else {
+        SmallRng::from_entropy().gen::<u64>()
+    };
+    let mut rng = SmallRng::seed_from_u64(seed);
 
     let base_length = ((num_particles as f64 * PI) / (4.0 * density)).sqrt();
     let box_dimensions = [base_length, base_length];
@@ -88,7 +96,15 @@ fn main() {
 
     let cell_dimensions = [cell_length, cell_length];
 
-    let particles = particles_from_xyz("snapshot.xyz");
+    // let particles = if !config.start_frame().is_empty(){
+    //     particles_from_xyz(config.start_frame())
+    // }
+    // else {
+    //     randomized_particles(simbox, n, &mut rng)
+    // };
+    let particles = particles_from_xyz(config.start_frame());
+
+    // let particles: Vec<Particle> = particles_from_xyz("snapshot.xyz");
     let simbox = SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, &particles);
 
     let pd_params = PatchyDiscParams::new(num_patches, interaction_energy, interaction_range);
@@ -100,7 +116,7 @@ fn main() {
         reference_radius,
     );
 
-    let mut writer = XYZWriter::new("trajectory.xyz");
+    let mut writer = XYZWriter::new(config.xyz_output());
 
     let mut vmmc = Vmmc::new(particles, simbox, params, pd_params);
 
@@ -113,10 +129,8 @@ fn main() {
     println!("Cell dimensions: {:?}", cell_dimensions);
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
 
-    let mut rng = SmallRng::seed_from_u64(seed);
-
     // Run 1000 sweeps of 1000 move attempts per particle and write an xyz frame per sweep
-    for idx in 0..100 {
+    for idx in 0..20 {
         writer.write_xyz_frame(&vmmc);
         vmmc.step_n(1000 * num_particles, &mut rng);
         println!(
@@ -129,5 +143,5 @@ fn main() {
     writer.write_xyz_frame(&vmmc);
 
     // Write script to generate animation
-    write_tcl(&vmmc, "vmd.tcl");
+    write_tcl(&vmmc, config.vmd_output());
 }

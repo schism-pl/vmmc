@@ -3,7 +3,7 @@ use crate::patchy_discs::{PatchyDiscParams, PatchyDiscsPotential};
 use crate::position::Position;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
-use crate::{params::DIMENSION, position::DimVec};
+use crate::{consts::DIMENSION, position::DimVec};
 use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
