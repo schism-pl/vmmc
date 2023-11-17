@@ -11,7 +11,7 @@ First, make sure you have https://rustup.rs/ installed.
 Then, you can build and run the code using:
 ```bash
 cargo build --release
-cargo run --help // see info about default parameters  
+cargo run -- --help // see info about default parameters  
 cargo run --release // runs 1000 sweeps of 1000 step attempts per particle. 
 ```
 
