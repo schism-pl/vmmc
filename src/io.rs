@@ -19,24 +19,6 @@ impl XYZReader {
         let rdr = BufReader::new(file);
         Self { rdr }
     }
-
-    // pub fn read_xyz_snapshot(&mut self) -> (Vec<DimVec>,Vec<DimVec>) {
-    //     let mut positions = Vec::new();
-    //     let mut orientations = Vec::new();
-
-    //     for line in self.rdr.lines() {
-    //         let parts: Vec<&str> = line.unwrap().split_whitespace().collect();
-    //         let pos_x = parts[0].parse::<f64>().unwrap();
-    //         let pos_y = parts[1].parse::<f64>().unwrap();
-    //         let or_x = parts[2].parse::<f64>().unwrap();
-    //         let or_y = parts[3].parse::<f64>().unwrap();
-    //         positions.push(DimVec::new([pos_x,pos_y]));
-    //         orientations.push(DimVec::new([or_x,or_y]));
-    //     }
-
-    //     (positions, orientations)
-
-    // }
 }
 
 pub fn read_xyz_snapshot(path: &str) -> (Vec<DimVec>, Vec<DimVec>) {

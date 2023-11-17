@@ -57,15 +57,23 @@ pub struct ProposedMove {
     seed_id: ParticleId,
     step_size: f64,
     is_rotation: bool,
+    cluster_cutoff: usize,
     vec: DimVec, // unit vec
 }
 
 impl ProposedMove {
-    pub fn new(seed_id: ParticleId, step_size: f64, is_rotation: bool, vec: DimVec) -> Self {
+    pub fn new(
+        seed_id: ParticleId,
+        step_size: f64,
+        is_rotation: bool,
+        cluster_cutoff: usize,
+        vec: DimVec,
+    ) -> Self {
         Self {
             seed_id,
             step_size,
             is_rotation,
+            cluster_cutoff,
             vec,
         }
     }
@@ -239,7 +247,10 @@ impl Vmmc {
         let rand_vec = Position::unit_vector(rng);
         // 3. Choose a move type (translation or rotation)
         let is_rotation = rng.gen::<f64>() >= self.params.prob_translate;
-        // 4. Choose a size for the move
+        // 4. Pick a cluster size cutoff
+        // I don't know why we use this distribution, but it has something to do with particle choice fairness
+        let cluster_cutoff = (1.0 / rng.gen::<f64>()).floor() as usize;
+        // 5. Choose a size for the move
         let step_size = if is_rotation {
             // Rotation
             let r: f64 = rng.gen();
@@ -252,7 +263,7 @@ impl Vmmc {
             self.params.max_trial_translation * (2.0 * r - 1.0)
         };
 
-        ProposedMove::new(seed_id, step_size, is_rotation, rand_vec)
+        ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)
     }
 
     // Note: each particle gets to attempt to link to every neighbor, even if neighbor
@@ -265,10 +276,22 @@ impl Vmmc {
         let mut seen = HashSet::new();
         let mut vmoves = VirtualMoves::new();
 
+        let mut cluster_size = 1;
+
         while !worklist.is_empty() {
+            if cluster_size > mov.cluster_cutoff {
+                return Err(anyhow!("Cluster size surpassed chosen cutoff"));
+            }
+            cluster_size += 1;
             // A new particle tries to link to its neighbors
             let id = worklist.pop_front().unwrap();
+
+            // in case we get duplicate entries in worklist
+            if seen.contains(&id) {
+                continue;
+            }
             let particle = self.particle(id);
+
             seen.insert(id);
 
             let final_p = self.calculate_motion(particle, mov, seed, MoveDir::Forward);
@@ -496,6 +519,17 @@ impl Vmmc {
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
+        if virtual_moves.inner.len() >= self.particles.len() {
+            println!(
+                "{:?}",
+                virtual_moves
+                    .inner
+                    .iter()
+                    .map(|(a, _)| *a)
+                    .collect::<Vec<ParticleId>>()
+            );
+            panic!("oh no");
+        }
         if self.attempt_commit(rng, &mov, &virtual_moves).is_ok() {
             stats.record_accept(mov.is_rotation(), virtual_moves.inner.len());
         }
@@ -506,6 +540,7 @@ impl Vmmc {
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
         let mut run_stats = RunStats::new(self.particles.len());
         for idx in 0..n {
+            // println!("Doing step {:?}", idx);
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);
         }

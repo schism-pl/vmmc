@@ -9,15 +9,21 @@ use std::f64::consts::PI;
 pub struct PatchyDiscParams {
     max_interactions: usize,
     interaction_energy: f64,
+    interaction_range: f64,
     sqd_cutoff_distance: f64,
+    sqd_cutoff_max: f64,
 }
 
 impl PatchyDiscParams {
-    pub fn new(max_interactions: usize, interaction_energy: f64, sqd_cutoff_distance: f64) -> Self {
+    pub fn new(max_interactions: usize, interaction_energy: f64, interaction_range: f64) -> Self {
         Self {
             max_interactions,
             interaction_energy,
-            sqd_cutoff_distance,
+            interaction_range,
+            // sqd distance that particles interact
+            sqd_cutoff_distance: interaction_range * interaction_range,
+            // upper bound on distance that particles can be before they won't interact
+            sqd_cutoff_max: (1.0 + interaction_range) * (1.0 + interaction_range),
         }
     }
 }
@@ -57,28 +63,31 @@ impl PatchyDiscsPotential {
         simbox.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 
-    pub fn compute_pair_energy<
-        P1: IsParticle + std::fmt::Debug,
-        P2: IsParticle + std::fmt::Debug,
-    >(
+    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(
         &self,
         simbox: &SimBox,
         particle0: &P1,
         particle1: &P2,
     ) -> f64 {
-        assert!(DIMENSION == 2); // patchy disks is for 2d
+        debug_assert!(DIMENSION == 2); // patchy disks is for 2d
 
         let p0 = particle0.pos();
         let or0 = particle0.or();
         let p1 = particle1.pos();
         let or1 = particle1.or();
 
-        // we could make this norm_sqd if that made things faster?
-        let dist = simbox.sep_in_box(p0, p1).norm_sqd();
+        // norm_sqd < 1.0 => norm < 1.0
+        let dist_sqd = simbox.sep_in_box(p0, p1).norm_sqd();
 
-        if dist < 1.0 {
+        if dist_sqd < 1.0 {
             return f64::INFINITY;
         }
+
+        // theres no way they can interact
+        if dist_sqd > self.params.sqd_cutoff_max {
+            return 0.0;
+        }
+
         // assert!(dist >= 1.0); // particles should not overlap
 
         // check all pairs of patches
@@ -91,7 +100,10 @@ impl PatchyDiscsPotential {
                 let sqd_dist = simbox.sep_in_box(new_p0, new_p1).norm_sqd();
 
                 if sqd_dist < self.params.sqd_cutoff_distance {
-                    energy = self.params.interaction_energy;
+                    // theres no way for more than 2 patches to interaact between 2 particles
+                    // TODO: write out exact conditions for this and assert it
+                    //energy += self.params.interaction_energy;
+                    return -self.params.interaction_energy;
                 }
             }
         }

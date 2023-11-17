@@ -27,15 +27,25 @@ fn map_into_range(p: f64, lower: f64, upper: f64) -> f64 {
     }
 }
 
-// fn in_cyclic_range(p: f64, lower: f64, upper: f64) -> bool {
-//     if lower < upper {
-//         // no wrap around
-//         p >= lower && p < upper
-//     } else {
-//         // wrap around
-//         p >= lower || p < upper
-//     }
-// }
+fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
+    if p < lower {
+        p + (upper - lower)
+    } else if p >= upper {
+        p - (upper - lower)
+    } else {
+        p
+    }
+}
+
+fn in_cyclic_range(p: f64, lower: f64, upper: f64) -> bool {
+    if lower < upper {
+        // no wrap around
+        p >= lower && p < upper
+    } else {
+        // wrap around
+        p >= lower || p < upper
+    }
+}
 
 // struct CellGrid {
 //     inner: Vec<ParticleId>
@@ -56,6 +66,7 @@ pub struct SimBox {
     cells_per_axis: [usize; DIMENSION],
     cell_dimensions: DimVec,
     cells: CellGrid,
+    tenants: Vec<u8>,
 }
 
 // x_idx * cells_per_axis[1] * MAX_PARTICLES_PER_CELL + y_idx * MAX_PARTICLES_PER_CELL
@@ -71,11 +82,13 @@ impl SimBox {
 
         // let tenants = CellGrid::new(cells_per_axis, particles);
         let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
+        let tenants = vec![0_u8; cells.len()];
         let mut r = Self {
             dimensions: DimVec::new(dimensions),
             cells_per_axis,
             cell_dimensions: DimVec::new(cell_dimensions),
             cells,
+            tenants,
         };
 
         for p in particles.iter() {
@@ -127,6 +140,7 @@ impl SimBox {
         for idx in 0..MAX_PARTICLES_PER_CELL {
             if cell[idx] == p_id {
                 cell[idx] = ParticleId::MAX;
+                self.tenants[cell_id] -= 1;
                 return;
             }
         }
@@ -138,6 +152,7 @@ impl SimBox {
         for idx in 0..MAX_PARTICLES_PER_CELL {
             if cell[idx] == ParticleId::MAX {
                 cell[idx] = p_id;
+                self.tenants[cell_id] += 1;
                 return;
             }
         }
@@ -160,35 +175,101 @@ impl SimBox {
         }
     }
 
+    // TODO: make pretty
+    // TODO: optimize since we know x_off and y_off will only ever be 1 or -1?
+    pub fn get_neighbor_id(&self, id: CellId, x_off: i32, y_off: i32) -> CellId {
+        // let num_cells = self.cell_dimensions[0] * self.cell_dimensions[1];
+
+        let x = id / self.cells_per_axis[1];
+        let y = id - x * self.cells_per_axis[1];
+        let x = x as i32;
+        let y = y as i32;
+
+        let new_x = map_id_into_range(x + x_off, 0, self.cells_per_axis[0] as i32);
+        let new_y = map_id_into_range(y + y_off, 0, self.cells_per_axis[1] as i32);
+
+        debug_assert!(new_x >= 0 && new_x < self.cells_per_axis[0] as i32);
+        debug_assert!(new_y >= 0 && new_y < self.cells_per_axis[1] as i32);
+        let new_x = new_x as CellId;
+        let new_y = new_y as CellId;
+
+        new_x * self.cells_per_axis[1] + new_y
+
+        // let x = map_into_range(pos.x(), self.min_x(), self.max_x());
+        // let y = map_into_range(pos.y(), self.min_y(), self.max_y());
+        // let mut x_shifted = id + x_off * self.cell_dimensions[1];
+        // if x_shifted < 0 {
+        //     x_shifted += num_cells;
+        // }
+        // else if x_shifted >= num_cells {
+        //     x_shifted -= num_cells;
+        // }
+
+        // x_shifted += y_off;
+
+        // if
+
+        // if id < x_off
+        // id + x_off * self.cells_per_axis[1] + y_off
+        // panic!("wow")
+    }
+
     // TODO: improve by keeping counts
     // TODO: improve by directly using an iterator and removing cloned
     // TODO: improve by using a neighbors data structure?
+    // TODO: only compute from position once (wrapping index)
     pub fn get_neighbors(&self, p: &Particle) -> Vec<ParticleId> {
         let mut r: Vec<ParticleId> = Vec::new();
 
-        let x_dim = self.cell_dimensions.x();
-        let y_dim = self.cell_dimensions.y();
+        let center_id = self.get_cell_id(p.pos());
 
-        r.extend(self.get_neighbor(p, -x_dim, y_dim)); // up left
-        r.extend(self.get_neighbor(p, 0.0, y_dim)); // up
-        r.extend(self.get_neighbor(p, x_dim, y_dim)); // up right
-        r.extend(self.get_neighbor(p, -x_dim, 0.0)); // left
-        r.extend(self.get_cell(p.pos())); // centre
-        r.extend(self.get_neighbor(p, x_dim, 0.0)); // right
-        r.extend(self.get_neighbor(p, -x_dim, -y_dim)); // bottom left
-        r.extend(self.get_neighbor(p, 0.0, -y_dim)); // bottom center
-        r.extend(self.get_neighbor(p, x_dim, -y_dim)); // bottom right
-        r.iter()
+        let up_left_id = self.get_neighbor_id(center_id, -1, 1);
+        let up_id = self.get_neighbor_id(center_id, 0, 1);
+        let up_right_id = self.get_neighbor_id(center_id, 1, 1);
+        let left_id = self.get_neighbor_id(center_id, -1, 0);
+        let right_id = self.get_neighbor_id(center_id, 1, 0);
+        let bottom_left_id = self.get_neighbor_id(center_id, -1, -1);
+        let bottom_id = self.get_neighbor_id(center_id, 0, -1);
+        let bottom_right_id = self.get_neighbor_id(center_id, 1, -1);
+
+        if self.tenants[up_left_id] != 0 {
+            r.extend(self.cells[up_left_id]);
+        }
+        if self.tenants[up_id] != 0 {
+            r.extend(self.cells[up_id]);
+        }
+        if self.tenants[up_right_id] != 0 {
+            r.extend(self.cells[up_right_id]);
+        }
+
+        if self.tenants[left_id] != 0 {
+            r.extend(self.cells[left_id]);
+        }
+        if self.tenants[center_id] != 0 {
+            r.extend(self.cells[center_id]);
+        }
+        if self.tenants[right_id] != 0 {
+            r.extend(self.cells[right_id]);
+        }
+
+        if self.tenants[bottom_left_id] != 0 {
+            r.extend(self.cells[bottom_left_id]);
+        }
+        if self.tenants[bottom_id] != 0 {
+            r.extend(self.cells[bottom_id]);
+        }
+        if self.tenants[bottom_right_id] != 0 {
+            r.extend(self.cells[bottom_right_id]);
+        }
+
+        // TODO: remove this iter cloned thing
+        let result = r
+            .iter()
             .filter(|&&p_id| p_id != ParticleId::MAX)
             .cloned()
-            .collect()
+            .collect();
 
-        // let neighborhood = self.get_neighborhood(particle);
-        // particles
-        //     .iter()
-        //     .filter(|p| self.in_neighborhood(neighborhood, p))
-        //     .map(|p| p.id())
-        //     .collect()
+        result
     }
 
     pub fn min_x(&self) -> f64 {
@@ -210,7 +291,7 @@ impl SimBox {
         0.5 * self.dimensions.z()
     }
 
-    // pub fn get_cell(&self, particle: &Particle) -> Position {
+    // pub fn old_get_cell(&self, particle: &Particle) -> Position {
     //     let pos = particle.pos();
     //     let cell_dims = self.cell_dimensions;
     //     let x = (pos.x() / cell_dims.x()).floor() * cell_dims.x();
@@ -219,13 +300,13 @@ impl SimBox {
     // }
 
     // // get bottom left of neighborhood
-    // pub fn get_neighborhood(&self, particle: &Particle) -> Position {
-    //     let cell = self.get_cell(particle);
+    // pub fn old_get_neighborhood(&self, particle: &Particle) -> Position {
+    //     let cell = self.old_get_cell(particle);
     //     self.map_pos_into_box(cell - self.cell_dimensions)
     // }
 
     // // neighborhood is bottom left corner of neighborhood
-    // pub fn in_neighborhood(&self, neighborhood: Position, p: &Particle) -> bool {
+    // pub fn old_in_neighborhood(&self, neighborhood: Position, p: &Particle) -> bool {
     //     let left = neighborhood.x();
     //     let right = left + self.cell_dimensions.x() * 3.0;
     //     let right = map_into_range(right, self.min_x(), self.max_x()); // wrap around
@@ -236,11 +317,11 @@ impl SimBox {
     //     in_cyclic_range(p.pos().x(), left, right) && in_cyclic_range(p.pos().y(), down, up)
     // }
 
-    // pub fn get_neighbors(&self, particles: &[Particle], particle: &Particle) -> Vec<ParticleId> {
-    //     let neighborhood = self.get_neighborhood(particle);
+    // pub fn old_get_neighbors(&self, particles: &[Particle], particle: &Particle) -> Vec<ParticleId> {
+    //     let neighborhood = self.old_get_neighborhood(particle);
     //     particles
     //         .iter()
-    //         .filter(|p| self.in_neighborhood(neighborhood, p))
+    //         .filter(|p| self.old_in_neighborhood(neighborhood, p))
     //         .map(|p| p.id())
     //         .collect()
     // }

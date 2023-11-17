@@ -1,6 +1,8 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::f64::consts::PI;
+use vmmc::particle::IsParticle;
+use vmmc::position::Position;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZReader, XYZWriter},
     particle::Particle,
@@ -12,12 +14,26 @@ use vmmc::{
 
 // Try to formalize correctness conditions of box / particles?
 
+// check if a particle overlaps any other particles
+fn overlaps(simbox: &SimBox, pos: &Position, particles: &[Particle]) -> bool {
+    for other in particles.iter() {
+        // dist < 1.0 (hard sphere radius)
+        if simbox.sep_in_box(*pos, other.pos()).norm() < 1.0 {
+            return true;
+        }
+    }
+    false
+}
+
 // TODO: probably need to check for overlapping and particles and do some other checks
 fn randomized_particles(simbox: &SimBox, n: usize, rng: &mut SmallRng) -> Vec<Particle> {
     let mut particles = Vec::new();
 
     for idx in 0..n {
-        let pos = simbox.random_pos(rng);
+        let mut pos = simbox.random_pos(rng);
+        while overlaps(simbox, &pos, &particles) {
+            pos = simbox.random_pos(rng);
+        }
         let or = Orientation::unit_vector(rng);
         let particle = Particle::new(idx as u16, pos, or);
         particles.push(particle);
@@ -62,24 +78,19 @@ fn main() {
 
     let base_length = ((num_particles as f64 * PI) / (4.0 * density)).sqrt();
     let box_dimensions = [base_length, base_length];
-    // approximate cell length
-    let cell_range = 1.0 + 0.5 * interaction_range;
+    // lower bound on cell length (max distance that cells can interact at)
+    let cell_range = 1.0 + interaction_range;
 
     let cells_per_axis = (base_length / cell_range).floor();
     let cell_length = base_length / cells_per_axis;
     let cells_per_axis = [cells_per_axis as usize, cells_per_axis as usize];
 
-    // let cells_per_axis = (box_dimensions / cell_length).floor()
-
     let cell_dimensions = [cell_length, cell_length];
 
-    let sqd_cutoff_distance = interaction_range * interaction_range;
-    // let particles = randomized_particles(&simbox, num_particles);
     let particles = particles_from_xyz("snapshot.xyz");
     let simbox = SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, &particles);
 
-    let pd_params =
-        PatchyDiscParams::new(max_interactions, interaction_energy, sqd_cutoff_distance);
+    let pd_params = PatchyDiscParams::new(max_interactions, interaction_energy, interaction_range);
 
     let prob_translate = 0.5;
     let max_trial_translation = 0.15;
@@ -106,25 +117,18 @@ fn main() {
     println!("Cell dimensions: {:?}", cell_dimensions);
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
 
-    //let mut rng = rand::thread_rng();
     let mut rng = SmallRng::seed_from_u64(1337);
 
-    for idx in 0..10 {
+    for idx in 0..100 {
+        writer.write_xyz_frame(&vmmc);
         vmmc.step_n(1000 * num_particles, &mut rng);
-        // writer.write_xyz_frame(&vmmc);
         println!(
             "Step {:?}: average particle energy = {:?}",
             (idx + 1) * 1000 * num_particles,
             vmmc.get_average_energy()
         );
     }
-    // writer.write_xyz_frame(&vmmc);
+    writer.write_xyz_frame(&vmmc);
 
-    // vmmc.step_n(1000 * 1000);
-
-    // write_tcl(&vmmc, "vmd.tcl");
-
-    // write_svg(&vmmc, "box0.svg");
-    // println!("stats: {:?}", vmmc.st);
-    // write_svg(&vmmc, "box1.svg");
+    write_tcl(&vmmc, "vmd.tcl");
 }
