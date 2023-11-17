@@ -1,0 +1,17 @@
+[package]
+name = "vmmc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "vmmc-run"
+path = "src/bin/vmmc_run.rs"
+
+
+[dependencies]
+anyhow = "1.0.75"
+env_logger = "0.10.0"
+log = "0.4.20"
+rand = "0.8.5"
+rand_distr = "0.4.3"

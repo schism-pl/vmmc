@@ -1,0 +1,6 @@
+*.svg
+*.xyz
+*.tcl
+perf.data
+*.old
+
