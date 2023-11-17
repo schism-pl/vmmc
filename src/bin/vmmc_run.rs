@@ -62,33 +62,58 @@ fn particles_from_xyz(path: &str) -> Vec<Particle> {
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
 
-// TODO: builder pattern
-fn main() {
-    env_logger::init();
-    let config = VmmcConfig::parse();
+struct InputParams {
+    num_particles: usize,
+    interaction_energy: f64, // kBT
+    interaction_range: f64,  // diameter of patch (in units of particle diameter)
+    density: f64,
+    num_patches: usize,
 
-    let num_particles = 1000;
-    let interaction_energy = 8.0; // kBT
-    let interaction_range = 0.1; // diameter of patch (in units of particle diameter)
-    let density = 0.2;
-    let num_patches = 3;
+    prob_translate: f64,
+    max_trial_translation: f64,
+    max_trial_rotation: f64,
+    reference_radius: f64,
+    num_sweeps: usize,
+    steps_per_sweep: usize,
+}
 
-    let prob_translate = 0.5;
-    let max_trial_translation = 0.15;
-    let max_trial_rotation = 0.2;
-    let reference_radius = 0.5;
+impl Default for InputParams {
+    fn default() -> Self {
+        let num_particles = 1000;
+        let interaction_energy = 8.0; // kBT
+        let interaction_range = 0.1; // diameter of patch (in units of particle diameter)
+        let density = 0.2;
+        let num_patches = 3;
 
-    let seed = if let Some(s) = config.seed() {
-        s
-    } else {
-        SmallRng::from_entropy().gen::<u64>()
-    };
-    let mut rng = SmallRng::seed_from_u64(seed);
+        let prob_translate = 0.5;
+        let max_trial_translation = 0.15;
+        let max_trial_rotation = 0.2;
+        let reference_radius = 0.5;
+        let num_sweeps = 1000;
+        let steps_per_sweep = 1000;
 
-    let base_length = ((num_particles as f64 * PI) / (4.0 * density)).sqrt();
+        InputParams {
+            num_particles,
+            interaction_energy,
+            interaction_range,
+            density,
+            num_patches,
+
+            prob_translate,
+            max_trial_translation,
+            max_trial_rotation,
+            reference_radius,
+            num_sweeps,
+            steps_per_sweep,
+        }
+    }
+}
+
+fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
+    let base_length = ((ip.num_particles as f64 * PI) / (4.0 * ip.density)).sqrt();
     let box_dimensions = [base_length, base_length];
     // lower bound on cell length (max distance that cells can interact at)
-    let cell_range = 1.0 + interaction_range;
+    let cell_range = 1.0 + ip.interaction_range;
 
     let cells_per_axis = (base_length / cell_range).floor();
     let cell_length = base_length / cells_per_axis;
@@ -107,35 +132,54 @@ fn main() {
     // let particles: Vec<Particle> = particles_from_xyz("snapshot.xyz");
     let simbox = SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, &particles);
 
-    let pd_params = PatchyDiscParams::new(num_patches, interaction_energy, interaction_range);
+    let pd_params =
+        PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.interaction_range);
 
     let params = VmmcParams::new(
-        prob_translate,
-        max_trial_translation,
-        max_trial_rotation,
-        reference_radius,
+        ip.prob_translate,
+        ip.max_trial_translation,
+        ip.max_trial_rotation,
+        ip.reference_radius,
     );
 
-    let mut writer = XYZWriter::new(config.xyz_output());
+    println!("Box dimensions: {:?}", box_dimensions);
+    println!("Cell dimensions: {:?}", cell_dimensions);
+    Vmmc::new(particles, simbox, params, pd_params)
+}
 
-    let mut vmmc = Vmmc::new(particles, simbox, params, pd_params);
+// TODO: builder pattern
+fn main() {
+    env_logger::init();
+    // Get commandline arguments
+    let config = VmmcConfig::parse();
+    // Get default params
+    let ip = InputParams::default();
+
+    // Seed the rng
+    let seed = config.seed();
+    println!("Using seed = {:?}", seed);
+    let mut rng = SmallRng::seed_from_u64(seed);
+
+    // Generate the simulator
+    let mut vmmc = vmmc_from_config(&config, &ip, &mut rng);
+
+    // Init I/O
+    let mut writer = XYZWriter::new(config.xyz_output());
 
     println!("Checking initial configuration");
     debug_assert!(vmmc.well_formed());
     println!("Initial configuration ok");
 
     println!("# of particles: {:?}", vmmc.particles().len());
-    println!("Box dimensions: {:?}", box_dimensions);
-    println!("Cell dimensions: {:?}", cell_dimensions);
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
+    println!("------------------------------");
 
-    // Run 1000 sweeps of 1000 move attempts per particle and write an xyz frame per sweep
-    for idx in 0..20 {
+    for idx in 0..ip.num_sweeps {
         writer.write_xyz_frame(&vmmc);
-        vmmc.step_n(1000 * num_particles, &mut rng);
+        vmmc.step_n(ip.steps_per_sweep * ip.num_particles, &mut rng);
         println!(
             "Step {:?}: average particle energy = {:?}",
-            (idx + 1) * 1000 * num_particles,
+            (idx + 1) * 1000 * ip.num_particles,
             vmmc.get_average_energy()
         );
     }
