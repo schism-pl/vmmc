@@ -1,4 +1,4 @@
-use crate::particle::{self, IsParticle, Particle, ParticleId, VParticle};
+use crate::particle::{IsParticle, Particle, ParticleId, VParticle};
 use crate::patchy_discs::{PatchyDiscParams, PatchyDiscsPotential};
 use crate::position::Position;
 use crate::simbox::SimBox;
@@ -7,19 +7,14 @@ use crate::{params::DIMENSION, position::DimVec};
 use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
-use rand_distr::num_traits::Zero;
 use std::collections::{HashSet, VecDeque};
-use std::f32::INFINITY;
 
 // NOTE: I'm just assuming things aren't isotropic
 // NOTE: assuming not is_repulsive
 // NOTE: assuming no non-pairwise forces
-// NOTE: I'm eliding the nmoving < cutoff at callsites since I check to make sure we don't recheck neighbors
 
 // TODO: documentation!
 // TODO: equation map
-
-// TODO: in debug mode, show that average pair energy decreases (increases?) over time
 
 #[derive(Clone, Copy, Debug)]
 pub enum MoveDir {
@@ -361,16 +356,6 @@ impl Vmmc {
 
         let link_weight = 0.0_f64.max(1.0 - (init_energy - final_energy).exp());
         let reverse_link_weight = 0.0_f64.max(1.0 - (init_energy - reverse_energy).exp());
-        // if final_energy.is_infinite() || reverse_energy.is_infinite() {
-        //     println!("init = {:?} final = {:?} reverse = {:?} lw = {:?} rlw = {:?} rlw/lw={:?} inf/inf = {:?}", init_energy, final_energy, reverse_energy, link_weight, reverse_link_weight, reverse_link_weight/link_weight, f64::INFINITY / f64::INFINITY);
-        // }
-
-        // if reverse_energy.is_infinite(){
-        //     println!("init = {:?} final reverse = {:?} lw = {:?} rlw = {:?}", init_energy, reverse_energy, link_weight, reverse_link_weight);
-        // }
-        // assert!(init_energy.is_finite());
-        // assert!(final_energy.is_finite());
-        // assert!(reverse_energy.is_finite());
 
         debug_assert!(
             link_weight.is_finite() && !link_weight.is_nan() && !link_weight.is_subnormal()
@@ -481,7 +466,6 @@ impl Vmmc {
 
         // check that tenency array is synced with particle positions
         for p in self.particles.iter() {
-            // println!("{:?} {:?} {:?} {:?}", p.id(), self.simbox.get_cell_id(p.pos()), self.simbox.get_cell(p.pos()), p.pos() );
             if !self.simbox.in_cell(p) {
                 panic!("Particle not in correct location in tenancy array");
             }
@@ -540,10 +524,8 @@ impl Vmmc {
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
         let mut run_stats = RunStats::new(self.particles.len());
         for idx in 0..n {
-            // println!("Doing step {:?}", idx);
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);
         }
-        // println!("{:?}", run_stats);
     }
 }

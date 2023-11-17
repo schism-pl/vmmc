@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Formatter},
-    ops::{Add, AddAssign, Div, Sub, SubAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 use rand::rngs::SmallRng;

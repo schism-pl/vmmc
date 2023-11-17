@@ -9,14 +9,11 @@ use crate::{
 
 type CellId = usize;
 type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
-// cells_per_axis * cells_per_axis * MAX_PARTICLES_PER_CELL
-// type CellGrid = Array<ParticleId, Ix3>;
 
 // cells_per_axis * cells_per_axis
 type CellGrid = Vec<Cell>; //
 
 // TODO: test boundary conditions extensively
-
 fn map_into_range(p: f64, lower: f64, upper: f64) -> f64 {
     if p < lower {
         p + (upper - lower)
@@ -36,27 +33,6 @@ fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
         p
     }
 }
-
-fn in_cyclic_range(p: f64, lower: f64, upper: f64) -> bool {
-    if lower < upper {
-        // no wrap around
-        p >= lower && p < upper
-    } else {
-        // wrap around
-        p >= lower || p < upper
-    }
-}
-
-// struct CellGrid {
-//     inner: Vec<ParticleId>
-// }
-
-// impl CellGrid {
-//     fn new(cells_per_axis: [usize; DIMENSION], perticles: &[Particle]) -> Self {
-//         // let tenants = Array::<ParticleId, Ix3>::zeros((cells_per_axis[0], cells_per_axis[1], MAX_PARTICLES_PER_CELL));
-//         Self{inner: [] }
-//     }
-// }
 
 // assumed to be periodic in every dimension
 // dimension[i] = cell_dimensions[i] * cells_per_axis[i]
@@ -102,7 +78,6 @@ impl SimBox {
         &self.cells
     }
 
-    // TODO: does negative wrong
     pub fn get_cell_id(&self, pos: Position) -> CellId {
         // adjust so all indexes are positive
         // indexes start at bottom left and scan bottom to top
@@ -110,7 +85,6 @@ impl SimBox {
             ((pos.x() + (self.dimensions.x() / 2.0)) / self.cell_dimensions.x()).floor() as usize;
         let y_idx =
             ((pos.y() + (self.dimensions.y() / 2.0)) / self.cell_dimensions.y()).floor() as usize;
-        // println!("get_cell_id({:?}) ({:?},{:?}) = {:?} cell = [{:?}:{:?}[{:?}{:?}]", pos, x_idx, y_idx, x_idx * self.cells_per_axis[1] + y_idx, x_idx as f64 * self.cell_dimensions.x() - (self.dimensions.x() / 2.0),  (x_idx+1) as f64 * self.cell_dimensions.x() - (self.dimensions.x() / 2.0), y_idx as f64 * self.cell_dimensions.y() - (self.dimensions.y() / 2.0),  (y_idx+1) as f64 * self.cell_dimensions.y() - (self.dimensions.y() / 2.0) );
         x_idx * self.cells_per_axis[1] + y_idx
     }
 
@@ -194,30 +168,9 @@ impl SimBox {
         let new_y = new_y as CellId;
 
         new_x * self.cells_per_axis[1] + new_y
-
-        // let x = map_into_range(pos.x(), self.min_x(), self.max_x());
-        // let y = map_into_range(pos.y(), self.min_y(), self.max_y());
-        // let mut x_shifted = id + x_off * self.cell_dimensions[1];
-        // if x_shifted < 0 {
-        //     x_shifted += num_cells;
-        // }
-        // else if x_shifted >= num_cells {
-        //     x_shifted -= num_cells;
-        // }
-
-        // x_shifted += y_off;
-
-        // if
-
-        // if id < x_off
-        // id + x_off * self.cells_per_axis[1] + y_off
-        // panic!("wow")
     }
 
-    // TODO: improve by keeping counts
-    // TODO: improve by directly using an iterator and removing cloned
     // TODO: improve by using a neighbors data structure?
-    // TODO: only compute from position once (wrapping index)
     pub fn get_neighbors(&self, p: &Particle) -> Vec<ParticleId> {
         let mut r: Vec<ParticleId> = Vec::new();
 
@@ -291,41 +244,6 @@ impl SimBox {
         0.5 * self.dimensions.z()
     }
 
-    // pub fn old_get_cell(&self, particle: &Particle) -> Position {
-    //     let pos = particle.pos();
-    //     let cell_dims = self.cell_dimensions;
-    //     let x = (pos.x() / cell_dims.x()).floor() * cell_dims.x();
-    //     let y = (pos.y() / cell_dims.y()).floor() * cell_dims.y();
-    //     self.map_pos_into_box(Position::new([x, y]))
-    // }
-
-    // // get bottom left of neighborhood
-    // pub fn old_get_neighborhood(&self, particle: &Particle) -> Position {
-    //     let cell = self.old_get_cell(particle);
-    //     self.map_pos_into_box(cell - self.cell_dimensions)
-    // }
-
-    // // neighborhood is bottom left corner of neighborhood
-    // pub fn old_in_neighborhood(&self, neighborhood: Position, p: &Particle) -> bool {
-    //     let left = neighborhood.x();
-    //     let right = left + self.cell_dimensions.x() * 3.0;
-    //     let right = map_into_range(right, self.min_x(), self.max_x()); // wrap around
-    //     let down = neighborhood.y();
-    //     let up = neighborhood.y() + self.cell_dimensions.y() * 3.0;
-    //     let up = map_into_range(up, self.min_y(), self.max_y()); // wrap around
-    //                                                              // right or up isn't in cyclic box?
-    //     in_cyclic_range(p.pos().x(), left, right) && in_cyclic_range(p.pos().y(), down, up)
-    // }
-
-    // pub fn old_get_neighbors(&self, particles: &[Particle], particle: &Particle) -> Vec<ParticleId> {
-    //     let neighborhood = self.old_get_neighborhood(particle);
-    //     particles
-    //         .iter()
-    //         .filter(|p| self.old_in_neighborhood(neighborhood, p))
-    //         .map(|p| p.id())
-    //         .collect()
-    // }
-
     pub fn pos_in_box(&self, pos: Position) -> bool {
         if DIMENSION == 2 {
             pos.x() >= self.min_x()
@@ -364,9 +282,6 @@ impl SimBox {
     pub fn sep_in_box(&self, p0: Position, p1: Position) -> DimVec {
         assert_eq!(DIMENSION, 2);
         self.map_pos_into_box(p0 - p1)
-        // let x = map_into_range(sep.x(), self.min_x() *0.5, self.max_x() * 0.5);
-        // let y = map_into_range(sep.y(), self.min_y() *0.5, self.max_y() * 0.5);
-        // Position::new([x, y])
     }
 
     pub fn random_pos(&self, rng: &mut SmallRng) -> Position {

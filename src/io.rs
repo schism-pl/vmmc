@@ -41,11 +41,6 @@ pub fn read_xyz_snapshot(path: &str) -> (Vec<DimVec>, Vec<DimVec>) {
 
     (positions, orientations)
 }
-// }
-
-// pub struct XYZFrame {
-//     rows: Vec<DimVec>,
-// }
 
 impl XYZWriter {
     pub fn new(p: &str) -> Self {
@@ -54,9 +49,9 @@ impl XYZWriter {
     }
 
     pub fn write_xyz_frame(&mut self, vmmc: &Vmmc) {
-        write!(self.file, "{:?}\n\n", vmmc.particles().len()).unwrap();
+        writeln!(self.file, "{:?}\n", vmmc.particles().len()).unwrap();
         for p in vmmc.particles() {
-            write!(self.file, "0 {:?} {:?} 0\n", p.pos().x(), p.pos().y()).unwrap();
+            writeln!(self.file, "0 {:?} {:?} 0", p.pos().x(), p.pos().y()).unwrap();
         }
     }
 }

@@ -26,7 +26,6 @@ impl RunStats {
 
     pub fn record_accept(&mut self, is_rotation: bool, cluster_size: usize) {
         self.num_accepts += 1;
-        // assert!(cluster_size < self.cluster_rotations.len());
         if cluster_size >= self.cluster_rotations.len() {
             println!(
                 "cluster size = {:?}, total_particles = {:?}",
@@ -43,7 +42,7 @@ impl RunStats {
     }
 
     pub fn num_attempts(&self) -> usize {
-        self.num_accepts
+        self.num_attempts
     }
 
     pub fn num_accepts(&self) -> usize {

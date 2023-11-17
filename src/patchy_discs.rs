@@ -7,7 +7,7 @@ use std::f64::consts::PI;
 // Note: Pairwise potentials are just a filter map
 
 pub struct PatchyDiscParams {
-    max_interactions: usize,
+    num_patches: usize,
     interaction_energy: f64,
     interaction_range: f64,
     sqd_cutoff_distance: f64,
@@ -15,9 +15,9 @@ pub struct PatchyDiscParams {
 }
 
 impl PatchyDiscParams {
-    pub fn new(max_interactions: usize, interaction_energy: f64, interaction_range: f64) -> Self {
+    pub fn new(num_patches: usize, interaction_energy: f64, interaction_range: f64) -> Self {
         Self {
-            max_interactions,
+            num_patches,
             interaction_energy,
             interaction_range,
             // sqd distance that particles interact
@@ -36,10 +36,10 @@ pub struct PatchyDiscsPotential {
 
 impl PatchyDiscsPotential {
     pub fn new(params: PatchyDiscParams) -> Self {
-        let patch_seperation: f64 = 2.0 * PI / (params.max_interactions as f64);
+        let patch_seperation: f64 = 2.0 * PI / (params.num_patches as f64);
         let mut sin_theta: Vec<_> = Vec::new();
         let mut cos_theta: Vec<_> = Vec::new();
-        for idx in 0..params.max_interactions {
+        for idx in 0..params.num_patches {
             let theta = (idx as f64) * patch_seperation;
             sin_theta.push(theta.sin());
             cos_theta.push(theta.cos());
@@ -91,12 +91,11 @@ impl PatchyDiscsPotential {
         // assert!(dist >= 1.0); // particles should not overlap
 
         // check all pairs of patches
-        let mut energy = 0.0;
-        for idx in 0..self.params.max_interactions {
+        for idx in 0..self.params.num_patches {
             // Compute position of patch i on first disc.
-            let new_p0 = self.pos_on_disc(&simbox, idx, p0, or0);
-            for jdx in 0..self.params.max_interactions {
-                let new_p1 = self.pos_on_disc(&simbox, jdx, p1, or1);
+            let new_p0 = self.pos_on_disc(simbox, idx, p0, or0);
+            for jdx in 0..self.params.num_patches {
+                let new_p1 = self.pos_on_disc(simbox, jdx, p1, or1);
                 let sqd_dist = simbox.sep_in_box(new_p0, new_p1).norm_sqd();
 
                 if sqd_dist < self.params.sqd_cutoff_distance {
@@ -108,7 +107,7 @@ impl PatchyDiscsPotential {
             }
         }
 
-        -energy
+        0.0
     }
 
     pub fn determine_interactions(
@@ -134,14 +133,14 @@ impl PatchyDiscsPotential {
 
             // particles interact!
             if energy < 0.0 {
-                if interactions.len() == self.params.max_interactions {
+                if interactions.len() == self.params.num_patches {
                     println!("{:?} {:?}", p, interactions);
                     println!("--- {:?}", neighbor);
                     for &interacting_p_id in interactions.iter() {
                         println!("--- {:?}", &particles[interacting_p_id as usize]);
                     }
                 }
-                assert_ne!(interactions.len(), self.params.max_interactions);
+                assert_ne!(interactions.len(), self.params.num_patches);
                 interactions.push(neighbor_id);
             }
         }
