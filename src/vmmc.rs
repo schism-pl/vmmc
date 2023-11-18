@@ -369,7 +369,7 @@ impl Vmmc {
     }
 
     fn choose_seed(&self, rng: &mut SmallRng) -> ParticleId {
-        rng.gen_range(0..self.particles.len() as u16)
+        rng.gen_range(0..self.particles().len() as u16)
     }
 
     fn commit_moves(&mut self, vmoves: &VirtualMoves) {
@@ -438,14 +438,14 @@ impl Vmmc {
     }
 
     fn sim_has_overlaps(&self) -> bool {
-        self.particles.iter().any(|p| self.overlaps(p))
+        self.particles().iter().any(|p| self.overlaps(p))
     }
 
     // run a bunch of checks on the vmmc object to make sure it looks good
     // meant to be used in debug_assert!
     pub fn well_formed(&self) -> bool {
         // check for particle overlaps?
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             // check that position is in the box
             if !self.simbox.pos_in_box(p.pos()) {
                 panic!("Pos not in box!: {:?}", p);
@@ -465,7 +465,7 @@ impl Vmmc {
         }
 
         // check that tenency array is synced with particle positions
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             if !self.simbox.in_cell(p) {
                 panic!("Particle not in correct location in tenancy array");
             }
@@ -483,10 +483,10 @@ impl Vmmc {
                 }
             }
         }
-        if seen.len() != self.particles.len() {
+        if seen.len() != self.particles().len() {
             panic!("Wrong number of particles in tenancy array");
         }
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             if !seen.contains(&p.id()) {
                 panic!("Particle missing from tenancy array");
             }
@@ -503,7 +503,7 @@ impl Vmmc {
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
-        if virtual_moves.inner.len() >= self.particles.len() {
+        if virtual_moves.inner.len() >= self.particles().len() {
             println!(
                 "{:?}",
                 virtual_moves
@@ -522,7 +522,7 @@ impl Vmmc {
     }
 
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
-        let mut run_stats = RunStats::new(self.particles.len());
+        let mut run_stats = RunStats::new(self.particles().len());
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);

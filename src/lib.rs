@@ -7,3 +7,4 @@ pub mod position;
 pub mod simbox;
 pub mod stats;
 pub mod vmmc;
+pub mod evo_vmmc;

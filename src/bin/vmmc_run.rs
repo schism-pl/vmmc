@@ -92,7 +92,7 @@ impl Default for InputParams {
         let num_sweeps = 1000;
         let steps_per_sweep = 1000;
 
-        InputParams {
+        Self {
             num_particles,
             interaction_energy,
             interaction_range,
