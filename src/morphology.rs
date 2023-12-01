@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Patch {
     radius: f64,
     theta: f64,      // angle in degrees
@@ -32,6 +33,7 @@ impl Patch {
     }
 }
 
+#[derive(Debug)]
 pub struct Morphology {
     patches: Vec<Patch>,
     // max distance that this particle can interact with another
@@ -45,7 +47,7 @@ impl Morphology {
         let sqd_cutoff_max = patches
             .iter()
             .map(|p| (1.0 + p.radius) * (1.0 + p.radius))
-            .fold(f64::MIN, |a, b| a.min(b));
+            .fold(f64::MIN, |a, b| a.max(b));
         Self {
             patches,
             sqd_cutoff_max,
