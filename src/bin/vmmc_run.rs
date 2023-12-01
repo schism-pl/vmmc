@@ -118,8 +118,6 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     println!("Box dimensions: {:?}", box_dimensions);
     println!("Cell dimensions: {:?}", cell_dimensions);
-    println!("Dimvec size: {:?}", std::mem::size_of::<DimVec>());
-    println!("Particle size: {:?}", std::mem::size_of::<Particle>());
     Vmmc::new(simbox, params, pd_params)
 }
 
