@@ -107,13 +107,13 @@ impl PatchyDiscsPotential {
     pub fn determine_interactions(
         &self,
         simbox: &SimBox,
-        particles: &[Particle],
+        // particles: &[Particle],
         p: &Particle,
     ) -> Vec<ParticleId> {
         // log::debug!("Determining interactions for p{:?}", p.id());
         let mut interactions = Vec::new();
         for neighbor_id in simbox.get_neighbors(p) {
-            let neighbor = &particles[neighbor_id as usize];
+            let neighbor = &simbox.particles()[neighbor_id as usize];
             if neighbor == p {
                 continue;
             }
