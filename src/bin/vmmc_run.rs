@@ -94,10 +94,15 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
         // We have an initial position, so just use that
         let particles = particles_from_xyz(config.start_frame());
         SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, particles)
-    }
-    else {
+    } else {
         // No initial position, so we will use a randomized start position
-        SimBox::new_with_randomized_particles(box_dimensions, cells_per_axis, cell_dimensions, ip.num_particles, rng)
+        SimBox::new_with_randomized_particles(
+            box_dimensions,
+            cells_per_axis,
+            cell_dimensions,
+            ip.num_particles,
+            rng,
+        )
     };
 
     let pd_params =

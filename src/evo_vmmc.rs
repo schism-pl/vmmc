@@ -2,16 +2,20 @@ use std::f64::consts::PI;
 
 use rand::rngs::SmallRng;
 
-use crate::{vmmc::{Vmmc, VmmcParams}, patchy_discs::PatchyDiscParams, simbox::SimBox, tiling::TilingGraph};
+use crate::{
+    patchy_discs::PatchyDiscParams,
+    simbox::SimBox,
+    tiling::TilingGraph,
+    vmmc::{Vmmc, VmmcParams},
+};
 
-
-fn overlapping_polygon_sum(vmmc: &Vmmc) -> usize {
-    // 1. generate edge list
-    let tiling_graph = TilingGraph::from_vmmc(vmmc);
-    // 2. get polgyon count
-    let polygons = tiling_graph.get_polygon_counts();
-    polygons.sum()
-}
+// fn overlapping_polygon_sum(vmmc: &Vmmc) -> usize {
+//     // 1. generate edge list
+//     let tiling_graph = TilingGraph::from_vmmc(vmmc);
+//     // 2. get polgyon count
+//     let polygons = tiling_graph.get_polygon_counts();
+//     polygons.sum()
+// }
 
 pub struct L2GInputParams {
     num_particles: usize,
@@ -73,7 +77,6 @@ impl Default for L2GInputParams {
     }
 }
 
-
 pub enum FitnessFunc {
     Random,
     AvgEnergy,
@@ -85,13 +88,11 @@ pub enum FitnessFunc {
 //     Null,
 // }
 
-
 pub struct EvoVmmc {
     // active_sims: Vec<Vmmc>,
     fitness_func: FitnessFunc,
     params: L2GInputParams,
 }
-
 
 impl EvoVmmc {
     pub fn new(fitness_func: FitnessFunc) -> Self {
@@ -118,8 +119,13 @@ impl EvoVmmc {
         let cell_dimensions = [cell_length, cell_length];
 
         // No initial position, so we will use a randomized start position
-        let simbox = SimBox::new_with_randomized_particles(box_dimensions, cells_per_axis, cell_dimensions, ip.num_particles, rng);
-
+        let simbox = SimBox::new_with_randomized_particles(
+            box_dimensions,
+            cells_per_axis,
+            cell_dimensions,
+            ip.num_particles,
+            rng,
+        );
 
         let pd_params =
             PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.interaction_range);
@@ -138,48 +144,50 @@ impl EvoVmmc {
         let ip = &self.params;
         for _idx in 0..ip.num_sweeps {
             vmmc.step_n(ip.steps_per_sweep * ip.num_particles, rng);
-        };
+        }
         vmmc.get_average_energy()
     }
 
     /// returns a number between 0.0 and 1.0
     pub fn fitness(&self, vmmc: &Vmmc) -> f64 {
         match self.fitness_func {
-            FitnessFunc::AvgEnergy => {1.0 - 1.0 / vmmc.get_average_energy().abs()}
+            FitnessFunc::AvgEnergy => 1.0 - 1.0 / vmmc.get_average_energy().abs(),
             FitnessFunc::Random => 0.5, // TODO: fix (need to pass through rng here?)
-            FitnessFunc::OverlappingPolygonSum => 1.0 - 1.0 / overlapping_polygon_sum(vmmc),
+            FitnessFunc::OverlappingPolygonSum => panic!("Unimplemented"), //1.0 - 1.0 / overlapping_polygon_sum(vmmc),
         }
     }
 
-    // TODO: return vec of vmmcs? 
+    // TODO: return vec of vmmcs?
     fn step_generation(&mut self, rng: &mut SmallRng) -> Vec<Vmmc> {
         let mut children = Vec::new();
         for jdx in 0..self.params.children_per_generation {
             let mut vmmc = self.fresh_vmmc(rng);
             let avg_energy = self.run_sim(&mut vmmc, rng);
-            println!("average energy of child-sim {:?} = {:?} kBT\n", jdx, avg_energy);
+            println!(
+                "average energy of child-sim {:?} = {:?} kBT\n",
+                jdx, avg_energy
+            );
             children.push(vmmc);
         }
         children
     }
 
-    // TODO: how to derive new generation from old?    
-    pub fn step_generation_n(&mut self, n: usize, rng: &mut SmallRng){
+    // TODO: how to derive new generation from old?
+    pub fn step_generation_n(&mut self, n: usize, rng: &mut SmallRng) {
         for idx in 0..n {
             println!("Starting generation {:?}", idx);
             let children = self.step_generation(rng);
             let survivors = self.prune(children);
             let survivor_ids: Vec<usize> = survivors.iter().map(|v| v.0).collect();
             println!("{:?} survive", survivor_ids);
-
         }
     }
 
-    pub fn step_all(&mut self, rng: &mut SmallRng){
+    pub fn step_all(&mut self, rng: &mut SmallRng) {
         self.step_generation_n(self.params.num_generations, rng)
     }
 
-    fn get_index_of_least_fit(&self, values: &[(usize,Vmmc)]) -> usize {
+    fn get_index_of_least_fit(&self, values: &[(usize, Vmmc)]) -> usize {
         let mut lowest = f64::MIN;
         let mut index = 0;
         for i in 0..values.len() {
@@ -198,25 +206,23 @@ impl EvoVmmc {
 
     // Note: this function is implemented assuming that computing fitness is cheap
     // pretty easy to optimize if that isn't the case
-    pub fn prune(&self, vmmcs: Vec<Vmmc>) -> Vec<(usize,Vmmc)> {
+    pub fn prune(&self, vmmcs: Vec<Vmmc>) -> Vec<(usize, Vmmc)> {
         let n = self.params.survivors_per_generation;
         let mut survivors = Vec::new();
-    
-        for (idx,vmmc) in vmmcs.into_iter().enumerate() {
+
+        for (idx, vmmc) in vmmcs.into_iter().enumerate() {
             // the first n children get to start as survivors
             if idx < n {
-                survivors.push((idx,vmmc));
+                survivors.push((idx, vmmc));
                 continue;
             }
             // attempt to replace one of the survivors
             let fitness = self.fitness(&vmmc);
             let index = self.get_index_of_least_fit(&survivors);
             if fitness > self.fitness(&survivors[index].1) {
-                survivors[index] = (idx,vmmc);
-                
+                survivors[index] = (idx, vmmc);
             }
         }
         survivors
     }
 }
-

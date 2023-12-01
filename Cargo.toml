@@ -17,5 +17,6 @@ anyhow = "1.0.75" # better errors
 clap = { version = "4.4.6", features = ["derive"] } # commandline parsing
 env_logger = "0.10.0"
 log = "0.4.20"
+petgraph = "0.6.4"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rand_distr = "0.4.3"
