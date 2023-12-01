@@ -153,6 +153,14 @@ impl SimBox {
         &mut self.particles
     }
 
+    pub fn shapes(&self) -> &[Morphology] {
+        &self.shapes
+    }
+
+    pub fn morphology<P: IsParticle>(&self, p: &P) -> &Morphology {
+        &self.shapes[p.shape_id() as usize]
+    }
+
     pub fn get_cell_id(&self, pos: Position) -> CellId {
         // adjust so all indexes are positive
         // indexes start at bottom left and scan bottom to top

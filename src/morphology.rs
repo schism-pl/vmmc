@@ -1,26 +1,63 @@
 pub struct Patch {
     radius: f64,
-    offset: f64, // (degrees ???)
-    color: u8,   // rename color?
+    theta: f64,      // angle in degrees
+    color: u8,       // rename color?
+    radius_sqd: f64, // cache radius squared
 }
 
 impl Patch {
-    pub fn new(radius: f64, offset: f64, color: u8) -> Self {
+    pub fn new(radius: f64, theta: f64, color: u8) -> Self {
         Self {
             radius,
-            offset,
+            theta,
             color,
+            radius_sqd: radius * radius,
         }
+    }
+
+    pub fn radius(&self) -> f64 {
+        self.radius
+    }
+
+    pub fn radius_sqd(&self) -> f64 {
+        self.radius_sqd
+    }
+
+    pub fn theta(&self) -> f64 {
+        self.theta
+    }
+
+    pub fn color(&self) -> u8 {
+        self.color
     }
 }
 
 pub struct Morphology {
     patches: Vec<Patch>,
+    // max distance that this particle can interact with another
+    // used for optimization
+    sqd_cutoff_max: f64,
 }
 
 impl Morphology {
     pub fn new(patches: Vec<Patch>) -> Self {
-        Self { patches }
+        // max of all squared cutoff distances
+        let sqd_cutoff_max = patches
+            .iter()
+            .map(|p| (1.0 + p.radius) * (1.0 + p.radius))
+            .fold(f64::MIN, |a, b| a.min(b));
+        Self {
+            patches,
+            sqd_cutoff_max,
+        }
+    }
+
+    pub fn patches(&self) -> &[Patch] {
+        &self.patches
+    }
+
+    pub fn sqd_cutoff_max(&self) -> f64 {
+        self.sqd_cutoff_max
     }
 
     pub fn regular_3patch(radius: f64) -> Self {

@@ -4,11 +4,9 @@ use rand::SeedableRng;
 use std::f64::consts::PI;
 use vmmc::cli::VmmcConfig;
 use vmmc::morphology::Morphology;
-use vmmc::position::DimVec;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
     particle::Particle,
-    patchy_discs::PatchyDiscParams,
     simbox::SimBox,
     vmmc::{Vmmc, VmmcParams},
 };
@@ -38,7 +36,6 @@ struct InputParams {
     interaction_energy: f64, // kBT
     patch_radius: f64,       // diameter of patch (in units of particle diameter)
     density: f64,
-    num_patches: usize,
 
     prob_translate: f64,
     max_translation: f64,
@@ -54,7 +51,6 @@ impl Default for InputParams {
         let interaction_energy = 8.0; // kBT
         let patch_radius = 0.1; // diameter of patch (in units of particle diameter)
         let density = 0.2;
-        let num_patches = 3;
 
         let prob_translate = 0.5;
         let max_translation = 0.15;
@@ -68,7 +64,6 @@ impl Default for InputParams {
             interaction_energy,
             patch_radius,
             density,
-            num_patches,
 
             prob_translate,
             max_translation,
@@ -84,9 +79,9 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
     let base_length = ((ip.num_particles as f64 * PI) / (4.0 * ip.density)).sqrt();
     let box_dimensions = [base_length, base_length];
     // lower bound on cell length (max distance that cells can interact at)
-    let cell_range = 1.0 + ip.patch_radius;
+    let cell_width = 1.0 + ip.patch_radius;
 
-    let cells_per_axis = (base_length / cell_range).floor();
+    let cells_per_axis = (base_length / cell_width).floor();
     let cell_length = base_length / cells_per_axis;
     let cells_per_axis = [cells_per_axis as usize, cells_per_axis as usize];
 
@@ -117,7 +112,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
         )
     };
 
-    let pd_params = PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.patch_radius);
+    // let pd_params = PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.patch_radius);
 
     let params = VmmcParams::new(
         ip.prob_translate,
@@ -128,7 +123,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     println!("Box dimensions: {:?}", box_dimensions);
     println!("Cell dimensions: {:?}", cell_dimensions);
-    Vmmc::new(simbox, params, pd_params)
+    Vmmc::new(simbox, params, ip.interaction_energy)
 }
 
 // TODO: builder pattern

@@ -1,65 +1,56 @@
 use crate::consts::DIMENSION;
-use crate::particle::{IsParticle, Particle, ParticleId};
+use crate::morphology::Morphology;
+use crate::particle::{IsParticle, Particle, ParticleId, ShapeId};
 use crate::position::{Orientation, Position};
 use crate::simbox::SimBox;
 use std::f64::consts::PI;
 
 // Note: Pairwise potentials are just a filter map
 
-pub struct PatchyDiscParams {
-    num_patches: usize,
-    interaction_energy: f64,
-    interaction_range: f64,
-    sqd_cutoff_distance: f64,
-    sqd_cutoff_max: f64,
-}
-
-impl PatchyDiscParams {
-    pub fn new(num_patches: usize, interaction_energy: f64, interaction_range: f64) -> Self {
-        Self {
-            num_patches,
-            interaction_energy,
-            interaction_range,
-            // sqd distance that particles interact
-            sqd_cutoff_distance: interaction_range * interaction_range,
-            // upper bound on distance that particles can be before they won't interact
-            sqd_cutoff_max: (1.0 + interaction_range) * (1.0 + interaction_range),
-        }
-    }
-}
-
 pub struct PatchyDiscsPotential {
-    sin_theta: Vec<f64>,
-    cos_theta: Vec<f64>,
-    params: PatchyDiscParams,
+    // maps shape_id -> theta -> sin(theta) for each patch angle
+    sin_thetas: Vec<Vec<f64>>,
+    // maps shape_id -> theta -> cos(theta) for each patch angle
+    cos_thetas: Vec<Vec<f64>>,
+    interaction_energy: f64,
 }
 
 impl PatchyDiscsPotential {
-    pub fn new(params: PatchyDiscParams) -> Self {
-        let patch_seperation: f64 = 2.0 * PI / (params.num_patches as f64);
-        let mut sin_theta: Vec<_> = Vec::new();
-        let mut cos_theta: Vec<_> = Vec::new();
-        for idx in 0..params.num_patches {
-            let theta = (idx as f64) * patch_seperation;
-            sin_theta.push(theta.sin());
-            cos_theta.push(theta.cos());
+    pub fn new(shapes: &[Morphology], interaction_energy: f64) -> Self {
+        let mut sin_thetas: Vec<_> = Vec::new();
+        let mut cos_thetas: Vec<_> = Vec::new();
+        for shape in shapes {
+            let mut sin_theta: Vec<_> = Vec::new();
+            let mut cos_theta: Vec<_> = Vec::new();
+            for patch in shape.patches() {
+                let theta = patch.theta() * PI / 180.0; // convert degrees to radians
+                sin_theta.push(theta.sin());
+                cos_theta.push(theta.cos());
+            }
+            sin_thetas.push(sin_theta);
+            cos_thetas.push(cos_theta);
         }
+
         Self {
-            sin_theta,
-            cos_theta,
-            params,
+            sin_thetas,
+            cos_thetas,
+            interaction_energy,
         }
     }
 
+    // TODO: need to fix -- need to route in correct cos_Theta
     pub fn pos_on_disc(
         &self,
         simbox: &SimBox,
-        idx: usize,
+        p_idx: usize,
         p: Position,
         or: Orientation,
+        shape_id: ShapeId,
     ) -> Position {
-        let x = p.x() + 0.5 * (or.x() * self.cos_theta[idx] - or.y() * self.sin_theta[idx]);
-        let y = p.y() + 0.5 * (or.x() * self.sin_theta[idx] + or.y() * self.cos_theta[idx]);
+        let sin_theta = self.sin_thetas[shape_id as usize][p_idx];
+        let cos_theta = self.cos_thetas[shape_id as usize][p_idx];
+        let x = p.x() + 0.5 * (or.x() * cos_theta - or.y() * sin_theta);
+        let y = p.y() + 0.5 * (or.x() * sin_theta + or.y() * cos_theta);
         simbox.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 
@@ -69,7 +60,8 @@ impl PatchyDiscsPotential {
         particle0: &P1,
         particle1: &P2,
     ) -> f64 {
-        debug_assert!(DIMENSION == 2); // patchy disks is for 2d
+        let m0 = simbox.morphology(particle0);
+        let m1 = simbox.morphology(particle1);
 
         let p0 = particle0.pos();
         let or0 = particle0.or();
@@ -84,24 +76,27 @@ impl PatchyDiscsPotential {
         }
 
         // theres no way they can interact
-        if dist_sqd > self.params.sqd_cutoff_max {
+        if dist_sqd > m0.sqd_cutoff_max().max(m1.sqd_cutoff_max()) {
             return 0.0;
         }
 
-        // assert!(dist >= 1.0); // particles should not overlap
-
         // check all pairs of patches
-        for idx in 0..self.params.num_patches {
+        for (p_idx0, patch0) in m0.patches().iter().enumerate() {
             // Compute position of patch i on first disc.
-            let new_p0 = self.pos_on_disc(simbox, idx, p0, or0);
-            for jdx in 0..self.params.num_patches {
-                let new_p1 = self.pos_on_disc(simbox, jdx, p1, or1);
+            let new_p0 = self.pos_on_disc(simbox, p_idx0, p0, or0, particle0.shape_id());
+            for (p_idx1, patch1) in m1.patches().iter().enumerate() {
+                // if these patches aren't compatible, skip
+                if patch0.color() != patch1.color() {
+                    continue;
+                }
+
+                let new_p1 = self.pos_on_disc(simbox, p_idx1, p1, or1, particle1.shape_id());
                 let sqd_dist = simbox.sep_in_box(new_p0, new_p1).norm_sqd();
 
-                if sqd_dist < self.params.sqd_cutoff_distance {
-                    // theres no way for more than 2 patches to interaact between 2 particles
+                if sqd_dist < patch0.radius_sqd().max(patch1.radius_sqd()) {
+                    // theres no way for more than 2 patches to interact between 2 particles
                     // TODO: write out exact conditions for this and assert it
-                    return -self.params.interaction_energy;
+                    return -self.interaction_energy;
                 }
             }
         }
@@ -115,7 +110,7 @@ impl PatchyDiscsPotential {
         particles: &[Particle],
         p: &Particle,
     ) -> Vec<ParticleId> {
-        log::debug!("Determining interactions for p{:?}", p.id());
+        // log::debug!("Determining interactions for p{:?}", p.id());
         let mut interactions = Vec::new();
         for neighbor_id in simbox.get_neighbors(p) {
             let neighbor = &particles[neighbor_id as usize];
@@ -123,23 +118,24 @@ impl PatchyDiscsPotential {
                 continue;
             }
             let energy = self.compute_pair_energy(simbox, p, neighbor);
-            log::debug!(
-                "p{:?} tries to interact with p{:?} with energy={:?}",
-                p.id(),
-                neighbor_id,
-                energy
-            );
+            // log::debug!(
+            //     "p{:?} tries to interact with p{:?} with energy={:?}",
+            //     p.id(),
+            //     neighbor_id,
+            //     energy
+            // );
 
             // particles interact!
             if energy < 0.0 {
-                if interactions.len() == self.params.num_patches {
-                    println!("{:?} {:?}", p, interactions);
-                    println!("--- {:?}", neighbor);
-                    for &interacting_p_id in interactions.iter() {
-                        println!("--- {:?}", &particles[interacting_p_id as usize]);
-                    }
-                }
-                assert_ne!(interactions.len(), self.params.num_patches);
+                // if interactions.len() == self.params.num_patches {
+                //     println!("{:?} {:?}", p, interactions);
+                //     println!("--- {:?}", neighbor);
+                //     for &interacting_p_id in interactions.iter() {
+                //         println!("--- {:?}", &particles[interacting_p_id as usize]);
+                //     }
+                // }
+                let m = simbox.morphology(p);
+                assert_ne!(interactions.len(), m.patches().len());
                 interactions.push(neighbor_id);
             }
         }

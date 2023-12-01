@@ -1,5 +1,5 @@
 use crate::particle::{IsParticle, Particle, ParticleId, VParticle};
-use crate::patchy_discs::{PatchyDiscParams, PatchyDiscsPotential};
+use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::Position;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
@@ -119,8 +119,8 @@ pub struct Vmmc {
     params: VmmcParams,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, params: VmmcParams, pd_params: PatchyDiscParams) -> Self {
-        let potential = PatchyDiscsPotential::new(pd_params);
+    pub fn new(simbox: SimBox, params: VmmcParams, interaction_energy: f64) -> Self {
+        let potential = PatchyDiscsPotential::new(simbox.shapes(), interaction_energy);
         Self {
             simbox,
             potential,
@@ -229,7 +229,13 @@ impl Vmmc {
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);
-        VParticle::new(particle.pos(), particle.or(), final_p, final_or)
+        VParticle::new(
+            particle.pos(),
+            particle.or(),
+            final_p,
+            final_or,
+            particle.shape_id(),
+        )
     }
 
     fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {

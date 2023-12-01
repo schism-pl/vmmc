@@ -8,6 +8,7 @@ pub type ShapeId = u16;
 pub trait IsParticle {
     fn pos(&self) -> Position;
     fn or(&self) -> Orientation;
+    fn shape_id(&self) -> ShapeId;
 }
 
 #[derive(PartialEq, Debug)]
@@ -25,6 +26,10 @@ impl IsParticle for Particle {
 
     fn or(&self) -> Orientation {
         self.or
+    }
+
+    fn shape_id(&self) -> ShapeId {
+        self.shape_id
     }
 }
 
@@ -70,15 +75,23 @@ pub struct VParticle {
     orig_or: Orientation,
     pos: Position,
     or: Orientation,
+    shape_id: ShapeId,
 }
 
 impl VParticle {
-    pub fn new(orig_pos: Position, orig_or: Orientation, pos: Position, or: Orientation) -> Self {
+    pub fn new(
+        orig_pos: Position,
+        orig_or: Orientation,
+        pos: Position,
+        or: Orientation,
+        shape_id: ShapeId,
+    ) -> Self {
         Self {
             orig_pos,
             orig_or,
             pos,
             or,
+            shape_id,
         }
     }
 
@@ -98,5 +111,9 @@ impl IsParticle for VParticle {
 
     fn or(&self) -> Orientation {
         self.or
+    }
+
+    fn shape_id(&self) -> ShapeId {
+        self.shape_id
     }
 }
