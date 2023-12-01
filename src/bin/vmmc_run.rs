@@ -3,6 +3,7 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use std::f64::consts::PI;
 use vmmc::cli::VmmcConfig;
+use vmmc::position::DimVec;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
     particle::Particle,
@@ -39,8 +40,8 @@ struct InputParams {
     num_patches: usize,
 
     prob_translate: f64,
-    max_trial_translation: f64,
-    max_trial_rotation: f64,
+    max_translation: f64,
+    max_rotation: f64,
     reference_radius: f64,
     num_sweeps: usize,
     steps_per_sweep: usize,
@@ -55,8 +56,8 @@ impl Default for InputParams {
         let num_patches = 3;
 
         let prob_translate = 0.5;
-        let max_trial_translation = 0.15;
-        let max_trial_rotation = 0.2;
+        let max_translation = 0.15;
+        let max_rotation = 0.2;
         let reference_radius = 0.5;
         let num_sweeps = 1000;
         let steps_per_sweep = 1000;
@@ -69,8 +70,8 @@ impl Default for InputParams {
             num_patches,
 
             prob_translate,
-            max_trial_translation,
-            max_trial_rotation,
+            max_translation,
+            max_rotation,
             reference_radius,
             num_sweeps,
             steps_per_sweep,
@@ -110,13 +111,15 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     let params = VmmcParams::new(
         ip.prob_translate,
-        ip.max_trial_translation,
-        ip.max_trial_rotation,
+        ip.max_translation,
+        ip.max_rotation,
         ip.reference_radius,
     );
 
     println!("Box dimensions: {:?}", box_dimensions);
     println!("Cell dimensions: {:?}", cell_dimensions);
+    println!("Dimvec size: {:?}", std::mem::size_of::<DimVec>());
+    println!("Particle size: {:?}", std::mem::size_of::<Particle>());
     Vmmc::new(simbox, params, pd_params)
 }
 

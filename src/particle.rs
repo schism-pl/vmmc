@@ -3,15 +3,27 @@ use rand::rngs::SmallRng;
 use crate::position::{Orientation, Position};
 
 pub type ParticleId = u16;
+pub type ShapeId = u16;
 
 pub trait IsParticle {
     fn pos(&self) -> Position;
     fn or(&self) -> Orientation;
 }
 
+// pub struct Patch {
+//     radius:
+//     color:
+//     offset:
+// }
+
+// pub struct Morphology {
+//     patches: Vec<Patch>,
+// }
+
 #[derive(PartialEq, Debug)]
 pub struct Particle {
     id: ParticleId,
+    shape_id: ShapeId,
     pos: Position,
     or: Orientation,
 }
@@ -28,7 +40,12 @@ impl IsParticle for Particle {
 
 impl Particle {
     pub fn new(id: ParticleId, pos: Position, or: Orientation) -> Self {
-        Self { id, pos, or }
+        Self {
+            id,
+            pos,
+            shape_id: 0,
+            or,
+        }
     }
 
     pub fn id(&self) -> ParticleId {
