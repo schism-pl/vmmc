@@ -92,43 +92,36 @@ impl ProposedMove {
 
 pub struct VmmcParams {
     prob_translate: f64,
-    max_trial_translation: f64,
-    max_trial_rotation: f64,
+    max_translation: f64,
+    max_rotation: f64,
     reference_radius: f64,
 }
 
 impl VmmcParams {
     pub fn new(
         prob_translate: f64,
-        max_trial_translation: f64,
-        max_trial_rotation: f64,
+        max_translation: f64,
+        max_rotation: f64,
         reference_radius: f64,
     ) -> Self {
         Self {
             prob_translate,
-            max_trial_translation,
-            max_trial_rotation,
+            max_translation,
+            max_rotation,
             reference_radius,
         }
     }
 }
 
 pub struct Vmmc {
-    // particles: Vec<Particle>,
     simbox: SimBox,
     potential: PatchyDiscsPotential,
     params: VmmcParams,
 }
 impl Vmmc {
-    pub fn new(
-        // particles: Vec<Particle>,
-        simbox: SimBox,
-        params: VmmcParams,
-        pd_params: PatchyDiscParams,
-    ) -> Self {
+    pub fn new(simbox: SimBox, params: VmmcParams, pd_params: PatchyDiscParams) -> Self {
         let potential = PatchyDiscsPotential::new(pd_params);
         Self {
-            // particles,
             simbox,
             potential,
             params,
@@ -151,6 +144,10 @@ impl Vmmc {
         &self.simbox.particles()[p_id as usize]
     }
 
+    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
+        self.potential.compute_pair_energy(&self.simbox, p1, p2)
+    }
+
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> f64 {
         let mut energy = 0.0;
@@ -159,9 +156,7 @@ impl Vmmc {
                 .determine_interactions(&self.simbox, &self.particles(), p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
-            energy += self
-                .potential
-                .compute_pair_energy(self.simbox(), p, neighbor);
+            energy += self.compute_pair_energy(p, neighbor);
         }
         energy
     }
@@ -176,6 +171,7 @@ impl Vmmc {
     }
 
     // TODO: differentially test?
+    // TODO: what is this?
     fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> f64 {
         let mut stokes_radius = 0.0;
         // Calculate center of mass of the moving cluster (translations only).
@@ -212,6 +208,7 @@ impl Vmmc {
     }
 
     // returns difference in position between final and original
+    // TODO: is this function right? it reads wierd
     fn calculate_motion(
         &self,
         particle: &Particle,
@@ -249,13 +246,13 @@ impl Vmmc {
         let step_size = if is_rotation {
             // Rotation
             let r: f64 = rng.gen();
-            self.params.max_trial_rotation * r.powf(1.0 / (DIMENSION as f64))
+            self.params.max_rotation * r.powf(1.0 / (DIMENSION as f64))
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
             let r: f64 = rng.gen();
             // random number between (-1.0 and 1.0) * max_trial_translation
-            self.params.max_trial_translation * (2.0 * r - 1.0)
+            self.params.max_translation * (2.0 * r - 1.0)
         };
 
         ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)
@@ -294,7 +291,6 @@ impl Vmmc {
             // this particle moves
             vmoves.push(id, final_p.clone());
 
-            // particle / seen / final_p
             let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
             let interactions =
                 self.potential
@@ -344,27 +340,13 @@ impl Vmmc {
         final_p: &VParticle,
         reverse_p: &VParticle,
     ) -> (f64, f64) {
-        let init_energy = self
-            .potential
-            .compute_pair_energy(&self.simbox, particle, interacting_p);
-        let final_energy = self
-            .potential
-            .compute_pair_energy(&self.simbox, final_p, interacting_p);
-        let reverse_energy =
-            self.potential
-                .compute_pair_energy(&self.simbox, reverse_p, interacting_p);
+        let init_energy = self.compute_pair_energy(particle, interacting_p);
+        let final_energy = self.compute_pair_energy(final_p, interacting_p);
+        let reverse_energy = self.compute_pair_energy(reverse_p, interacting_p);
 
         let link_weight = 0.0_f64.max(1.0 - (init_energy - final_energy).exp());
         let reverse_link_weight = 0.0_f64.max(1.0 - (init_energy - reverse_energy).exp());
 
-        debug_assert!(
-            link_weight.is_finite() && !link_weight.is_nan() && !link_weight.is_subnormal()
-        );
-        debug_assert!(
-            reverse_link_weight.is_finite()
-                && !reverse_link_weight.is_nan()
-                && !reverse_link_weight.is_subnormal()
-        );
         (link_weight, reverse_link_weight)
     }
 
