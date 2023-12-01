@@ -1,6 +1,7 @@
 use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
+use crate::position::Orientation;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -40,6 +41,7 @@ pub struct SimBox {
     dimensions: DimVec,
     cells_per_axis: [usize; DIMENSION],
     cell_dimensions: DimVec,
+    particles: Vec<Particle>,
     cells: CellGrid,
     tenants: Vec<u8>,
 }
@@ -51,10 +53,10 @@ impl SimBox {
         dimensions: [f64; DIMENSION],
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
-        particles: &[Particle],
+        particles: Vec<Particle>,
     ) -> Self {
         // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
-
+        // let particles = Vec::new(); // TODO: initalize!
         // let tenants = CellGrid::new(cells_per_axis, particles);
         let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
         let tenants = vec![0_u8; cells.len()];
@@ -62,19 +64,76 @@ impl SimBox {
             dimensions: DimVec::new(dimensions),
             cells_per_axis,
             cell_dimensions: DimVec::new(cell_dimensions),
+            particles,
             cells,
             tenants,
         };
 
-        for p in particles.iter() {
-            let cell_id = r.get_cell_id(p.pos());
-            r.insert_p_into_cell(p.id(), cell_id);
+        for p_id in 0..r.particles.len() {
+        // for p in r.particles.iter() {
+            let cell_id = r.get_cell_id(r.particles[p_id].pos());
+            r.insert_p_into_cell(p_id as u16, cell_id);
         }
         r
     }
 
+    pub fn new_empty(
+        dimensions: [f64; DIMENSION],
+        cells_per_axis: [usize; DIMENSION],
+        cell_dimensions: [f64; DIMENSION],
+    ) -> Self {
+        Self::new(dimensions, cells_per_axis, cell_dimensions, Vec::new())
+    }
+
+    // TODO: dedup with other impl of randomized_particles and overlaps
+    // check if a particle overlaps any other particles
+    fn overlaps(&self, pos: &Position, particles: &[Particle]) -> bool {
+        for other in particles.iter() {
+            // dist < 1.0 (hard sphere radius)
+            if self.sep_in_box(*pos, other.pos()).norm() < 1.0 {
+                return true;
+            }
+        }
+        false
+    }
+
+    // TODO: dedup with other impl of randomized_particles and overlaps
+    pub fn new_with_randomized_particles(
+        dimensions: [f64; DIMENSION],
+        cells_per_axis: [usize; DIMENSION],
+        cell_dimensions: [f64; DIMENSION],
+        n: usize,
+        rng: &mut SmallRng
+    ) -> Self {
+        // We initilize dummy simbox with no particles
+        let mut simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
+
+        let mut particles = Vec::new();
+        for idx in 0..n {
+            let mut pos = simbox.random_pos(rng);
+            while simbox.overlaps(&pos, &particles) {
+                pos = simbox.random_pos(rng);
+            }
+            let or = Orientation::unit_vector(rng);
+            let particle = Particle::new(idx as u16, pos, or);
+            particles.push(particle);
+        }
+        // generate the real simbox
+        SimBox::new(dimensions, cells_per_axis, cell_dimensions, particles)
+    }
+    
+
+
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    pub fn particles(&self) -> &[Particle] {
+        &self.particles
+    }
+
+    pub fn particles_mut(&mut self) -> &mut [Particle] {
+        &mut self.particles
     }
 
     pub fn get_cell_id(&self, pos: Position) -> CellId {

@@ -1,32 +1,9 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
-use std::f64::consts::PI;
+use rand::SeedableRng;
+use vmmc::evo_vmmc::{EvoVmmc, FitnessFunc};
 use vmmc::cli::VmmcConfig;
-use vmmc::particle::IsParticle;
-use vmmc::position::Position;
-use vmmc::{
-    io::{read_xyz_snapshot, write_tcl, XYZWriter},
-    particle::Particle,
-    patchy_discs::PatchyDiscParams,
-    position::Orientation,
-    simbox::SimBox,
-    vmmc::{Vmmc, VmmcParams},
-};
 
-// grab first frame from xyz and load particles
-fn particles_from_xyz(path: &str) -> Vec<Particle> {
-    let mut particles = Vec::new();
-    let (positions, orientations) = read_xyz_snapshot(path);
-
-    for idx in 0..positions.len() {
-        let pos = positions[idx];
-        let or = orientations[idx];
-        let particle = Particle::new(idx as u16, pos, or);
-        particles.push(particle);
-    }
-    particles
-}
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
@@ -38,6 +15,7 @@ fn particles_from_xyz(path: &str) -> Vec<Particle> {
 fn main() {
     env_logger::init();
     // Get commandline arguments
+    // TODO: use seperate commandline arguments
     let config = VmmcConfig::parse();
     // Get default params
 
@@ -45,6 +23,12 @@ fn main() {
     let seed = config.seed();
     println!("Using seed = {:?}", seed);
     let mut rng = SmallRng::seed_from_u64(seed);
+
+    // let ip = L2GInputParams::default();
+    let mut evo_vmmc = EvoVmmc::new(FitnessFunc::AvgEnergy);
+    evo_vmmc.step_all(&mut rng);
+    
+    // evo_vmmc.step_generation_n(ip.num_generations, &mut rng);
 
     // TODO: implement fitness function class
     // TODO: implement pruning functionality
@@ -61,4 +45,5 @@ fn main() {
     //         println!("average energy of sim {:?}-{:?} = {:?} kBT\n", idx, jdx, avg_energy);
     //     }
     // }
+
 }

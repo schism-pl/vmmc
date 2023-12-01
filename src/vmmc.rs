@@ -114,21 +114,21 @@ impl VmmcParams {
 }
 
 pub struct Vmmc {
-    particles: Vec<Particle>,
+    // particles: Vec<Particle>,
     simbox: SimBox,
     potential: PatchyDiscsPotential,
     params: VmmcParams,
 }
 impl Vmmc {
     pub fn new(
-        particles: Vec<Particle>,
+        // particles: Vec<Particle>,
         simbox: SimBox,
         params: VmmcParams,
         pd_params: PatchyDiscParams,
     ) -> Self {
         let potential = PatchyDiscsPotential::new(pd_params);
         Self {
-            particles,
+            // particles,
             simbox,
             potential,
             params,
@@ -136,7 +136,7 @@ impl Vmmc {
     }
 
     pub fn particles(&self) -> &[Particle] {
-        &self.particles
+        &self.simbox.particles()
     }
 
     pub fn simbox(&self) -> &SimBox {
@@ -148,7 +148,7 @@ impl Vmmc {
     }
 
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
-        &self.particles[p_id as usize]
+        &self.simbox.particles()[p_id as usize]
     }
 
     // get energy
@@ -156,7 +156,7 @@ impl Vmmc {
         let mut energy = 0.0;
         let interactions = self
             .potential
-            .determine_interactions(&self.simbox, &self.particles, p);
+            .determine_interactions(&self.simbox, &self.particles(), p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
             energy += self
@@ -172,7 +172,7 @@ impl Vmmc {
             total_energy += self.get_particle_energy(p);
         }
         // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles.len() as f64 * 2.0)
+        total_energy / (self.particles().len() as f64 * 2.0)
     }
 
     // TODO: differentially test?
@@ -298,7 +298,7 @@ impl Vmmc {
             let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
             let interactions =
                 self.potential
-                    .determine_interactions(&self.simbox, &self.particles, particle);
+                    .determine_interactions(&self.simbox, &self.particles(), particle);
 
             for &neighbor_id in interactions.iter() {
                 let neighbor = self.particle(neighbor_id);
@@ -374,8 +374,9 @@ impl Vmmc {
 
     fn commit_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id as usize];
-            self.simbox.move_particle_tenancy(*p_id, p.pos(), vp.pos());
+            let old_pos = self.simbox.particles()[*p_id as usize].pos();
+            self.simbox.move_particle_tenancy(*p_id, old_pos, vp.pos());
+            let p = &mut self.simbox.particles_mut()[*p_id as usize];
             p.update_pos(vp.pos());
             p.update_or(vp.or());
         }
@@ -383,9 +384,11 @@ impl Vmmc {
 
     fn revert_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id as usize];
+            // let p = &mut self.simbox.particles_mut()[*p_id as usize];
+            let old_pos = self.simbox.particles()[*p_id as usize].pos();
             self.simbox
-                .move_particle_tenancy(*p_id, p.pos(), vp.orig_pos());
+                .move_particle_tenancy(*p_id, old_pos, vp.orig_pos());
+            let p = &mut self.simbox.particles_mut()[*p_id as usize];
             p.update_pos(vp.orig_pos());
             p.update_or(vp.orig_or());
         }
