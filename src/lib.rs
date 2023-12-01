@@ -1,6 +1,7 @@
 pub mod cli;
 mod consts;
 pub mod io;
+pub mod morphology;
 pub mod particle;
 pub mod patchy_discs;
 pub mod position;

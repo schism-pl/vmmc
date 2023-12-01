@@ -1,6 +1,7 @@
 use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
+use crate::morphology::Morphology;
 use crate::position::Orientation;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
@@ -42,6 +43,7 @@ pub struct SimBox {
     cells_per_axis: [usize; DIMENSION],
     cell_dimensions: DimVec,
     particles: Vec<Particle>,
+    shapes: Vec<Morphology>, // maps shape_id to morphology
     cells: CellGrid,
     tenants: Vec<u8>,
 }
@@ -54,6 +56,7 @@ impl SimBox {
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
         particles: Vec<Particle>,
+        shapes: Vec<Morphology>,
     ) -> Self {
         // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
         // let particles = Vec::new(); // TODO: initalize!
@@ -65,6 +68,7 @@ impl SimBox {
             cells_per_axis,
             cell_dimensions: DimVec::new(cell_dimensions),
             particles,
+            shapes,
             cells,
             tenants,
         };
@@ -82,7 +86,13 @@ impl SimBox {
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
     ) -> Self {
-        Self::new(dimensions, cells_per_axis, cell_dimensions, Vec::new())
+        Self::new(
+            dimensions,
+            cells_per_axis,
+            cell_dimensions,
+            Vec::new(),
+            Vec::new(),
+        )
     }
 
     // TODO: dedup with other impl of randomized_particles and overlaps
@@ -98,11 +108,13 @@ impl SimBox {
     }
 
     // TODO: dedup with other impl of randomized_particles and overlaps
-    pub fn new_with_randomized_particles(
+    // just uses 1 type of particle with uniform morphology
+    pub fn new_with_randomized_particles_nomix(
         dimensions: [f64; DIMENSION],
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
         n: usize,
+        shape: Morphology,
         rng: &mut SmallRng,
     ) -> Self {
         // We initilize dummy simbox with no particles
@@ -115,11 +127,18 @@ impl SimBox {
                 pos = simbox.random_pos(rng);
             }
             let or = Orientation::unit_vector(rng);
-            let particle = Particle::new(idx as u16, pos, or);
+            // shape id is always 0 since only 1 type of particle
+            let particle = Particle::new(idx as u16, pos, or, 0);
             particles.push(particle);
         }
         // generate the real simbox
-        SimBox::new(dimensions, cells_per_axis, cell_dimensions, particles)
+        SimBox::new(
+            dimensions,
+            cells_per_axis,
+            cell_dimensions,
+            particles,
+            vec![shape],
+        )
     }
 
     pub fn cells(&self) -> &[Cell] {

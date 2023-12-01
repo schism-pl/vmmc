@@ -10,16 +10,6 @@ pub trait IsParticle {
     fn or(&self) -> Orientation;
 }
 
-// pub struct Patch {
-//     radius:
-//     color:
-//     offset:
-// }
-
-// pub struct Morphology {
-//     patches: Vec<Patch>,
-// }
-
 #[derive(PartialEq, Debug)]
 pub struct Particle {
     id: ParticleId,
@@ -39,11 +29,11 @@ impl IsParticle for Particle {
 }
 
 impl Particle {
-    pub fn new(id: ParticleId, pos: Position, or: Orientation) -> Self {
+    pub fn new(id: ParticleId, pos: Position, or: Orientation, shape_id: ShapeId) -> Self {
         Self {
             id,
             pos,
-            shape_id: 0,
+            shape_id,
             or,
         }
     }
@@ -64,8 +54,13 @@ impl Particle {
         self.or = self.or.rotated_by(other, theta)
     }
 
-    pub fn random(rng: &mut SmallRng, id: ParticleId) -> Self {
-        Particle::new(id, Position::random(rng), Orientation::random(rng))
+    pub fn random(rng: &mut SmallRng, id: ParticleId, shape_id: ShapeId) -> Self {
+        Particle::new(
+            id,
+            Position::random(rng),
+            Orientation::random(rng),
+            shape_id,
+        )
     }
 }
 

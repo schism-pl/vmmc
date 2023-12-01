@@ -3,6 +3,7 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use std::f64::consts::PI;
 use vmmc::cli::VmmcConfig;
+use vmmc::morphology::Morphology;
 use vmmc::position::DimVec;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
@@ -14,14 +15,14 @@ use vmmc::{
 
 // grab first frame from xyz and load particles
 // TODO: dedup with other particles_from_xyz
-fn particles_from_xyz(path: &str) -> Vec<Particle> {
+fn particles_from_xyz_nomix(path: &str) -> Vec<Particle> {
     let mut particles = Vec::new();
     let (positions, orientations) = read_xyz_snapshot(path);
 
     for idx in 0..positions.len() {
         let pos = positions[idx];
         let or = orientations[idx];
-        let particle = Particle::new(idx as u16, pos, or);
+        let particle = Particle::new(idx as u16, pos, or, 0);
         particles.push(particle);
     }
     particles
@@ -35,7 +36,7 @@ fn particles_from_xyz(path: &str) -> Vec<Particle> {
 struct InputParams {
     num_particles: usize,
     interaction_energy: f64, // kBT
-    interaction_range: f64,  // diameter of patch (in units of particle diameter)
+    patch_radius: f64,       // diameter of patch (in units of particle diameter)
     density: f64,
     num_patches: usize,
 
@@ -51,7 +52,7 @@ impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 1000;
         let interaction_energy = 8.0; // kBT
-        let interaction_range = 0.1; // diameter of patch (in units of particle diameter)
+        let patch_radius = 0.1; // diameter of patch (in units of particle diameter)
         let density = 0.2;
         let num_patches = 3;
 
@@ -65,7 +66,7 @@ impl Default for InputParams {
         Self {
             num_particles,
             interaction_energy,
-            interaction_range,
+            patch_radius,
             density,
             num_patches,
 
@@ -83,7 +84,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
     let base_length = ((ip.num_particles as f64 * PI) / (4.0 * ip.density)).sqrt();
     let box_dimensions = [base_length, base_length];
     // lower bound on cell length (max distance that cells can interact at)
-    let cell_range = 1.0 + ip.interaction_range;
+    let cell_range = 1.0 + ip.patch_radius;
 
     let cells_per_axis = (base_length / cell_range).floor();
     let cell_length = base_length / cells_per_axis;
@@ -91,23 +92,32 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     let cell_dimensions = [cell_length, cell_length];
 
+    // only using 1 shape for now
+    let shape = Morphology::regular_3patch(ip.patch_radius);
+
     let simbox = if !config.start_frame().is_empty() {
         // We have an initial position, so just use that
-        let particles = particles_from_xyz(config.start_frame());
-        SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, particles)
+        let particles = particles_from_xyz_nomix(config.start_frame());
+        SimBox::new(
+            box_dimensions,
+            cells_per_axis,
+            cell_dimensions,
+            particles,
+            vec![shape],
+        )
     } else {
         // No initial position, so we will use a randomized start position
-        SimBox::new_with_randomized_particles(
+        SimBox::new_with_randomized_particles_nomix(
             box_dimensions,
             cells_per_axis,
             cell_dimensions,
             ip.num_particles,
+            shape,
             rng,
         )
     };
 
-    let pd_params =
-        PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.interaction_range);
+    let pd_params = PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.patch_radius);
 
     let params = VmmcParams::new(
         ip.prob_translate,
