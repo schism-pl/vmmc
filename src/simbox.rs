@@ -106,7 +106,7 @@ impl SimBox {
         rng: &mut SmallRng,
     ) -> Self {
         // We initilize dummy simbox with no particles
-        let mut simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
+        let simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
 
         let mut particles = Vec::new();
         for idx in 0..n {
