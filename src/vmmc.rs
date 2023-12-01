@@ -114,21 +114,21 @@ impl VmmcParams {
 }
 
 pub struct Vmmc {
-    particles: Vec<Particle>,
+    // particles: Vec<Particle>,
     simbox: SimBox,
     potential: PatchyDiscsPotential,
     params: VmmcParams,
 }
 impl Vmmc {
     pub fn new(
-        particles: Vec<Particle>,
+        // particles: Vec<Particle>,
         simbox: SimBox,
         params: VmmcParams,
         pd_params: PatchyDiscParams,
     ) -> Self {
         let potential = PatchyDiscsPotential::new(pd_params);
         Self {
-            particles,
+            // particles,
             simbox,
             potential,
             params,
@@ -136,7 +136,7 @@ impl Vmmc {
     }
 
     pub fn particles(&self) -> &[Particle] {
-        &self.particles
+        &self.simbox.particles()
     }
 
     pub fn simbox(&self) -> &SimBox {
@@ -148,7 +148,7 @@ impl Vmmc {
     }
 
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
-        &self.particles[p_id as usize]
+        &self.simbox.particles()[p_id as usize]
     }
 
     // get energy
@@ -156,7 +156,7 @@ impl Vmmc {
         let mut energy = 0.0;
         let interactions = self
             .potential
-            .determine_interactions(&self.simbox, &self.particles, p);
+            .determine_interactions(&self.simbox, &self.particles(), p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
             energy += self
@@ -172,7 +172,7 @@ impl Vmmc {
             total_energy += self.get_particle_energy(p);
         }
         // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles.len() as f64 * 2.0)
+        total_energy / (self.particles().len() as f64 * 2.0)
     }
 
     // TODO: differentially test?
@@ -298,7 +298,7 @@ impl Vmmc {
             let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
             let interactions =
                 self.potential
-                    .determine_interactions(&self.simbox, &self.particles, particle);
+                    .determine_interactions(&self.simbox, &self.particles(), particle);
 
             for &neighbor_id in interactions.iter() {
                 let neighbor = self.particle(neighbor_id);
@@ -369,13 +369,14 @@ impl Vmmc {
     }
 
     fn choose_seed(&self, rng: &mut SmallRng) -> ParticleId {
-        rng.gen_range(0..self.particles.len() as u16)
+        rng.gen_range(0..self.particles().len() as u16)
     }
 
     fn commit_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id as usize];
-            self.simbox.move_particle_tenancy(*p_id, p.pos(), vp.pos());
+            let old_pos = self.simbox.particles()[*p_id as usize].pos();
+            self.simbox.move_particle_tenancy(*p_id, old_pos, vp.pos());
+            let p = &mut self.simbox.particles_mut()[*p_id as usize];
             p.update_pos(vp.pos());
             p.update_or(vp.or());
         }
@@ -383,9 +384,11 @@ impl Vmmc {
 
     fn revert_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let p = &mut self.particles[*p_id as usize];
+            // let p = &mut self.simbox.particles_mut()[*p_id as usize];
+            let old_pos = self.simbox.particles()[*p_id as usize].pos();
             self.simbox
-                .move_particle_tenancy(*p_id, p.pos(), vp.orig_pos());
+                .move_particle_tenancy(*p_id, old_pos, vp.orig_pos());
+            let p = &mut self.simbox.particles_mut()[*p_id as usize];
             p.update_pos(vp.orig_pos());
             p.update_or(vp.orig_or());
         }
@@ -438,14 +441,14 @@ impl Vmmc {
     }
 
     fn sim_has_overlaps(&self) -> bool {
-        self.particles.iter().any(|p| self.overlaps(p))
+        self.particles().iter().any(|p| self.overlaps(p))
     }
 
     // run a bunch of checks on the vmmc object to make sure it looks good
     // meant to be used in debug_assert!
     pub fn well_formed(&self) -> bool {
         // check for particle overlaps?
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             // check that position is in the box
             if !self.simbox.pos_in_box(p.pos()) {
                 panic!("Pos not in box!: {:?}", p);
@@ -465,7 +468,7 @@ impl Vmmc {
         }
 
         // check that tenency array is synced with particle positions
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             if !self.simbox.in_cell(p) {
                 panic!("Particle not in correct location in tenancy array");
             }
@@ -483,10 +486,10 @@ impl Vmmc {
                 }
             }
         }
-        if seen.len() != self.particles.len() {
+        if seen.len() != self.particles().len() {
             panic!("Wrong number of particles in tenancy array");
         }
-        for p in self.particles.iter() {
+        for p in self.particles().iter() {
             if !seen.contains(&p.id()) {
                 panic!("Particle missing from tenancy array");
             }
@@ -503,7 +506,7 @@ impl Vmmc {
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
-        if virtual_moves.inner.len() >= self.particles.len() {
+        if virtual_moves.inner.len() >= self.particles().len() {
             println!(
                 "{:?}",
                 virtual_moves
@@ -522,7 +525,7 @@ impl Vmmc {
     }
 
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
-        let mut run_stats = RunStats::new(self.particles.len());
+        let mut run_stats = RunStats::new(self.particles().len());
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);

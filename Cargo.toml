@@ -2,12 +2,15 @@
 name = "vmmc"
 version = "0.1.0"
 edition = "2021"
+default-run = "l2g"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [[bin]]
 name = "vmmc-run"
 path = "src/bin/vmmc_run.rs"
 
+[[bin]]
+name = "l2g"
+path = "src/bin/l2g.rs"
 
 [dependencies]
 anyhow = "1.0.75" # better errors

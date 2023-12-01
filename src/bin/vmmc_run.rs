@@ -1,49 +1,18 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use std::f64::consts::PI;
 use vmmc::cli::VmmcConfig;
-use vmmc::particle::IsParticle;
-use vmmc::position::Position;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
     particle::Particle,
     patchy_discs::PatchyDiscParams,
-    position::Orientation,
     simbox::SimBox,
     vmmc::{Vmmc, VmmcParams},
 };
 
-// Try to formalize correctness conditions of box / particles?
-
-// check if a particle overlaps any other particles
-fn overlaps(simbox: &SimBox, pos: &Position, particles: &[Particle]) -> bool {
-    for other in particles.iter() {
-        // dist < 1.0 (hard sphere radius)
-        if simbox.sep_in_box(*pos, other.pos()).norm() < 1.0 {
-            return true;
-        }
-    }
-    false
-}
-
-// TODO: probably need to check for overlapping and particles and do some other checks
-fn randomized_particles(simbox: &SimBox, n: usize, rng: &mut SmallRng) -> Vec<Particle> {
-    let mut particles = Vec::new();
-
-    for idx in 0..n {
-        let mut pos = simbox.random_pos(rng);
-        while overlaps(simbox, &pos, &particles) {
-            pos = simbox.random_pos(rng);
-        }
-        let or = Orientation::unit_vector(rng);
-        let particle = Particle::new(idx as u16, pos, or);
-        particles.push(particle);
-    }
-    particles
-}
-
 // grab first frame from xyz and load particles
+// TODO: dedup with other particles_from_xyz
 fn particles_from_xyz(path: &str) -> Vec<Particle> {
     let mut particles = Vec::new();
     let (positions, orientations) = read_xyz_snapshot(path);
@@ -92,7 +61,7 @@ impl Default for InputParams {
         let num_sweeps = 1000;
         let steps_per_sweep = 1000;
 
-        InputParams {
+        Self {
             num_particles,
             interaction_energy,
             interaction_range,
@@ -121,16 +90,15 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     let cell_dimensions = [cell_length, cell_length];
 
-    // let particles = if !config.start_frame().is_empty(){
-    //     particles_from_xyz(config.start_frame())
-    // }
-    // else {
-    //     randomized_particles(simbox, n, &mut rng)
-    // };
-    let particles = particles_from_xyz(config.start_frame());
-
-    // let particles: Vec<Particle> = particles_from_xyz("snapshot.xyz");
-    let simbox = SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, &particles);
+    let simbox = if !config.start_frame().is_empty() {
+        // We have an initial position, so just use that
+        let particles = particles_from_xyz(config.start_frame());
+        SimBox::new(box_dimensions, cells_per_axis, cell_dimensions, particles)
+    }
+    else {
+        // No initial position, so we will use a randomized start position
+        SimBox::new_with_randomized_particles(box_dimensions, cells_per_axis, cell_dimensions, ip.num_particles, rng)
+    };
 
     let pd_params =
         PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.interaction_range);
@@ -144,7 +112,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     println!("Box dimensions: {:?}", box_dimensions);
     println!("Cell dimensions: {:?}", cell_dimensions);
-    Vmmc::new(particles, simbox, params, pd_params)
+    Vmmc::new(simbox, params, pd_params)
 }
 
 // TODO: builder pattern
