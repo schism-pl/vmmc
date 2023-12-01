@@ -1,15 +1,13 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
-use vmmc::evo_vmmc::{EvoVmmc, FitnessFunc};
 use vmmc::cli::VmmcConfig;
-
+use vmmc::evo_vmmc::{EvoVmmc, FitnessFunc};
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
-
 
 // TODO: builder pattern
 fn main() {
@@ -27,7 +25,7 @@ fn main() {
     // let ip = L2GInputParams::default();
     let mut evo_vmmc = EvoVmmc::new(FitnessFunc::AvgEnergy);
     evo_vmmc.step_all(&mut rng);
-    
+
     // evo_vmmc.step_generation_n(ip.num_generations, &mut rng);
 
     // TODO: implement fitness function class
@@ -45,5 +43,4 @@ fn main() {
     //         println!("average energy of sim {:?}-{:?} = {:?} kBT\n", idx, jdx, avg_energy);
     //     }
     // }
-
 }

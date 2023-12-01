@@ -70,7 +70,7 @@ impl SimBox {
         };
 
         for p_id in 0..r.particles.len() {
-        // for p in r.particles.iter() {
+            // for p in r.particles.iter() {
             let cell_id = r.get_cell_id(r.particles[p_id].pos());
             r.insert_p_into_cell(p_id as u16, cell_id);
         }
@@ -103,7 +103,7 @@ impl SimBox {
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
         n: usize,
-        rng: &mut SmallRng
+        rng: &mut SmallRng,
     ) -> Self {
         // We initilize dummy simbox with no particles
         let mut simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
@@ -121,8 +121,6 @@ impl SimBox {
         // generate the real simbox
         SimBox::new(dimensions, cells_per_axis, cell_dimensions, particles)
     }
-    
-
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells

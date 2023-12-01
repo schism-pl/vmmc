@@ -154,9 +154,9 @@ impl Vmmc {
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> f64 {
         let mut energy = 0.0;
-        let interactions = self
-            .potential
-            .determine_interactions(&self.simbox, &self.particles(), p);
+        let interactions =
+            self.potential
+                .determine_interactions(&self.simbox, &self.particles(), p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
             energy += self
