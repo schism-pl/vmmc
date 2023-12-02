@@ -1,8 +1,8 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
-use std::f64::consts::PI;
 use vmmc::cli::VmmcConfig;
+use vmmc::io::write_geometry_png;
 use vmmc::morphology::Morphology;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
@@ -13,6 +13,7 @@ use vmmc::{
 
 // grab first frame from xyz and load particles
 // TODO: dedup with other particles_from_xyz
+// TODO: need to specify shape id, and specify morphologies somehow
 fn particles_from_xyz_nomix(path: &str) -> Vec<Particle> {
     let mut particles = Vec::new();
     let (positions, orientations) = read_xyz_snapshot(path);
@@ -35,40 +36,44 @@ struct InputParams {
     num_particles: usize,
     interaction_energy: f64, // kBT
     patch_radius: f64,       // diameter of patch (in units of particle diameter)
-    density: f64,
+    // density: f64,
+    box_width: f64,
+    box_height: f64,
 
     prob_translate: f64,
-    max_translation: f64,
-    max_rotation: f64,
-    reference_radius: f64,
+    max_translation: f64, // TODO: related to temperature somehow?
+    max_rotation: f64,    // TODO: related to temperature somehow?
     num_sweeps: usize,
     steps_per_sweep: usize,
 }
+
+// TODO: need to eliminate patch radius from here
+// TODO: eliminate density and replace with box length
 
 impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 1000;
         let interaction_energy = 8.0; // kBT
         let patch_radius = 0.1; // diameter of patch (in units of particle diameter)
-        let density = 0.2;
+        let box_width = 100.0;
+        let box_height = 100.0;
 
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let reference_radius = 0.5;
-        let num_sweeps = 1000;
+        let num_sweeps = 10;
         let steps_per_sweep = 1000;
 
         Self {
             num_particles,
             interaction_energy,
             patch_radius,
-            density,
+            box_width,
+            box_height,
 
             prob_translate,
             max_translation,
             max_rotation,
-            reference_radius,
             num_sweeps,
             steps_per_sweep,
         }
@@ -76,19 +81,27 @@ impl Default for InputParams {
 }
 
 fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
-    let base_length = ((ip.num_particles as f64 * PI) / (4.0 * ip.density)).sqrt();
-    let box_dimensions = [base_length, base_length];
+    let box_dimensions = [ip.box_width, ip.box_height];
     // lower bound on cell length (max distance that cells can interact at)
-    let cell_width = 1.0 + ip.patch_radius;
+    let cell_width_min = 1.0 + ip.patch_radius;
 
-    let cells_per_axis = (base_length / cell_width).floor();
-    let cell_length = base_length / cells_per_axis;
-    let cells_per_axis = [cells_per_axis as usize, cells_per_axis as usize];
+    // let cells_per_axis = (base_length / cell_width).floor();
+    let cells_x_axis = ip.box_width / cell_width_min;
+    let cells_y_axis = ip.box_height / cell_width_min;
 
-    let cell_dimensions = [cell_length, cell_length];
+    let cell_width = ip.box_width / cells_x_axis;
+    let cell_height = ip.box_height / cells_y_axis;
+    assert!(cell_width >= cell_width_min);
+    assert!(cell_height >= cell_width_min);
 
-    // only using 1 shape for now
-    let shape = Morphology::regular_3patch(ip.patch_radius);
+    let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
+
+    let cell_dimensions = [cell_width, cell_height];
+
+    let shapes = vec![
+        Morphology::regular_4patch(ip.patch_radius),
+        Morphology::regular_3patch(ip.patch_radius),
+    ];
 
     let simbox = if !config.start_frame().is_empty() {
         // We have an initial position, so just use that
@@ -98,28 +111,21 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
             cells_per_axis,
             cell_dimensions,
             particles,
-            vec![shape],
+            shapes,
         )
     } else {
         // No initial position, so we will use a randomized start position
-        SimBox::new_with_randomized_particles_nomix(
+        SimBox::new_with_randomized_particles(
             box_dimensions,
             cells_per_axis,
             cell_dimensions,
             ip.num_particles,
-            shape,
+            shapes,
             rng,
         )
     };
 
-    // let pd_params = PatchyDiscParams::new(ip.num_patches, ip.interaction_energy, ip.patch_radius);
-
-    let params = VmmcParams::new(
-        ip.prob_translate,
-        ip.max_translation,
-        ip.max_rotation,
-        ip.reference_radius,
-    );
+    let params = VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
 
     println!("Box dimensions: {:?}", box_dimensions);
     println!("Cell dimensions: {:?}", cell_dimensions);
@@ -167,4 +173,7 @@ fn main() {
 
     // Write script to generate animation
     write_tcl(&vmmc, config.vmd_output());
+    write_geometry_png(&vmmc, "geometry.png"); // TODO: configurable path
+                                               // draw_example();
+                                               // write_geometry_tcl(&vmmc, "geometry.tcl");
 }

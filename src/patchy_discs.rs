@@ -1,3 +1,4 @@
+use crate::consts::PARTICLE_RADIUS;
 use crate::morphology::Morphology;
 use crate::particle::{IsParticle, Particle, ParticleId, ShapeId};
 use crate::position::{Orientation, Position};
@@ -41,7 +42,6 @@ impl PatchyDiscsPotential {
         }
     }
 
-    // TODO: need to fix -- need to route in correct cos_Theta
     pub fn pos_on_disc(
         &self,
         simbox: &SimBox,
@@ -52,8 +52,8 @@ impl PatchyDiscsPotential {
     ) -> Position {
         let sin_theta = self.sin_thetas[shape_id as usize][p_idx];
         let cos_theta = self.cos_thetas[shape_id as usize][p_idx];
-        let x = p.x() + 0.5 * (or.x() * cos_theta - or.y() * sin_theta);
-        let y = p.y() + 0.5 * (or.x() * sin_theta + or.y() * cos_theta);
+        let x = p.x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
+        let y = p.y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
         simbox.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 

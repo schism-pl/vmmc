@@ -108,13 +108,13 @@ impl SimBox {
     }
 
     // TODO: dedup with other impl of randomized_particles and overlaps
-    // just uses 1 type of particle with uniform morphology
-    pub fn new_with_randomized_particles_nomix(
+    // uniform distribution of morphologies present in `shape`
+    pub fn new_with_randomized_particles(
         dimensions: [f64; DIMENSION],
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: [f64; DIMENSION],
         n: usize,
-        shape: Morphology,
+        shapes: Vec<Morphology>,
         rng: &mut SmallRng,
     ) -> Self {
         // We initilize dummy simbox with no particles
@@ -122,13 +122,14 @@ impl SimBox {
 
         let mut particles = Vec::new();
         for idx in 0..n {
+            let shape_id = rng.gen_range(0..shapes.len()) as u16; // choose a uniform random shape
             let mut pos = simbox.random_pos(rng);
             while simbox.overlaps(&pos, &particles) {
                 pos = simbox.random_pos(rng);
             }
             let or = Orientation::unit_vector(rng);
             // shape id is always 0 since only 1 type of particle
-            let particle = Particle::new(idx as u16, pos, or, 0);
+            let particle = Particle::new(idx as u16, pos, or, shape_id);
             particles.push(particle);
         }
         // generate the real simbox
@@ -137,7 +138,7 @@ impl SimBox {
             cells_per_axis,
             cell_dimensions,
             particles,
-            vec![shape],
+            shapes,
         )
     }
 

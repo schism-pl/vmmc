@@ -1,3 +1,4 @@
+use crate::consts::PARTICLE_RADIUS;
 use crate::particle::{IsParticle, Particle, ParticleId, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::Position;
@@ -94,21 +95,14 @@ pub struct VmmcParams {
     prob_translate: f64,
     max_translation: f64,
     max_rotation: f64,
-    reference_radius: f64,
 }
 
 impl VmmcParams {
-    pub fn new(
-        prob_translate: f64,
-        max_translation: f64,
-        max_rotation: f64,
-        reference_radius: f64,
-    ) -> Self {
+    pub fn new(prob_translate: f64, max_translation: f64, max_rotation: f64) -> Self {
         Self {
             prob_translate,
             max_translation,
             max_rotation,
-            reference_radius,
         }
     }
 }
@@ -168,15 +162,13 @@ impl Vmmc {
         total_energy / (self.particles().len() as f64 * 2.0)
     }
 
-    // TODO: differentially test?
     // TODO: what is this?
     fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> f64 {
         let mut stokes_radius = 0.0;
-        // Calculate center of mass of the moving cluster (translations only).
-        let center_of_mass = self.center_of_mass(vmoves);
 
         for (_, vp) in vmoves.inner.iter() {
             let delta = if !mov.is_rotation {
+                let center_of_mass = self.center_of_mass(vmoves);
                 self.simbox.sep_in_box(vp.orig_pos(), center_of_mass)
             } else {
                 self.simbox
@@ -185,9 +177,10 @@ impl Vmmc {
 
             stokes_radius += delta.cross_prod_magnitude_sqd(mov.vec);
         }
+        stokes_radius /= vmoves.inner.len() as f64;
+        stokes_radius = stokes_radius.sqrt();
 
-        let scale_factor = self.params.reference_radius
-            / (self.params.reference_radius + (stokes_radius / vmoves.inner.len() as f64).sqrt());
+        let scale_factor = PARTICLE_RADIUS / (PARTICLE_RADIUS + stokes_radius);
         if mov.is_rotation {
             scale_factor * scale_factor * scale_factor
         } else {
