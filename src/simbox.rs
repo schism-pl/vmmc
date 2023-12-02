@@ -169,6 +169,7 @@ impl SimBox {
             ((pos.x() + (self.dimensions.x() / 2.0)) / self.cell_dimensions.x()).floor() as usize;
         let y_idx =
             ((pos.y() + (self.dimensions.y() / 2.0)) / self.cell_dimensions.y()).floor() as usize;
+        // println!("{:?}: x_idx = {:?}, y_idx = {:?}", pos, x_idx, y_idx);
         x_idx * self.cells_per_axis[1] + y_idx
     }
 
