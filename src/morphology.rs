@@ -1,7 +1,7 @@
 // Clone is implemented to enable quickcheck
 #[derive(Debug, Clone)]
 pub struct Patch {
-    radius: f64,
+    radius: f64,     // radius of patch (in units of particle diameter)
     theta: f64,      // angle in degrees
     color: u8,       // rename color?
     radius_sqd: f64, // cache radius squared
@@ -38,6 +38,7 @@ impl Patch {
 #[derive(Debug, Clone)]
 pub struct Morphology {
     patches: Vec<Patch>,
+    max_radius: f64,
     // max distance that this particle can interact with another
     // used for optimization
     sqd_cutoff_max: f64,
@@ -45,6 +46,11 @@ pub struct Morphology {
 
 impl Morphology {
     pub fn new(patches: Vec<Patch>) -> Self {
+        let max_radius = patches
+            .iter()
+            .map(|p| p.radius)
+            .fold(f64::MIN, |a, b| a.max(b));
+
         // max of all squared cutoff distances
         let sqd_cutoff_max = patches
             .iter()
@@ -52,6 +58,7 @@ impl Morphology {
             .fold(f64::MIN, |a, b| a.max(b));
         Self {
             patches,
+            max_radius,
             sqd_cutoff_max,
         }
     }
@@ -62,6 +69,10 @@ impl Morphology {
 
     pub fn sqd_cutoff_max(&self) -> f64 {
         self.sqd_cutoff_max
+    }
+
+    pub fn max_patch_radius(&self) -> f64 {
+        self.max_radius
     }
 
     pub fn regular_3patch(radius: f64) -> Self {

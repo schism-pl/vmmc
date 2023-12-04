@@ -37,12 +37,7 @@ fn particles_from_xyz_nomix(path: &str) -> Vec<Particle> {
 fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
     let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
 
-    let max_interaction_range = 1.0 + ip.patch_radius;
-
-    let shapes = vec![
-        // Morphology::regular_3patch(ip.patch_radius),
-        Morphology::regular_3patch(ip.patch_radius),
-    ];
+    let max_interaction_range = 1.0 + ip.max_patch_radius();
 
     let simbox = if !config.start_frame().is_empty() {
         // We have an initial position, so just use that
@@ -63,7 +58,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
             cells_per_axis,
             cell_dimensions,
             particles,
-            shapes,
+            ip.shapes.clone(),
         )
     } else {
         // No initial position, so we will use a randomized start position
@@ -71,7 +66,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
             box_dimensions,
             max_interaction_range,
             ip.num_particles,
-            shapes,
+            ip.shapes.clone(),
             rng,
         )
     };

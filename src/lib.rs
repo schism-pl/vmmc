@@ -20,8 +20,10 @@ pub mod vmmc;
 pub struct InputParams {
     pub num_particles: usize,
     pub interaction_energy: f64, // kBT
-    pub patch_radius: f64,       // radius of patch (in units of particle diameter)
+    // pub patch_radius: f64,       // radius of patch (in units of particle diameter)
     // density: f64,
+    pub shapes: Vec<Morphology>,
+
     pub box_width: f64,
     pub box_height: f64,
 
@@ -38,7 +40,7 @@ impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 1000;
         let interaction_energy = 10.0; // epsilon / kBT. ranges from 0 to 20
-        let patch_radius = 0.05; // (in units of particle diameter)
+                                       // let patch_radius = 0.05; // (in units of particle diameter)
         let box_width = 75.0;
         let box_height = 75.0;
 
@@ -46,12 +48,17 @@ impl Default for InputParams {
         let max_translation = 0.15;
         let max_rotation = 0.2;
         let num_sweeps = 1000;
-        let steps_per_sweep = 1000;
+
+        let shapes = vec![
+            // Morphology::regular_3patch(ip.patch_radius),
+            Morphology::regular_3patch(0.05),
+        ];
 
         Self {
             num_particles,
             interaction_energy,
-            patch_radius,
+            shapes,
+
             box_width,
             box_height,
 
@@ -60,6 +67,15 @@ impl Default for InputParams {
             max_rotation,
             num_sweeps,
         }
+    }
+}
+
+impl InputParams {
+    pub fn max_patch_radius(&self) -> f64 {
+        self.shapes
+            .iter()
+            .map(|m| m.max_patch_radius())
+            .fold(f64::MIN, |a, b| a.max(b))
     }
 }
 
@@ -113,28 +129,6 @@ impl Arbitrary for InputParams {
         let max_rotation = f64_in_range(g, 0.0, 1.0);
         let num_sweeps = 10;
 
-        Self {
-            num_particles,
-            interaction_energy,
-            patch_radius,
-            box_width,
-            box_height,
-
-            prob_translate,
-            max_translation,
-            max_rotation,
-            num_sweeps,
-        }
-    }
-}
-
-// angle coverage of patch = +- acos 1-(patch_radius^2/2)
-impl Arbitrary for SimBox {
-    fn arbitrary(g: &mut Gen) -> Self {
-        let ip = InputParams::arbitrary(g);
-        let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
-        let max_interaction_range = 1.0 + ip.patch_radius;
-
         let mut shapes = Vec::new();
         let num_shapes = usize_in_range(g, 1, 3);
         for _ in 0..num_shapes {
@@ -151,12 +145,37 @@ impl Arbitrary for SimBox {
             }
             shapes.push(Morphology::new(patches));
         }
+
+        Self {
+            num_particles,
+            interaction_energy,
+            shapes,
+            // patch_radius,
+            box_width,
+            box_height,
+
+            prob_translate,
+            max_translation,
+            max_rotation,
+            num_sweeps,
+        }
+    }
+}
+
+// angle coverage of patch = +- acos 1-(patch_radius^2/2)
+impl Arbitrary for SimBox {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let ip = InputParams::arbitrary(g);
+        let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
+        let patch_radius = 0.05; // TODO: remove this
+        let max_interaction_range = 1.0 + patch_radius;
+
         let mut rng = SmallRng::from_entropy();
         SimBox::new_with_randomized_particles(
             box_dimensions,
             max_interaction_range,
             ip.num_particles,
-            shapes,
+            ip.shapes,
             &mut rng,
         )
     }
