@@ -105,12 +105,13 @@ fn main() {
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
     println!("------------------------------");
 
+    // TODO: num sweeps is not the right name for this
     for idx in 0..ip.num_sweeps {
         writer.write_xyz_frame(&vmmc);
-        vmmc.step_n(ip.num_particles * ip.num_particles, &mut rng);
+        vmmc.step_n(1000 * 1000, &mut rng);
         println!(
             "Step {:?}: bonds per particle = {:?}",
-            (idx + 1) * 1000 * ip.num_particles,
+            (idx + 1) * 1000 * 1000,
             -vmmc.get_average_energy() / ip.interaction_energy
         );
     }

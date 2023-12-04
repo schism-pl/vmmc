@@ -20,7 +20,7 @@ pub mod vmmc;
 pub struct InputParams {
     pub num_particles: usize,
     pub interaction_energy: f64, // kBT
-    // pub patch_radius: f64,       // radius of patch (in units of particle diameter)
+    // pub patch_radius: f64,       //
     // density: f64,
     pub shapes: Vec<Morphology>,
 
@@ -38,8 +38,8 @@ pub struct InputParams {
 
 impl Default for InputParams {
     fn default() -> Self {
-        let num_particles = 1000;
-        let interaction_energy = 10.0; // epsilon / kBT. ranges from 0 to 20
+        let num_particles = 500;
+        let interaction_energy = 20.0; // epsilon / kBT. ranges from 0 to 20
                                        // let patch_radius = 0.05; // (in units of particle diameter)
         let box_width = 75.0;
         let box_height = 75.0;
@@ -47,11 +47,11 @@ impl Default for InputParams {
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 1000;
+        let num_sweeps = 100;
 
         let shapes = vec![
             // Morphology::regular_3patch(ip.patch_radius),
-            Morphology::regular_3patch(0.05),
+            Morphology::regular_3patch(0.1),
         ];
 
         Self {

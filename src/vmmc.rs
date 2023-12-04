@@ -509,5 +509,9 @@ impl Vmmc {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);
         }
+        println!(
+            "Acceptance ratio: {:?}",
+            run_stats.num_accepts() as f64 / n as f64
+        );
     }
 }
