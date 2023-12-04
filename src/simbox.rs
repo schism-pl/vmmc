@@ -38,6 +38,9 @@ fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
 // assumed to be periodic in every dimension
 // dimension[i] = cell_dimensions[i] * cells_per_axis[i]
 // Note: cell_dimensions * cells_per_axis must = dimensions
+
+// Clone is implemented to enable quickcheck
+#[derive(Clone, Debug)]
 pub struct SimBox {
     dimensions: DimVec,
     cells_per_axis: [usize; DIMENSION],
@@ -52,9 +55,9 @@ pub struct SimBox {
 // ParticleIdx::MAX = empty
 impl SimBox {
     pub fn new(
-        dimensions: [f64; DIMENSION],
+        dimensions: DimVec,
         cells_per_axis: [usize; DIMENSION],
-        cell_dimensions: [f64; DIMENSION],
+        cell_dimensions: DimVec,
         particles: Vec<Particle>,
         shapes: Vec<Morphology>,
     ) -> Self {
@@ -64,9 +67,9 @@ impl SimBox {
         let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
         let tenants = vec![0_u8; cells.len()];
         let mut r = Self {
-            dimensions: DimVec::new(dimensions),
+            dimensions,
             cells_per_axis,
-            cell_dimensions: DimVec::new(cell_dimensions),
+            cell_dimensions,
             particles,
             shapes,
             cells,
@@ -82,9 +85,9 @@ impl SimBox {
     }
 
     pub fn new_empty(
-        dimensions: [f64; DIMENSION],
+        dimensions: DimVec,
         cells_per_axis: [usize; DIMENSION],
-        cell_dimensions: [f64; DIMENSION],
+        cell_dimensions: DimVec,
     ) -> Self {
         Self::new(
             dimensions,
@@ -107,21 +110,36 @@ impl SimBox {
         false
     }
 
-    // TODO: dedup with other impl of randomized_particles and overlaps
-    // uniform distribution of morphologies present in `shape`
+    // uniform distribution of morphologies present in `shapes`
     pub fn new_with_randomized_particles(
-        dimensions: [f64; DIMENSION],
-        cells_per_axis: [usize; DIMENSION],
-        cell_dimensions: [f64; DIMENSION],
-        n: usize,
+        dimensions: DimVec,
+        max_interaction_range: f64,
+        num_particles: usize,
         shapes: Vec<Morphology>,
         rng: &mut SmallRng,
     ) -> Self {
+        println!("dimensions = {:?}", dimensions);
+        let cells_x_axis = (dimensions.x() / max_interaction_range).floor();
+        let cells_y_axis = (dimensions.y() / max_interaction_range).floor();
+
+        let cell_width = dimensions.x() / cells_x_axis;
+        let cell_height = dimensions.y() / cells_y_axis;
+        println!(
+            "cell_width = {:?}, cell_height = {:?} max_interaction_range = {:?}",
+            cell_width, cell_height, max_interaction_range
+        );
+        assert!(cell_width >= max_interaction_range);
+        assert!(cell_height >= max_interaction_range);
+
+        let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
+
+        let cell_dimensions = DimVec::new([cell_width, cell_height]);
+
         // We initilize dummy simbox with no particles
         let simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
 
         let mut particles = Vec::new();
-        for idx in 0..n {
+        for idx in 0..num_particles {
             let shape_id = rng.gen_range(0..shapes.len()) as u16; // choose a uniform random shape
             let mut pos = simbox.random_pos(rng);
             while simbox.overlaps(&pos, &particles) {
@@ -165,10 +183,13 @@ impl SimBox {
     pub fn get_cell_id(&self, pos: Position) -> CellId {
         // adjust so all indexes are positive
         // indexes start at bottom left and scan bottom to top
-        let x_idx =
-            ((pos.x() + (self.dimensions.x() / 2.0)) / self.cell_dimensions.x()).floor() as usize;
-        let y_idx =
-            ((pos.y() + (self.dimensions.y() / 2.0)) / self.cell_dimensions.y()).floor() as usize;
+        let x = pos.x() + (self.dimensions.x() / 2.0);
+        let y = pos.y() + (self.dimensions.y() / 2.0);
+        assert!(x != self.dimensions.x());
+        assert!(y != self.dimensions.y());
+
+        let x_idx = (x / self.cell_dimensions.x()).floor() as usize;
+        let y_idx = (y / self.cell_dimensions.y()).floor() as usize;
         // println!("{:?}: x_idx = {:?}, y_idx = {:?}", pos, x_idx, y_idx);
         x_idx * self.cells_per_axis[1] + y_idx
     }
@@ -327,6 +348,14 @@ impl SimBox {
     }
     pub fn max_z(&self) -> f64 {
         0.5 * self.dimensions.z()
+    }
+
+    pub fn cell_dimensions(&self) -> DimVec {
+        self.cell_dimensions
+    }
+
+    pub fn cells_per_axis(&self) -> [usize; DIMENSION] {
+        self.cells_per_axis
     }
 
     pub fn pos_in_box(&self, pos: Position) -> bool {

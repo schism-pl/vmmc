@@ -1,4 +1,5 @@
-#[derive(Debug)]
+// Clone is implemented to enable quickcheck
+#[derive(Debug, Clone)]
 pub struct Patch {
     radius: f64,
     theta: f64,      // angle in degrees
@@ -33,7 +34,8 @@ impl Patch {
     }
 }
 
-#[derive(Debug)]
+// Clone is implemented to enable quickcheck
+#[derive(Debug, Clone)]
 pub struct Morphology {
     patches: Vec<Patch>,
     // max distance that this particle can interact with another

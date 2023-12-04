@@ -10,8 +10,8 @@ pub trait IsParticle {
     fn or(&self) -> Orientation;
     fn shape_id(&self) -> ShapeId;
 }
-
-#[derive(PartialEq, Debug)]
+// Clone is implemented to enable quickcheck
+#[derive(PartialEq, Debug, Clone)]
 pub struct Particle {
     id: ParticleId,
     shape_id: ShapeId,

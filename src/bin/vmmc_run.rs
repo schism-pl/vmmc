@@ -4,6 +4,7 @@ use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
 use vmmc::io::write_geometry_png;
 use vmmc::morphology::Morphology;
+use vmmc::position::DimVec;
 use vmmc::InputParams;
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
@@ -34,33 +35,29 @@ fn particles_from_xyz_nomix(path: &str) -> Vec<Particle> {
 // 3. values match other impls (approximately)
 
 fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
-    let box_dimensions = [ip.box_width, ip.box_height];
-    // lower bound on cell length (max distance that cells can interact at)
-    let cell_width_min = 1.0 + ip.patch_radius;
+    let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
 
-    let cells_x_axis = (ip.box_width / cell_width_min).floor();
-    let cells_y_axis = (ip.box_height / cell_width_min).floor();
-
-    let cell_width = ip.box_width / cells_x_axis;
-    assert!(cell_width >= cell_width_min);
-
-    let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
-
-    // cells are always square
-    let cell_dimensions = [cell_width, cell_width];
-
-    println!("Box dimensions: {:?}", box_dimensions);
-    println!("Cell per axis: {:?}", cells_per_axis);
-    println!("Cell dimensions: {:?}", cell_dimensions);
+    let max_interaction_range = 1.0 + ip.patch_radius;
 
     let shapes = vec![
+        // Morphology::regular_3patch(ip.patch_radius),
         Morphology::regular_3patch(ip.patch_radius),
-        Morphology::regular_4patch(ip.patch_radius),
     ];
 
     let simbox = if !config.start_frame().is_empty() {
         // We have an initial position, so just use that
         let particles = particles_from_xyz_nomix(config.start_frame());
+        let cells_x_axis = (box_dimensions.x() / max_interaction_range).floor();
+        let cells_y_axis = (box_dimensions.y() / max_interaction_range).floor();
+
+        let cell_width = box_dimensions.x() / cells_x_axis;
+        assert!(cell_width >= max_interaction_range);
+
+        let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
+
+        // cells are always square
+        let cell_dimensions = DimVec::new([cell_width, cell_width]);
+
         SimBox::new(
             box_dimensions,
             cells_per_axis,
@@ -72,8 +69,7 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
         // No initial position, so we will use a randomized start position
         SimBox::new_with_randomized_particles(
             box_dimensions,
-            cells_per_axis,
-            cell_dimensions,
+            max_interaction_range,
             ip.num_particles,
             shapes,
             rng,
@@ -100,7 +96,9 @@ fn main() {
 
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&config, &ip, &mut rng);
-
+    // println!("Box dimensions: {:?}", box_dimensions);
+    // println!("Cell per axis: {:?}", cells_per_axis);
+    // println!("Cell dimensions: {:?}", cell_dimensions);
     // Init I/O
     let mut writer = XYZWriter::new(config.xyz_output());
 
@@ -116,9 +114,9 @@ fn main() {
         writer.write_xyz_frame(&vmmc);
         vmmc.step_n(ip.steps_per_sweep * ip.num_particles, &mut rng);
         println!(
-            "Step {:?}: average particle energy = {:?}",
+            "Step {:?}: average # of bonds per particle = {:?}",
             (idx + 1) * 1000 * ip.num_particles,
-            vmmc.get_average_energy()
+            -vmmc.get_average_energy() / ip.interaction_energy
         );
     }
     // write the final frame

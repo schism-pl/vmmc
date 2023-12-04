@@ -1,4 +1,9 @@
+use morphology::{Morphology, Patch};
+use position::DimVec;
 use quickcheck::{Arbitrary, Gen};
+use rand::{rngs::SmallRng, SeedableRng};
+use rand_distr::num_traits::Zero;
+use simbox::SimBox;
 
 pub mod cli;
 mod consts;
@@ -15,7 +20,7 @@ pub mod vmmc;
 pub struct InputParams {
     pub num_particles: usize,
     pub interaction_energy: f64, // kBT
-    pub patch_radius: f64,       // diameter of patch (in units of particle diameter)
+    pub patch_radius: f64,       // radius of patch (in units of particle diameter)
     // density: f64,
     pub box_width: f64,
     pub box_height: f64,
@@ -33,15 +38,15 @@ pub struct InputParams {
 impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 1000;
-        let interaction_energy = 8.0; // kBT
-        let patch_radius = 0.1; // diameter of patch (in units of particle diameter)
-        let box_width = 60.0;
-        let box_height = 60.0;
+        let interaction_energy = 10.0; // epsilon / kBT. ranges from 0 to 20
+        let patch_radius = 0.05; // (in units of particle diameter)
+        let box_width = 75.0;
+        let box_height = 75.0;
 
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 20;
+        let num_sweeps = 1000;
         let steps_per_sweep = 1000;
 
         Self {
@@ -62,21 +67,49 @@ impl Default for InputParams {
 
 // for arbitrary trait
 fn usize_in_range(g: &mut Gen, min: usize, max: usize) -> usize {
-    usize::arbitrary(g).min(min).max(max)
+    if min == max {
+        return max;
+    }
+    let x = usize::arbitrary(g);
+    println!("[{:?}, {:?}] {:?}", min, max, x);
+    let r = x % (max - min) + min;
+    println!("[{:?}, {:?}] {:?} => {:?}", min, max, x, r);
+    assert!(r >= min && r < max);
+    r
 }
 
 fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
-    f64::arbitrary(g).min(min).max(max)
+    let mut r = f64::INFINITY;
+    while !(r.is_normal() || r.is_zero()) {
+        let x = f64::arbitrary(g).abs();
+        r = x % (max - min) + min;
+        println!("[{:?}, {:?}] {:?} => {:?}", min, max, x, r);
+    }
+
+    assert!(r.is_normal() || r.is_zero());
+    assert!(r >= min && r < max);
+    r
 }
+
+// num_cells = box_x * box_y / (1 + patch_radius)^2
+// we need num_cells >= 2*num_particles
 
 // for testing
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         let num_particles = usize_in_range(g, 0, 2500);
-        let interaction_energy = f64_in_range(g, 0.1, 10.0); // kBT
+        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
         let patch_radius = f64_in_range(g, 0.01, 0.2); // diameter of patch (in units of particle diameter)
-        let box_width = f64_in_range(g, 10.0, 100.0); // TODO: need to make sure its big enough to deal with all the particles
-        let box_height = f64_in_range(g, 10.0, 100.0); // TODO: need to make sure its big enough to deal with all the particles
+
+        let mut box_width = 0.0;
+        let mut box_height = 0.0;
+
+        // while less than 1.5 cell per particle, pick a new box raidus
+        while box_width * box_height / (1.0 + patch_radius).powi(2) <= 1.5 * num_particles as f64 {
+            box_width = f64_in_range(g, 10.0, 200.0);
+            box_height = f64_in_range(g, 10.0, 200.0);
+        }
+
         let prob_translate = f64_in_range(g, 0.0, 1.0);
         let max_translation = f64_in_range(g, 0.0, 1.0);
         let max_rotation = f64_in_range(g, 0.0, 1.0);
@@ -96,5 +129,39 @@ impl Arbitrary for InputParams {
             num_sweeps,
             steps_per_sweep,
         }
+    }
+}
+
+// angle coverage of patch = +- acos 1-(patch_radius^2/2)
+impl Arbitrary for SimBox {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let ip = InputParams::arbitrary(g);
+        let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
+        let max_interaction_range = 1.0 + ip.patch_radius;
+
+        let mut shapes = Vec::new();
+        let num_shapes = usize_in_range(g, 1, 3);
+        for _ in 0..num_shapes {
+            let mut patches = Vec::new();
+            let num_patches = usize_in_range(g, 3, 6);
+            let num_colors = usize_in_range(g, 1, num_patches);
+            for _ in 0..num_patches {
+                let color = usize_in_range(g, 0, num_colors - 1);
+                let theta = f64_in_range(g, 0.0, 360.0);
+                let radius = f64_in_range(g, 0.01, 0.25);
+                let patch = Patch::new(radius, theta, color as u8);
+                // TODO: check that the morphology makes sense, i.e., patches don't overlap
+                patches.push(patch);
+            }
+            shapes.push(Morphology::new(patches));
+        }
+        let mut rng = SmallRng::from_entropy();
+        SimBox::new_with_randomized_particles(
+            box_dimensions,
+            max_interaction_range,
+            ip.num_particles,
+            shapes,
+            &mut rng,
+        )
     }
 }
