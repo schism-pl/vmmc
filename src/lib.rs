@@ -29,7 +29,6 @@ pub struct InputParams {
     pub max_translation: f64, // TODO: related to temperature somehow?
     pub max_rotation: f64,    // TODO: related to temperature somehow?
     pub num_sweeps: usize,
-    pub steps_per_sweep: usize,
 }
 
 // TODO: need to eliminate patch radius from here
@@ -60,7 +59,6 @@ impl Default for InputParams {
             max_translation,
             max_rotation,
             num_sweeps,
-            steps_per_sweep,
         }
     }
 }
@@ -114,7 +112,6 @@ impl Arbitrary for InputParams {
         let max_translation = f64_in_range(g, 0.0, 1.0);
         let max_rotation = f64_in_range(g, 0.0, 1.0);
         let num_sweeps = 10;
-        let steps_per_sweep = 1000;
 
         Self {
             num_particles,
@@ -127,7 +124,6 @@ impl Arbitrary for InputParams {
             max_translation,
             max_rotation,
             num_sweeps,
-            steps_per_sweep,
         }
     }
 }

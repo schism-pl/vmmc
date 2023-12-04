@@ -112,9 +112,9 @@ fn main() {
 
     for idx in 0..ip.num_sweeps {
         writer.write_xyz_frame(&vmmc);
-        vmmc.step_n(ip.steps_per_sweep * ip.num_particles, &mut rng);
+        vmmc.step_n(ip.num_particles * ip.num_particles, &mut rng);
         println!(
-            "Step {:?}: average # of bonds per particle = {:?}",
+            "Step {:?}: bonds per particle = {:?}",
             (idx + 1) * 1000 * ip.num_particles,
             -vmmc.get_average_energy() / ip.interaction_energy
         );
