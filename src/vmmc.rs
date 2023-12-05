@@ -1,8 +1,7 @@
 use crate::consts::PARTICLE_RADIUS;
-use crate::particle::{IsParticle, Particle, ParticleId, VParticle};
+use crate::particle::{IsParticle, Particle, ParticleId, VParticle, Particles};
 use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::Position;
-use crate::protocol::ProtocolStep;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use crate::{consts::DIMENSION, position::DimVec};
@@ -123,8 +122,12 @@ impl Vmmc {
         }
     }
 
-    pub fn particles(&self) -> &[Particle] {
+    pub fn particles(&self) -> &Particles {
         self.simbox.particles()
+    }
+
+    pub fn particles_mut(&mut self) -> &mut Particles {
+        self.simbox.particles_mut()
     }
 
     pub fn simbox(&self) -> &SimBox {
@@ -136,7 +139,7 @@ impl Vmmc {
     }
 
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
-        &self.simbox.particles()[p_id as usize]
+        &self.simbox.particle(p_id)
     }
 
     pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
@@ -156,11 +159,11 @@ impl Vmmc {
 
     pub fn get_average_energy(&self) -> f64 {
         let mut total_energy = 0.0;
-        for p in self.particles() {
+        for p in self.particles().iter() {
             total_energy += self.get_particle_energy(p);
         }
         // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles().len() as f64 * 2.0)
+        total_energy / (self.particles().num_particles() as f64 * 2.0)
     }
 
     // TODO: what is this?
@@ -349,14 +352,20 @@ impl Vmmc {
     }
 
     fn choose_seed(&self, rng: &mut SmallRng) -> ParticleId {
-        rng.gen_range(0..self.particles().len() as u16)
+        assert_ne!(self.particles().num_particles(), 0);
+        loop {
+            let p_id = rng.gen_range(0..self.particles().num_particles() as u16);
+            if self.particles().is_active_particle(p_id) {
+                return p_id;
+            }
+        }
     }
 
     fn commit_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            let old_pos = self.simbox.particles()[*p_id as usize].pos();
+            let old_pos = self.simbox.particles().particle(*p_id).pos();
             self.simbox.move_particle_tenancy(*p_id, old_pos, vp.pos());
-            let p = &mut self.simbox.particles_mut()[*p_id as usize];
+            let p = self.simbox.particles_mut().particle_mut(*p_id);
             p.update_pos(vp.pos());
             p.update_or(vp.or());
         }
@@ -364,11 +373,10 @@ impl Vmmc {
 
     fn revert_moves(&mut self, vmoves: &VirtualMoves) {
         for (p_id, vp) in vmoves.inner.iter() {
-            // let p = &mut self.simbox.particles_mut()[*p_id as usize];
-            let old_pos = self.simbox.particles()[*p_id as usize].pos();
+            let old_pos = self.simbox.particles().particle(*p_id).pos();
             self.simbox
                 .move_particle_tenancy(*p_id, old_pos, vp.orig_pos());
-            let p = &mut self.simbox.particles_mut()[*p_id as usize];
+            let p = &mut self.simbox.particles_mut().particle_mut(*p_id);
             p.update_pos(vp.orig_pos());
             p.update_or(vp.orig_or());
         }
@@ -466,7 +474,7 @@ impl Vmmc {
                 }
             }
         }
-        if seen.len() != self.particles().len() {
+        if seen.len() != self.particles().num_particles() {
             panic!("Wrong number of particles in tenancy array");
         }
         for p in self.particles().iter() {
@@ -486,17 +494,17 @@ impl Vmmc {
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
-        if virtual_moves.inner.len() >= self.particles().len() {
-            println!(
-                "{:?}",
-                virtual_moves
-                    .inner
-                    .iter()
-                    .map(|(a, _)| *a)
-                    .collect::<Vec<ParticleId>>()
-            );
-            panic!("oh no");
-        }
+        // if virtual_moves.inner.len() >= self.particles().num_particles() {
+        //     println!(
+        //         "{:?}",
+        //         virtual_moves
+        //             .inner
+        //             .iter()
+        //             .map(|(a, _)| *a)
+        //             .collect::<Vec<ParticleId>>()
+        //     );
+        //     panic!("oh no");
+        // }
         if self.attempt_commit(rng, &mov, &virtual_moves).is_ok() {
             stats.record_accept(mov.is_rotation(), virtual_moves.inner.len());
         }
@@ -505,7 +513,7 @@ impl Vmmc {
     }
 
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
-        let mut run_stats = RunStats::new(self.particles().len());
+        let mut run_stats = RunStats::new(self.particles().num_particles());
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);

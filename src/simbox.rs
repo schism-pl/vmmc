@@ -2,6 +2,7 @@ use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
 use crate::morphology::Morphology;
+use crate::particle::Particles;
 use crate::position::Orientation;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
@@ -45,7 +46,8 @@ pub struct SimBox {
     dimensions: DimVec,
     cells_per_axis: [usize; DIMENSION],
     cell_dimensions: DimVec,
-    particles: Vec<Particle>,
+    // particles: Vec<Particle>,
+    particles: Particles,
     shapes: Vec<Morphology>, // maps shape_id to morphology
     cells: CellGrid,
     tenants: Vec<u8>,
@@ -58,7 +60,7 @@ impl SimBox {
         dimensions: DimVec,
         cells_per_axis: [usize; DIMENSION],
         cell_dimensions: DimVec,
-        particles: Vec<Particle>,
+        particles: Particles,
         shapes: Vec<Morphology>,
     ) -> Self {
         // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
@@ -76,10 +78,13 @@ impl SimBox {
             tenants,
         };
 
-        for p_id in 0..r.particles.len() {
+        let particles_to_insert: Vec<(ParticleId, Position)> = r.particles.iter().map(|p| (p.id(), p.pos())).collect();
+
+        for (p_id, pos) in particles_to_insert.iter() {
             // for p in r.particles.iter() {
-            let cell_id = r.get_cell_id(r.particles[p_id].pos());
-            r.insert_p_into_cell(p_id as u16, cell_id);
+            // let p_id = p.id();
+            let cell_id = r.get_cell_id(pos.clone());
+            r.insert_p_into_cell(p_id.clone(), cell_id);
         }
         r
     }
@@ -93,7 +98,7 @@ impl SimBox {
             dimensions,
             cells_per_axis,
             cell_dimensions,
-            Vec::new(),
+            Particles::new(Vec::new()),
             Vec::new(),
         )
     }
@@ -155,7 +160,7 @@ impl SimBox {
             dimensions,
             cells_per_axis,
             cell_dimensions,
-            particles,
+            Particles::new(particles),
             shapes,
         )
     }
@@ -164,11 +169,19 @@ impl SimBox {
         &self.cells
     }
 
-    pub fn particles(&self) -> &[Particle] {
+    pub fn particle(&self, p_id: ParticleId) -> &Particle {
+        self.particles.particle(p_id)
+    }
+
+    pub fn particle_mut(&mut self, p_id: ParticleId) -> &mut Particle {
+        self.particles.particle_mut(p_id)
+    }
+
+    pub fn particles(&self) -> &Particles {
         &self.particles
     }
 
-    pub fn particles_mut(&mut self) -> &mut [Particle] {
+    pub fn particles_mut(&mut self) -> &mut Particles {
         &mut self.particles
     }
 

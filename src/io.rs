@@ -52,8 +52,8 @@ impl XYZWriter {
     }
 
     pub fn write_xyz_frame(&mut self, vmmc: &Vmmc) {
-        writeln!(self.file, "{:?}\n", vmmc.particles().len()).unwrap();
-        for p in vmmc.particles() {
+        writeln!(self.file, "{:?}\n", vmmc.particles().num_particles()).unwrap();
+        for p in vmmc.particles().iter() {
             writeln!(self.file, "0 {:?} {:?} 0", p.pos().x(), p.pos().y()).unwrap();
         }
     }
@@ -148,7 +148,7 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
     let style = StrokeStyle::default();
     let draw_options = DrawOptions::new();
 
-    for p0 in vmmc.particles() {
+    for p0 in vmmc.particles().iter() {
         let interactions = vmmc.potential().determine_interactions(vmmc.simbox(), p0);
         for &neighbor_id in interactions.iter() {
             let p1 = vmmc.particle(neighbor_id);

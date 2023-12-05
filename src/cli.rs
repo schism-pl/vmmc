@@ -5,7 +5,7 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 pub struct VmmcConfig {
     #[arg(long, default_value_t = SmallRng::from_entropy().gen::<u64>())]
     seed: u64,
-    #[arg(long, default_value = "snapshot.xyz")]
+    #[arg(long, default_value = "")]
     start_frame: String,
     #[arg(long, default_value = "vmd.tcl")]
     vmd_output: String,

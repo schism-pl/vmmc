@@ -117,3 +117,106 @@ impl IsParticle for VParticle {
         self.shape_id
     }
 }
+
+/// Collection of particles
+/// Need somewhat complicated data structure to efficiently insert/remove particles
+#[derive(Debug, Clone)]
+pub struct Particles {
+    particles: Vec<Option<Particle>>,
+    reserve: Vec<ParticleId>,
+    num_particles: usize,
+}
+
+
+impl Particles {
+
+    pub fn new(particles: Vec<Particle>) -> Self {
+        let num_particles = particles.len();
+        Self {
+            particles: particles.into_iter().map(|p| Some(p)).collect(), 
+            reserve: Vec::new(),
+            num_particles,
+        }
+    }
+
+    pub fn particle(&self, p_id: ParticleId) -> &Particle {
+        match &self.particles[p_id as usize] {
+            Some(p) => p,
+            None => panic!("That particle doesn't exist!")
+        }        
+    }
+
+    pub fn is_active_particle(&self, p_id: ParticleId) -> bool {
+        self.particles[p_id as usize].is_some() 
+    }
+
+    pub fn particle_mut(&mut self, p_id: ParticleId) -> &mut Particle {
+        match &mut self.particles[p_id as usize] {
+            Some(p) => p,
+            None => panic!("That particle doesn't exist!")
+        }        
+    }
+    pub fn num_particles(&self) -> usize {
+        self.num_particles
+    }
+
+    pub fn insert(&mut self, p: Particle) {
+        self.num_particles += 1;
+        let p_id = p.id();
+        if (p.id() as usize) < self.particles.len() {
+            assert!(self.particles[p_id as usize].is_none());
+            self.particles[p_id as usize] = Some(p);
+        }
+        else {
+            self.particles.push(Some(p))
+        }
+    } 
+
+    pub fn get_unused_p_id(&mut self) -> ParticleId {
+        match self.reserve.pop() {
+            Some(p_id) => p_id,
+            None => self.particles.len() as ParticleId,
+        }
+    }
+
+    pub fn delete(&mut self, p_id: ParticleId) {
+        self.num_particles -= 1;
+        assert!(self.particles[p_id as usize].is_some());
+        self.reserve.push(p_id);
+        self.particles[p_id as usize] = None;
+    }
+
+    pub fn iter(&self) -> ParticleIterator {
+        ParticleIterator::new(&self.particles)
+    }
+}
+
+pub struct ParticleIterator<'a> {
+    particles: &'a [Option<Particle>],
+    index: usize,
+}
+
+impl<'a> ParticleIterator<'a> {
+    fn new(particles: &'a [Option<Particle>]) -> Self {
+        Self { particles, index: 0 }
+    }
+}
+
+impl<'a> Iterator for ParticleIterator<'a> {
+    type Item = &'a Particle;
+    /// scan forward until we find a particle or run out of particles
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut particle = None;
+        while self.index < self.particles.len() {
+            particle = match &self.particles[self.index] {
+                Some(p) => Some(p),
+                None => None
+            };
+            self.index += 1;
+            if particle.is_some() {
+                return particle;
+            }
+        }
+        return None;
+    }
+}
