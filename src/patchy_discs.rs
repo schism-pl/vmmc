@@ -42,6 +42,14 @@ impl PatchyDiscsPotential {
         }
     }
 
+    pub fn interaction_energy(&self) -> f64 {
+        self.interaction_energy
+    }
+
+    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
+        self.interaction_energy = interaction_energy
+    }
+
     pub fn pos_on_disc(
         &self,
         simbox: &SimBox,
@@ -107,12 +115,7 @@ impl PatchyDiscsPotential {
         0.0
     }
 
-    pub fn determine_interactions(
-        &self,
-        simbox: &SimBox,
-        // particles: &[Particle],
-        p: &Particle,
-    ) -> Vec<ParticleId> {
+    pub fn determine_interactions(&self, simbox: &SimBox, p: &Particle) -> Vec<ParticleId> {
         // log::debug!("Determining interactions for p{:?}", p.id());
         let mut interactions = Vec::new();
         for neighbor_id in simbox.get_neighbors(p) {
@@ -121,22 +124,9 @@ impl PatchyDiscsPotential {
                 continue;
             }
             let energy = self.compute_pair_energy(simbox, p, neighbor);
-            // log::debug!(
-            //     "p{:?} tries to interact with p{:?} with energy={:?}",
-            //     p.id(),
-            //     neighbor_id,
-            //     energy
-            // );
 
             // particles interact!
             if energy < 0.0 {
-                // if interactions.len() == self.params.num_patches {
-                //     println!("{:?} {:?}", p, interactions);
-                //     println!("--- {:?}", neighbor);
-                //     for &interacting_p_id in interactions.iter() {
-                //         println!("--- {:?}", &particles[interacting_p_id as usize]);
-                //     }
-                // }
                 let m = simbox.morphology(p);
                 assert_ne!(interactions.len(), m.patches().len());
                 interactions.push(neighbor_id);

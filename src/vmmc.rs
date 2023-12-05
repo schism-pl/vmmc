@@ -2,6 +2,7 @@ use crate::consts::PARTICLE_RADIUS;
 use crate::particle::{IsParticle, Particle, ParticleId, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::Position;
+use crate::protocol::ProtocolStep;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use crate::{consts::DIMENSION, position::DimVec};
@@ -503,15 +504,25 @@ impl Vmmc {
         Ok(())
     }
 
-    pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) {
+    pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
         let mut run_stats = RunStats::new(self.particles().len());
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);
         }
-        println!(
-            "Acceptance ratio: {:?}",
-            run_stats.num_accepts() as f64 / n as f64
-        );
+        run_stats
     }
+
+    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
+        self.potential.set_interaction_energy(interaction_energy)
+    }
+
+    // pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
+    //     let mut run_stats = RunStats::new(self.particles().len());
+    //     for idx in 0..n {
+    //         log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
+    //         let _ = self.step(rng, &mut run_stats);
+    //     }
+    //     run_stats
+    // }
 }

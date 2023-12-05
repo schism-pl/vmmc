@@ -1,17 +1,18 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use vmmc::cli::VmmcConfig;
 use vmmc::io::write_geometry_png;
 use vmmc::morphology::Morphology;
 use vmmc::position::DimVec;
-use vmmc::InputParams;
+use vmmc::protocol::{FixedProtocol, ProtocolStep};
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
     particle::Particle,
     simbox::SimBox,
     vmmc::{Vmmc, VmmcParams},
 };
+use vmmc::{protocol, InputParams};
 
 // grab first frame from xyz and load particles
 // TODO: dedup with other particles_from_xyz
@@ -72,8 +73,69 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
     };
 
     let params = VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
+    // let interaction_energy = ip.protocol.next().unwrap().interaction_energy();
+    let interaction_energy = ip.protocol.initial_interaction_energy();
+    Vmmc::new(simbox, params, interaction_energy)
+}
 
-    Vmmc::new(simbox, params, ip.interaction_energy)
+fn maybe_remove_particle(vmmc: &mut Vmmc, rng: &mut SmallRng) {
+    panic!("TODO")
+
+    // if (vmmc.particles().len() > 0) {
+    //     remove_particle();
+    // }
+}
+
+fn maybe_insert_particle(vmmc: &mut Vmmc, rng: &mut SmallRng) {
+    panic!("TODO")
+    // if (vmmc.particles().len() < MAX_PARTICLES) {
+    //     insert_particle();
+    // }
+}
+
+fn particle_exchange(vmmc: &mut Vmmc, rng: &mut SmallRng) {
+    if (rng.gen::<f64>() < 0.5) {
+        maybe_remove_particle(vmmc, rng);
+    } else {
+        maybe_insert_particle(vmmc, rng);
+    }
+}
+
+// TODO: better name?
+// equations G1-G3 in https://journals.aps.org/prx/pdf/10.1103/PhysRevX.4.011044
+// TODO: this equation satisfies detailed balance, but I'm not quite sure how/why
+fn maybe_particle_exchange(vmmc: &mut Vmmc, rng: &mut SmallRng) {
+    let p_exchange = 1.0 / (1.0 + vmmc.particles().len() as f64);
+    if rng.gen::<f64>() < p_exchange {
+        particle_exchange(vmmc, rng);
+    }
+}
+
+fn run_vmmc(
+    vmmc: &mut Vmmc,
+    mut protocol: FixedProtocol,
+    writer: &mut XYZWriter,
+    num_sweeps: usize,
+    rng: &mut SmallRng,
+) {
+    // TODO: num sweeps is not the right name for this
+    for idx in 0..num_sweeps {
+        writer.write_xyz_frame(&vmmc);
+        let protocol_update = protocol.next().unwrap();
+        vmmc.set_interaction_energy(protocol_update.interaction_energy());
+        let stats = vmmc.step_n(1000 * 1000, rng);
+        println!(
+            "Step {:?}: bonds per particle = {:?}",
+            (idx + 1) * 1000 * 1000,
+            -vmmc.get_average_energy() / vmmc.potential().interaction_energy()
+        );
+        println!(
+            "Acceptance ratio: {:?}",
+            stats.num_accepts() as f64 / (1000.0 * 1000.0)
+        );
+    }
+    // write the final frame
+    writer.write_xyz_frame(&vmmc);
 }
 
 // TODO: builder pattern
@@ -105,19 +167,8 @@ fn main() {
     println!("Initial average energy: {:?}", vmmc.get_average_energy());
     println!("------------------------------");
 
-    // TODO: num sweeps is not the right name for this
-    for idx in 0..ip.num_sweeps {
-        writer.write_xyz_frame(&vmmc);
-        vmmc.step_n(1000 * 1000, &mut rng);
-        println!(
-            "Step {:?}: bonds per particle = {:?}",
-            (idx + 1) * 1000 * 1000,
-            -vmmc.get_average_energy() / ip.interaction_energy
-        );
-    }
-    // write the final frame
-    writer.write_xyz_frame(&vmmc);
-
+    // let protocol = FixedProtocol::flat_protocol(0.0, ip.interaction_energy, ip.num_sweeps);
+    run_vmmc(&mut vmmc, ip.protocol, &mut writer, ip.num_sweeps, &mut rng);
     // Write script to generate animation
     write_tcl(&vmmc, config.vmd_output());
     write_geometry_png(&vmmc, "geometry.png"); // TODO: configurable path

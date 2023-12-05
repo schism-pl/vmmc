@@ -3,3 +3,4 @@
 pub const DIMENSION: usize = 2;
 pub const MAX_PARTICLES_PER_CELL: usize = 4;
 pub const PARTICLE_RADIUS: f64 = 0.5;
+pub const MAX_PARTICLES: usize = 10000;

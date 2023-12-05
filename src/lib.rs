@@ -1,5 +1,6 @@
 use morphology::{Morphology, Patch};
 use position::DimVec;
+use protocol::FixedProtocol;
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, SeedableRng};
 use rand_distr::num_traits::Zero;
@@ -12,6 +13,7 @@ pub mod morphology;
 pub mod particle;
 pub mod patchy_discs;
 pub mod position;
+pub mod protocol;
 pub mod simbox;
 pub mod stats;
 pub mod vmmc;
@@ -19,9 +21,10 @@ pub mod vmmc;
 #[derive(Clone)]
 pub struct InputParams {
     pub num_particles: usize,
-    pub interaction_energy: f64, // kBT
+    // pub interaction_energy: f64, // kBT
     // pub patch_radius: f64,       //
     // density: f64,
+    pub protocol: FixedProtocol, // TODO: more flexible
     pub shapes: Vec<Morphology>,
 
     pub box_width: f64,
@@ -49,6 +52,8 @@ impl Default for InputParams {
         let max_rotation = 0.2;
         let num_sweeps = 100;
 
+        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
+
         let shapes = vec![
             // Morphology::regular_3patch(ip.patch_radius),
             Morphology::regular_3patch(0.1),
@@ -56,7 +61,8 @@ impl Default for InputParams {
 
         Self {
             num_particles,
-            interaction_energy,
+            // interaction_energy,
+            protocol,
             shapes,
 
             box_width,
@@ -129,6 +135,9 @@ impl Arbitrary for InputParams {
         let max_rotation = f64_in_range(g, 0.0, 1.0);
         let num_sweeps = 10;
 
+        // TODO: make this more varied
+        let protocol = FixedProtocol::flat_protocol(0.0, interaction_energy, num_sweeps);
+
         let mut shapes = Vec::new();
         let num_shapes = usize_in_range(g, 1, 3);
         for _ in 0..num_shapes {
@@ -148,7 +157,8 @@ impl Arbitrary for InputParams {
 
         Self {
             num_particles,
-            interaction_energy,
+            // interaction_energy,
+            protocol,
             shapes,
             // patch_radius,
             box_width,
