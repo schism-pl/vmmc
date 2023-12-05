@@ -127,13 +127,11 @@ pub struct Particles {
     num_particles: usize,
 }
 
-
 impl Particles {
-
     pub fn new(particles: Vec<Particle>) -> Self {
         let num_particles = particles.len();
         Self {
-            particles: particles.into_iter().map(|p| Some(p)).collect(), 
+            particles: particles.into_iter().map(|p| Some(p)).collect(),
             reserve: Vec::new(),
             num_particles,
         }
@@ -142,19 +140,19 @@ impl Particles {
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
         match &self.particles[p_id as usize] {
             Some(p) => p,
-            None => panic!("That particle doesn't exist!")
-        }        
+            None => panic!("That particle doesn't exist!"),
+        }
     }
 
     pub fn is_active_particle(&self, p_id: ParticleId) -> bool {
-        self.particles[p_id as usize].is_some() 
+        self.particles[p_id as usize].is_some()
     }
 
     pub fn particle_mut(&mut self, p_id: ParticleId) -> &mut Particle {
         match &mut self.particles[p_id as usize] {
             Some(p) => p,
-            None => panic!("That particle doesn't exist!")
-        }        
+            None => panic!("That particle doesn't exist!"),
+        }
     }
     pub fn num_particles(&self) -> usize {
         self.num_particles
@@ -166,11 +164,10 @@ impl Particles {
         if (p.id() as usize) < self.particles.len() {
             assert!(self.particles[p_id as usize].is_none());
             self.particles[p_id as usize] = Some(p);
-        }
-        else {
+        } else {
             self.particles.push(Some(p))
         }
-    } 
+    }
 
     pub fn get_unused_p_id(&mut self) -> ParticleId {
         match self.reserve.pop() {
@@ -198,7 +195,10 @@ pub struct ParticleIterator<'a> {
 
 impl<'a> ParticleIterator<'a> {
     fn new(particles: &'a [Option<Particle>]) -> Self {
-        Self { particles, index: 0 }
+        Self {
+            particles,
+            index: 0,
+        }
     }
 }
 
@@ -210,7 +210,7 @@ impl<'a> Iterator for ParticleIterator<'a> {
         while self.index < self.particles.len() {
             particle = match &self.particles[self.index] {
                 Some(p) => Some(p),
-                None => None
+                None => None,
             };
             self.index += 1;
             if particle.is_some() {

@@ -1,5 +1,5 @@
 use crate::consts::PARTICLE_RADIUS;
-use crate::particle::{IsParticle, Particle, ParticleId, VParticle, Particles};
+use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::Position;
 use crate::simbox::SimBox;

@@ -78,7 +78,8 @@ impl SimBox {
             tenants,
         };
 
-        let particles_to_insert: Vec<(ParticleId, Position)> = r.particles.iter().map(|p| (p.id(), p.pos())).collect();
+        let particles_to_insert: Vec<(ParticleId, Position)> =
+            r.particles.iter().map(|p| (p.id(), p.pos())).collect();
 
         for (p_id, pos) in particles_to_insert.iter() {
             // for p in r.particles.iter() {

@@ -1,18 +1,18 @@
 use clap::Parser;
 use rand::rngs::SmallRng;
-use rand::{SeedableRng, Rng};
+use rand::{Rng, SeedableRng};
 use vmmc::cli::VmmcConfig;
 use vmmc::io::write_geometry_png;
 use vmmc::morphology::Morphology;
 use vmmc::position::DimVec;
-use vmmc::{InputParams, protocol};
-use vmmc::protocol::{ProtocolStep, FixedProtocol};
+use vmmc::protocol::{FixedProtocol, ProtocolStep};
 use vmmc::{
     io::{read_xyz_snapshot, write_tcl, XYZWriter},
     particle::Particle,
     simbox::SimBox,
     vmmc::{Vmmc, VmmcParams},
 };
+use vmmc::{protocol, InputParams};
 
 // grab first frame from xyz and load particles
 // TODO: dedup with other particles_from_xyz
@@ -79,21 +79,19 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
     Vmmc::new(simbox, params, interaction_energy)
 }
 
-
-fn maybe_remove_particle(vmmc: &mut Vmmc, rng: &mut SmallRng){
+fn maybe_remove_particle(vmmc: &mut Vmmc, rng: &mut SmallRng) {
     panic!("TODO");
     if vmmc.particles().num_particles() == 0 {
         return;
     }
 }
 
-fn maybe_insert_particle(vmmc: &mut Vmmc, rng: &mut SmallRng){
+fn maybe_insert_particle(vmmc: &mut Vmmc, rng: &mut SmallRng) {
     panic!("TODO")
-            // if (vmmc.particles().len() < MAX_PARTICLES) {
-        //     insert_particle();
-        // }
+    // if (vmmc.particles().len() < MAX_PARTICLES) {
+    //     insert_particle();
+    // }
 }
-
 
 fn particle_exchange(vmmc: &mut Vmmc, rng: &mut SmallRng) {
     if (rng.gen::<f64>() < 0.5) {
@@ -113,7 +111,13 @@ fn maybe_particle_exchange(vmmc: &mut Vmmc, rng: &mut SmallRng) {
     }
 }
 
-fn run_vmmc(vmmc: &mut Vmmc, mut protocol: FixedProtocol, writer: &mut XYZWriter, num_sweeps: usize, rng: &mut SmallRng){
+fn run_vmmc(
+    vmmc: &mut Vmmc,
+    mut protocol: FixedProtocol,
+    writer: &mut XYZWriter,
+    num_sweeps: usize,
+    rng: &mut SmallRng,
+) {
     // TODO: num sweeps is not the right name for this
     for idx in 0..num_sweeps {
         writer.write_xyz_frame(&vmmc);
@@ -133,7 +137,6 @@ fn run_vmmc(vmmc: &mut Vmmc, mut protocol: FixedProtocol, writer: &mut XYZWriter
     }
     // write the final frame
     writer.write_xyz_frame(&vmmc);
-
 }
 
 // TODO: builder pattern
@@ -161,7 +164,10 @@ fn main() {
     debug_assert!(vmmc.well_formed());
     println!("Initial configuration ok");
 
-    println!("Initial # of particles: {:?}", vmmc.particles().num_particles());
+    println!(
+        "Initial # of particles: {:?}",
+        vmmc.particles().num_particles()
+    );
     // println!("Initial average energy: {:?}", vmmc.get_average_energy());
     // println!("------------------------------");
 
