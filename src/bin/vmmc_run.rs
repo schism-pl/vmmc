@@ -144,13 +144,15 @@ fn run_vmmc(
 ) {
     // TODO: num sweeps is not the right name for this
     for idx in 0..num_sweeps {
-        writer.write_xyz_frame(&vmmc);
+        writer.write_xyz_frame(vmmc);
         let protocol_update = protocol.next().unwrap();
         vmmc.set_interaction_energy(protocol_update.interaction_energy());
         let chemical_potential = protocol_update.chemical_potential();
         for _ in 0..1000 {
             let stats = vmmc.step_n(1000, rng);
+            // if rng.gen::<f64>() < 0.001 {
             maybe_particle_exchange(vmmc, chemical_potential, rng);
+            // }
         }
         println!(
             "-----------------------------------------\nStep {:?}: bonds per particle = {:.4}",
@@ -164,7 +166,7 @@ fn run_vmmc(
         println!("# of particles: {:?}", vmmc.particles().num_particles());
     }
     // write the final frame
-    writer.write_xyz_frame(&vmmc);
+    writer.write_xyz_frame(vmmc);
 }
 
 // TODO: builder pattern

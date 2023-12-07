@@ -131,7 +131,7 @@ impl Particles {
     pub fn new(particles: Vec<Particle>) -> Self {
         let num_particles = particles.len();
         Self {
-            particles: particles.into_iter().map(|p| Some(p)).collect(),
+            particles: particles.into_iter().map(Some).collect(),
             reserve: Vec::new(),
             num_particles,
         }
@@ -217,6 +217,6 @@ impl<'a> Iterator for ParticleIterator<'a> {
                 return particle;
             }
         }
-        return None;
+        None
     }
 }

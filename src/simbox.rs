@@ -197,14 +197,14 @@ impl SimBox {
     // TODO: deduplicate insert_particle / remove_particle / new_random_particle with other impls
     pub fn insert_particle(&mut self, p: Particle) {
         let cell_id = self.get_cell_id(p.pos());
-        self.delete_p_from_cell(p.id(), cell_id);
+        self.insert_p_into_cell(p.id(), cell_id);
         self.particles.insert(p);
     }
 
     pub fn remove_particle(&mut self, p_id: ParticleId) {
         let p = self.particle(p_id);
         let cell_id = self.get_cell_id(p.pos());
-        self.insert_p_into_cell(p_id, cell_id);
+        self.delete_p_from_cell(p_id, cell_id);
         self.particles.delete(p_id)
     }
 
@@ -216,9 +216,7 @@ impl SimBox {
             pos = self.random_pos(rng);
         }
         let or = Orientation::unit_vector(rng);
-        let particle = Particle::new(p_id, pos, or, shape_id);
-        particle
-        // particles.push(particle);
+        Particle::new(p_id, pos, or, shape_id)
     }
 
     pub fn get_cell_id(&self, pos: Position) -> CellId {
@@ -316,7 +314,7 @@ impl SimBox {
         new_x * self.cells_per_axis[1] + new_y
     }
 
-    // TODO: improve by using a neighbors data structure?
+    // ugly function, but surprisingly effective
     pub fn get_neighbors(&self, p: &Particle) -> Vec<ParticleId> {
         let mut r: Vec<ParticleId> = Vec::new();
 

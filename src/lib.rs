@@ -21,18 +21,15 @@ pub mod vmmc;
 #[derive(Clone)]
 pub struct InputParams {
     pub num_particles: usize,
-    // pub interaction_energy: f64, // kBT
-    // pub patch_radius: f64,       //
-    // density: f64,
-    pub protocol: FixedProtocol, // TODO: more flexible
+    pub protocol: FixedProtocol, // TODO: make more flexible
     pub shapes: Vec<Morphology>,
 
     pub box_width: f64,
     pub box_height: f64,
 
     pub prob_translate: f64,
-    pub max_translation: f64, // TODO: related to temperature somehow?
-    pub max_rotation: f64,    // TODO: related to temperature somehow?
+    pub max_translation: f64,
+    pub max_rotation: f64,
     pub num_sweeps: usize,
 }
 
@@ -52,14 +49,10 @@ impl Default for InputParams {
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
 
-        let shapes = vec![
-            // Morphology::regular_3patch(ip.patch_radius),
-            Morphology::regular_3patch(0.1),
-        ];
+        let shapes = vec![Morphology::regular_3patch(0.1)];
 
         Self {
             num_particles,
-            // interaction_energy,
             protocol,
             shapes,
 

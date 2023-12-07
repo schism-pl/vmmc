@@ -143,7 +143,7 @@ impl Vmmc {
     }
 
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
-        &self.simbox.particle(p_id)
+        self.simbox.particle(p_id)
     }
 
     pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
