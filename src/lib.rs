@@ -7,7 +7,7 @@ use rand_distr::num_traits::Zero;
 use simbox::SimBox;
 
 pub mod cli;
-mod consts;
+pub mod consts;
 pub mod io;
 pub mod morphology;
 pub mod particle;
@@ -42,8 +42,6 @@ pub struct InputParams {
 impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 500;
-        let interaction_energy = 20.0; // epsilon / kBT. ranges from 0 to 20
-                                       // let patch_radius = 0.05; // (in units of particle diameter)
         let box_width = 75.0;
         let box_height = 75.0;
 

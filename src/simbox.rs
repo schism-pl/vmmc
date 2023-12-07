@@ -2,7 +2,7 @@ use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
 use crate::morphology::Morphology;
-use crate::particle::Particles;
+use crate::particle::{Particles, ShapeId};
 use crate::position::Orientation;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
@@ -46,7 +46,6 @@ pub struct SimBox {
     dimensions: DimVec,
     cells_per_axis: [usize; DIMENSION],
     cell_dimensions: DimVec,
-    // particles: Vec<Particle>,
     particles: Particles,
     shapes: Vec<Morphology>, // maps shape_id to morphology
     cells: CellGrid,
@@ -56,6 +55,36 @@ pub struct SimBox {
 // x_idx * cells_per_axis[1] * MAX_PARTICLES_PER_CELL + y_idx * MAX_PARTICLES_PER_CELL
 // ParticleIdx::MAX = empty
 impl SimBox {
+    // TODO: condense simbox constructors using new insert_particle and new_random_particle
+    // pub fn new(
+    //     dimensions: DimVec,
+    //     cells_per_axis: [usize; DIMENSION],
+    //     cell_dimensions: DimVec,
+    //     particles: Particles,
+    //     shapes: Vec<Morphology>,
+    // ) -> Self {
+    //     // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
+    //     let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
+    //     let tenants = vec![0_u8; cells.len()];
+    //     let mut r = Self {
+    //         dimensions,
+    //         cells_per_axis,
+    //         cell_dimensions,
+    //         particles,
+    //         shapes,
+    //         cells,
+    //         tenants,
+    //     };
+
+    //     // let particles_to_insert: Vec<(ParticleId, Position)> = r.particles.iter().map(|p| (p.id(), p.pos())).collect();
+
+    //     // for (p_id, pos) in particles_to_insert.iter() {
+    //     //     let cell_id = r.get_cell_id(pos.clone());
+    //     //     r.insert_p_into_cell(p_id.clone(), cell_id);
+    //     // }
+    //     // r
+    // }
+
     pub fn new(
         dimensions: DimVec,
         cells_per_axis: [usize; DIMENSION],
@@ -63,12 +92,17 @@ impl SimBox {
         particles: Particles,
         shapes: Vec<Morphology>,
     ) -> Self {
-        // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
-        // let particles = Vec::new(); // TODO: initalize!
-        // let tenants = CellGrid::new(cells_per_axis, particles);
+        // Self::new(
+        //     dimensions,
+        //     cells_per_axis,
+        //     cell_dimensions,
+        //     Particles::new(Vec::new()),
+        //     Vec::new(),
+        // )
+
         let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
         let tenants = vec![0_u8; cells.len()];
-        let mut r = Self {
+        Self {
             dimensions,
             cells_per_axis,
             cell_dimensions,
@@ -76,38 +110,13 @@ impl SimBox {
             shapes,
             cells,
             tenants,
-        };
-
-        let particles_to_insert: Vec<(ParticleId, Position)> =
-            r.particles.iter().map(|p| (p.id(), p.pos())).collect();
-
-        for (p_id, pos) in particles_to_insert.iter() {
-            // for p in r.particles.iter() {
-            // let p_id = p.id();
-            let cell_id = r.get_cell_id(pos.clone());
-            r.insert_p_into_cell(p_id.clone(), cell_id);
         }
-        r
     }
 
-    pub fn new_empty(
-        dimensions: DimVec,
-        cells_per_axis: [usize; DIMENSION],
-        cell_dimensions: DimVec,
-    ) -> Self {
-        Self::new(
-            dimensions,
-            cells_per_axis,
-            cell_dimensions,
-            Particles::new(Vec::new()),
-            Vec::new(),
-        )
-    }
-
-    // TODO: dedup with other impl of randomized_particles and overlaps
     // check if a particle overlaps any other particles
-    fn overlaps(&self, pos: &Position, particles: &[Particle]) -> bool {
-        for other in particles.iter() {
+    // TODO: take particle reference as argument?
+    fn has_overlap(&self, pos: &Position) -> bool {
+        for other in self.particles.iter() {
             // dist < 1.0 (hard sphere radius)
             if self.sep_in_box(*pos, other.pos()).norm() < 1.0 {
                 return true;
@@ -124,16 +133,12 @@ impl SimBox {
         shapes: Vec<Morphology>,
         rng: &mut SmallRng,
     ) -> Self {
-        println!("dimensions = {:?}", dimensions);
         let cells_x_axis = (dimensions.x() / max_interaction_range).floor();
         let cells_y_axis = (dimensions.y() / max_interaction_range).floor();
 
         let cell_width = dimensions.x() / cells_x_axis;
         let cell_height = dimensions.y() / cells_y_axis;
-        println!(
-            "cell_width = {:?}, cell_height = {:?} max_interaction_range = {:?}",
-            cell_width, cell_height, max_interaction_range
-        );
+
         assert!(cell_width >= max_interaction_range);
         assert!(cell_height >= max_interaction_range);
 
@@ -142,28 +147,19 @@ impl SimBox {
         let cell_dimensions = DimVec::new([cell_width, cell_height]);
 
         // We initilize dummy simbox with no particles
-        let simbox = Self::new_empty(dimensions, cells_per_axis, cell_dimensions);
-
-        let mut particles = Vec::new();
-        for idx in 0..num_particles {
-            let shape_id = rng.gen_range(0..shapes.len()) as u16; // choose a uniform random shape
-            let mut pos = simbox.random_pos(rng);
-            while simbox.overlaps(&pos, &particles) {
-                pos = simbox.random_pos(rng);
-            }
-            let or = Orientation::unit_vector(rng);
-            // shape id is always 0 since only 1 type of particle
-            let particle = Particle::new(idx as u16, pos, or, shape_id);
-            particles.push(particle);
-        }
-        // generate the real simbox
-        SimBox::new(
+        let mut simbox = Self::new(
             dimensions,
             cells_per_axis,
             cell_dimensions,
-            Particles::new(particles),
+            Particles::new(Vec::new()),
             shapes,
-        )
+        );
+
+        for _ in 0..num_particles {
+            let p = simbox.new_random_particle(rng);
+            simbox.insert_particle(p);
+        }
+        simbox
     }
 
     pub fn cells(&self) -> &[Cell] {
@@ -194,6 +190,37 @@ impl SimBox {
         &self.shapes[p.shape_id() as usize]
     }
 
+    pub fn volume(&self) -> f64 {
+        self.dimensions.x() * self.dimensions.y()
+    }
+
+    // TODO: deduplicate insert_particle / remove_particle / new_random_particle with other impls
+    pub fn insert_particle(&mut self, p: Particle) {
+        let cell_id = self.get_cell_id(p.pos());
+        self.delete_p_from_cell(p.id(), cell_id);
+        self.particles.insert(p);
+    }
+
+    pub fn remove_particle(&mut self, p_id: ParticleId) {
+        let p = self.particle(p_id);
+        let cell_id = self.get_cell_id(p.pos());
+        self.insert_p_into_cell(p_id, cell_id);
+        self.particles.delete(p_id)
+    }
+
+    pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Particle {
+        let p_id = self.particles.get_unused_p_id();
+        let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
+        let mut pos = self.random_pos(rng);
+        while self.has_overlap(&pos) {
+            pos = self.random_pos(rng);
+        }
+        let or = Orientation::unit_vector(rng);
+        let particle = Particle::new(p_id, pos, or, shape_id);
+        particle
+        // particles.push(particle);
+    }
+
     pub fn get_cell_id(&self, pos: Position) -> CellId {
         // adjust so all indexes are positive
         // indexes start at bottom left and scan bottom to top
@@ -204,7 +231,6 @@ impl SimBox {
 
         let x_idx = (x / self.cell_dimensions.x()).floor() as usize;
         let y_idx = (y / self.cell_dimensions.y()).floor() as usize;
-        // println!("{:?}: x_idx = {:?}, y_idx = {:?}", pos, x_idx, y_idx);
         x_idx * self.cells_per_axis[1] + y_idx
     }
 

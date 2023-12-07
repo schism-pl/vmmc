@@ -134,6 +134,10 @@ impl Vmmc {
         &self.simbox
     }
 
+    pub fn simbox_mut(&mut self) -> &mut SimBox {
+        &mut self.simbox
+    }
+
     pub fn potential(&self) -> &PatchyDiscsPotential {
         &self.potential
     }
@@ -235,7 +239,7 @@ impl Vmmc {
 
     fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {
         // 1. Choose a particle that will lead the move
-        let seed_id = self.choose_seed(rng);
+        let seed_id = self.choose_random_p_id(rng);
         // 2. Choose a direction (unit vector) for the move
         let rand_vec = Position::unit_vector(rng);
         // 3. Choose a move type (translation or rotation)
@@ -351,7 +355,7 @@ impl Vmmc {
         (link_weight, reverse_link_weight)
     }
 
-    fn choose_seed(&self, rng: &mut SmallRng) -> ParticleId {
+    pub fn choose_random_p_id(&self, rng: &mut SmallRng) -> ParticleId {
         assert_ne!(self.particles().num_particles(), 0);
         loop {
             let p_id = rng.gen_range(0..self.particles().num_particles() as u16);
