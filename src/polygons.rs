@@ -21,6 +21,10 @@ impl Polygon {
         }
     }
 
+    pub fn vertices(&self) -> &[ParticleId] {
+        &self.vertices
+    }
+
     pub fn edge_iter(&self) -> PolygonEdgeIterator {
         PolygonEdgeIterator::new(&self.vertices)
     }

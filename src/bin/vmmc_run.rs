@@ -187,9 +187,7 @@ fn main() {
 
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&config, &ip, &mut rng);
-    // println!("Box dimensions: {:?}", box_dimensions);
-    // println!("Cell per axis: {:?}", cells_per_axis);
-    // println!("Cell dimensions: {:?}", cell_dimensions);
+
     // Init I/O
     let mut writer = XYZWriter::new(config.xyz_output());
 

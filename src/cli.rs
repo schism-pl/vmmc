@@ -7,6 +7,8 @@ pub struct VmmcConfig {
     seed: u64,
     #[arg(long, default_value = "")]
     start_frame: String,
+    // #[arg(long, default_value = "out/")]
+    // output_dir: String,
     #[arg(long, default_value = "vmd.tcl")]
     vmd_output: String,
     #[arg(long, default_value = "trajectory.xyz")]
@@ -21,6 +23,10 @@ impl VmmcConfig {
     pub fn start_frame(&self) -> &str {
         &self.start_frame
     }
+
+    // pub fn output_dir(&self) -> &str {
+    //     &self.output_dir
+    // }
 
     pub fn vmd_output(&self) -> &str {
         &self.vmd_output
