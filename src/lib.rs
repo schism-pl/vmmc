@@ -12,6 +12,7 @@ pub mod io;
 pub mod morphology;
 pub mod particle;
 pub mod patchy_discs;
+pub mod polygons;
 pub mod position;
 pub mod protocol;
 pub mod simbox;
@@ -33,9 +34,6 @@ pub struct InputParams {
     pub num_sweeps: usize,
 }
 
-// TODO: need to eliminate patch radius from here
-// TODO: eliminate density and replace with box length
-
 impl Default for InputParams {
     fn default() -> Self {
         let num_particles = 500;
@@ -45,7 +43,7 @@ impl Default for InputParams {
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 100;
+        let num_sweeps = 20;
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
 

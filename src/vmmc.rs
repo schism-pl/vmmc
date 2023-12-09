@@ -150,10 +150,14 @@ impl Vmmc {
         self.potential.compute_pair_energy(&self.simbox, p1, p2)
     }
 
+    pub fn determine_interactions(&self, p: &Particle) -> Vec<ParticleId> {
+        self.potential.determine_interactions(&self.simbox, p)
+    }
+
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> f64 {
         let mut energy = 0.0;
-        let interactions = self.potential.determine_interactions(&self.simbox, p);
+        let interactions = self.determine_interactions(p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
             energy += self.compute_pair_energy(p, neighbor);
@@ -297,9 +301,7 @@ impl Vmmc {
             vmoves.push(id, final_p.clone());
 
             let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
-            let interactions = self
-                .potential
-                .determine_interactions(&self.simbox, particle);
+            let interactions = self.determine_interactions(particle);
 
             for &neighbor_id in interactions.iter() {
                 let neighbor = self.particle(neighbor_id);

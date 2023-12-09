@@ -4,6 +4,7 @@ use rand::{Rng, SeedableRng};
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::MAX_PARTICLES;
 use vmmc::io::write_geometry_png;
+use vmmc::polygons::{calc_polygon_count, calc_polygons};
 use vmmc::position::DimVec;
 use vmmc::protocol::FixedProtocol;
 use vmmc::InputParams;
@@ -164,6 +165,8 @@ fn run_vmmc(
         //     stats.num_accepts() as f64 / (1000.0 * 1000.0)
         // );
         println!("# of particles: {:?}", vmmc.particles().num_particles());
+        // println!("polygons: {:?}", calc_polygons(vmmc, 6));
+        println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
     }
     // write the final frame
     writer.write_xyz_frame(vmmc);

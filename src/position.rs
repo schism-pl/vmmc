@@ -88,6 +88,14 @@ impl DimVec {
         r
     }
 
+    pub fn cross_prod(&self, other: Position) -> f64 {
+        self.x() * other.y() - self.y() * other.x()
+    }
+
+    pub fn dot_prod(&self, other: Position) -> f64 {
+        self.x() * other.x() + self.y() * other.y()
+    }
+
     pub fn cross_prod_magnitude_sqd(&self, other: Position) -> f64 {
         if DIMENSION == 2 {
             let a1: f64 = self.x() * other.y() - self.y() * other.x();
