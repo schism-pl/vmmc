@@ -512,14 +512,14 @@ impl Vmmc {
         //     panic!("oh no");
         // }
         if self.attempt_commit(rng, &mov, &virtual_moves).is_ok() {
-            stats.record_accept(mov.is_rotation(), virtual_moves.inner.len());
+            stats.record_accept();
         }
 
         Ok(())
     }
 
     pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
-        let mut run_stats = RunStats::new(self.particles().num_particles());
+        let mut run_stats = RunStats::new();
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
             let _ = self.step(rng, &mut run_stats);

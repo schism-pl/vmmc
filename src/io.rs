@@ -207,7 +207,3 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
 
     dt.write_png(pathname).unwrap();
 }
-
-// pub fn write_outputs(vmmc: &Vmmc, output_dir: &str) {
-
-// }

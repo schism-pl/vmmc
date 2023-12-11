@@ -43,7 +43,7 @@ impl Default for InputParams {
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 20;
+        let num_sweeps = 100;
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
 

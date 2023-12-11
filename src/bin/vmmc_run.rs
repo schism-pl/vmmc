@@ -1,3 +1,5 @@
+use std::fs::create_dir_all;
+
 use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -7,6 +9,7 @@ use vmmc::io::write_geometry_png;
 use vmmc::polygons::{calc_polygon_count, calc_polygons};
 use vmmc::position::DimVec;
 use vmmc::protocol::FixedProtocol;
+use vmmc::stats::RunStats;
 use vmmc::InputParams;
 use vmmc::{
     io::{write_tcl, XYZWriter},
@@ -29,6 +32,20 @@ use vmmc::{
 //     }
 //     particles
 // }
+
+// maps shapes to bond distribution
+fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
+    let mut bond_counts_per_shape = Vec::new();
+    for shape in vmmc.simbox().shapes() {
+        let mut bond_counts = vec![0; shape.patches().len() + 1];
+        for p in vmmc.particles().iter() {
+            let bond_count = vmmc.determine_interactions(p).iter().count();
+            bond_counts[bond_count] += 1;
+        }
+        bond_counts_per_shape.push(bond_counts);
+    }
+    bond_counts_per_shape
+}
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
@@ -74,7 +91,6 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
     };
 
     let params = VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
-    // let interaction_energy = ip.protocol.next().unwrap().interaction_energy();
     let interaction_energy = ip.protocol.initial_interaction_energy();
     Vmmc::new(simbox, params, interaction_energy)
 }
@@ -113,9 +129,6 @@ fn maybe_insert_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut Sma
     if rng.gen::<f64>() < p_accept {
         vmmc.simbox_mut().insert_particle(p);
     }
-
-    // let cell_id = vmmc.simbox().get_cell_id(p.pos());
-    // vmmc.simbox().delete_p_from_cell(p_id, cell_id);
 }
 
 fn particle_exchange(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut SmallRng) {
@@ -145,28 +158,43 @@ fn run_vmmc(
 ) {
     // TODO: num sweeps is not the right name for this
     for idx in 0..num_sweeps {
+        let mut run_stats = RunStats::new();
         writer.write_xyz_frame(vmmc);
         let protocol_update = protocol.next().unwrap();
         vmmc.set_interaction_energy(protocol_update.interaction_energy());
         let chemical_potential = protocol_update.chemical_potential();
         for _ in 0..1000 {
             let stats = vmmc.step_n(1000, rng);
+            run_stats = stats + run_stats;
             // if rng.gen::<f64>() < 0.001 {
             maybe_particle_exchange(vmmc, chemical_potential, rng);
             // }
         }
         println!(
-            "-----------------------------------------\nStep {:?}: bonds per particle = {:.4}",
+            "-----------------------------------------\nStep {:?}",
             (idx + 1) * 1000 * 1000,
-            -vmmc.get_average_energy() / vmmc.potential().interaction_energy()
         );
-        // println!(
-        //     "Acceptance ratio: {:.4}",
-        //     stats.num_accepts() as f64 / (1000.0 * 1000.0)
-        // );
+
         println!("# of particles: {:?}", vmmc.particles().num_particles());
-        // println!("polygons: {:?}", calc_polygons(vmmc, 6));
         println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
+        println!(
+            "Interaction Energy (Tau): {:.4}",
+            protocol_update.interaction_energy()
+        );
+        println!("Chemical potential (Mu): {:.4}", chemical_potential);
+        println!(
+            "Acceptance ratio: {:.4}",
+            run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
+        );
+        for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
+            let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
+            println!(
+                "shape_{:?} bond distribution: {:?} average degree = {:.4}",
+                idx,
+                shape_stats,
+                weighted_sum as f64 / vmmc.particles().num_particles() as f64
+            );
+        }
     }
     // write the final frame
     writer.write_xyz_frame(vmmc);
@@ -175,8 +203,10 @@ fn run_vmmc(
 // TODO: builder pattern
 fn main() {
     env_logger::init();
+
     // Get commandline arguments
     let config = VmmcConfig::parse();
+
     // Get default params
     let ip = InputParams::default();
 
@@ -189,20 +219,25 @@ fn main() {
     let mut vmmc = vmmc_from_config(&config, &ip, &mut rng);
 
     // Init I/O
-    let mut writer = XYZWriter::new(config.xyz_output());
+    println!("Writing output to {}", config.output_dir());
+    let out_path = std::path::Path::new(config.output_dir());
+    create_dir_all(out_path).unwrap();
 
-    println!("Checking initial configuration");
+    let mut writer = XYZWriter::new(&format!("{}/trajectory.xyz", config.output_dir()));
+
+    // Check that initial conditions are reasonable
     debug_assert!(vmmc.well_formed());
     println!("Initial configuration ok");
 
-    println!(
-        "Initial # of particles: {:?}",
-        vmmc.particles().num_particles()
-    );
+    // println!(
+    //     "Initial # of particles: {:?}",
+    //     vmmc.particles().num_particles()
+    // );
 
+    // Run the simulation
     run_vmmc(&mut vmmc, ip.protocol, &mut writer, ip.num_sweeps, &mut rng);
 
-    // Write script to generate animation
-    write_tcl(&vmmc, config.vmd_output());
-    write_geometry_png(&vmmc, "geometry.png"); // TODO: configurable path
+    // Write visiualizations to disc
+    write_tcl(&vmmc, &format!("{}/vmd.tcl", config.output_dir()));
+    write_geometry_png(&vmmc, &format!("{}/geometry.png", config.output_dir()));
 }
