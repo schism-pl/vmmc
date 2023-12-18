@@ -229,15 +229,10 @@ fn main() {
     debug_assert!(vmmc.well_formed());
     println!("Initial configuration ok");
 
-    // println!(
-    //     "Initial # of particles: {:?}",
-    //     vmmc.particles().num_particles()
-    // );
-
     // Run the simulation
     run_vmmc(&mut vmmc, ip.protocol, &mut writer, ip.num_sweeps, &mut rng);
 
-    // Write visiualizations to disc
+    // Write visualizations to disc
     write_tcl(&vmmc, &format!("{}/vmd.tcl", config.output_dir()));
     write_geometry_png(&vmmc, &format!("{}/geometry.png", config.output_dir()));
 }
