@@ -6,13 +6,9 @@ pub struct VmmcConfig {
     #[arg(long, default_value_t = SmallRng::from_entropy().gen::<u64>())]
     seed: u64,
     #[arg(long, default_value = "")]
-    start_frame: String,
+    input: String,
     #[arg(long, default_value = "./out")]
     output_dir: String,
-    // #[arg(long, default_value = "vmd.tcl")]
-    // vmd_output: String,
-    // #[arg(long, default_value = "trajectory.xyz")]
-    // xyz_output: String,
 }
 
 impl VmmcConfig {
@@ -20,19 +16,27 @@ impl VmmcConfig {
         self.seed
     }
 
-    pub fn start_frame(&self) -> &str {
-        &self.start_frame
+    pub fn input(&self) -> &str {
+        &self.input
     }
 
     pub fn output_dir(&self) -> &str {
         &self.output_dir
     }
 
-    // pub fn vmd_output(&self) -> &str {
-    //     format!(self.vmd_output)
-    // }
+    pub fn toml(&self) -> String {
+        format!("{}/config.toml", self.output_dir())
+    }
 
-    // pub fn xyz_output(&self) -> &str {
-    //     &self.xyz_output
-    // }
+    pub fn vmd(&self) -> String {
+        format!("{}/vmd.tcl", self.output_dir())
+    }
+
+    pub fn geometry(&self) -> String {
+        format!("{}/geometry.png", self.output_dir())
+    }
+
+    pub fn trajectory(&self) -> String {
+        format!("{}/trajectory.xyz", self.output_dir())
+    }
 }

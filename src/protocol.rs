@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolStep {
     chemical_potential: f64, // mu / KbT
     interaction_energy: f64, // epsilon / KbT
@@ -24,7 +26,7 @@ impl ProtocolStep {
 trait Protocol: Iterator<Item = ProtocolStep> {}
 impl<T: Iterator<Item = ProtocolStep>> Protocol for T {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FixedProtocol {
     inner: Vec<ProtocolStep>,
     t: usize,

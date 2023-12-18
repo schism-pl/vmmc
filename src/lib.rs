@@ -4,6 +4,7 @@ use protocol::FixedProtocol;
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, SeedableRng};
 use rand_distr::num_traits::Zero;
+use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 
 pub mod cli;
@@ -19,7 +20,8 @@ pub mod simbox;
 pub mod stats;
 pub mod vmmc;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct InputParams {
     pub num_particles: usize,
     pub protocol: FixedProtocol, // TODO: make more flexible
@@ -72,6 +74,15 @@ impl InputParams {
             .map(|m| m.max_patch_radius())
             .fold(f64::MIN, |a, b| a.max(b))
     }
+
+    // assert well-formedness predicate for InputParams
+    // TODO: complete
+    pub fn check(&self) {
+        assert!(self.num_particles <= 2500);
+        assert!(self.box_width >= 10.0 && self.box_height >= 10.0);
+        assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
+        // assert!()
+    }
 }
 
 // for arbitrary trait
@@ -104,6 +115,7 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // we need num_cells >= 2*num_particles
 
 // for testing
+// the patch_radius we use is wrong
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         let num_particles = usize_in_range(g, 0, 2500);

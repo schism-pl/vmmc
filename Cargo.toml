@@ -3,6 +3,10 @@ name = "vmmc"
 version = "0.1.0"
 edition = "2021"
 
+
+[profile.release]
+lto = "thin" # use "fat" if we need to eek out another 2%
+
 [[bin]]
 name = "vmmc-run"
 path = "src/bin/vmmc_run.rs"
@@ -17,3 +21,8 @@ quickcheck_macros = "1.0.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rand_distr = "0.4.3"
 raqote = "0.8.3"
+serde = { version = "1.0.193", features = ["derive"] }
+toml = "0.8.8"
+
+
+

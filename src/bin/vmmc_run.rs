@@ -1,8 +1,9 @@
-use std::fs::create_dir_all;
+use std::fs::{self, create_dir_all};
 
 use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
+use std::io::prelude::*;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::MAX_PARTICLES;
 use vmmc::io::write_geometry_png;
@@ -57,38 +58,38 @@ fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -
 
     let max_interaction_range = 1.0 + ip.max_patch_radius();
 
-    let simbox = if !config.start_frame().is_empty() {
-        panic!("Loading a preexisting trajectory is currently broken")
-        // We have an initial position, so just use that
-        // let particles = particles_from_xyz_nomix(config.start_frame());
-        // let cells_x_axis = (box_dimensions.x() / max_interaction_range).floor();
-        // let cells_y_axis = (box_dimensions.y() / max_interaction_range).floor();
+    // let simbox = if !config.start_frame().is_empty() {
+    //     panic!("Loading a preexisting trajectory is currently broken")
+    //     // We have an initial position, so just use that
+    //     // let particles = particles_from_xyz_nomix(config.start_frame());
+    //     // let cells_x_axis = (box_dimensions.x() / max_interaction_range).floor();
+    //     // let cells_y_axis = (box_dimensions.y() / max_interaction_range).floor();
 
-        // let cell_width = box_dimensions.x() / cells_x_axis;
-        // assert!(cell_width >= max_interaction_range);
+    //     // let cell_width = box_dimensions.x() / cells_x_axis;
+    //     // assert!(cell_width >= max_interaction_range);
 
-        // let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
+    //     // let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
 
-        // // cells are always square
-        // let cell_dimensions = DimVec::new([cell_width, cell_width]);
+    //     // // cells are always square
+    //     // let cell_dimensions = DimVec::new([cell_width, cell_width]);
 
-        // SimBox::new(
-        //     box_dimensions,
-        //     cells_per_axis,
-        //     cell_dimensions,
-        //     particles,
-        //     ip.shapes.clone(),
-        // )
-    } else {
-        // No initial position, so we will use a randomized start position
-        SimBox::new_with_randomized_particles(
-            box_dimensions,
-            max_interaction_range,
-            ip.num_particles,
-            ip.shapes.clone(),
-            rng,
-        )
-    };
+    //     // SimBox::new(
+    //     //     box_dimensions,
+    //     //     cells_per_axis,
+    //     //     cell_dimensions,
+    //     //     particles,
+    //     //     ip.shapes.clone(),
+    //     // )
+    // } else {
+    // No initial position, so we will use a randomized start position
+    let simbox = SimBox::new_with_randomized_particles(
+        box_dimensions,
+        max_interaction_range,
+        ip.num_particles,
+        ip.shapes.clone(),
+        rng,
+    );
+    //  };
 
     let params = VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
     let interaction_energy = ip.protocol.initial_interaction_energy();
@@ -201,14 +202,18 @@ fn run_vmmc(
 }
 
 // TODO: builder pattern
-fn main() {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     // Get commandline arguments
     let config = VmmcConfig::parse();
 
-    // Get default params
-    let ip = InputParams::default();
+    let ip = if config.input() != "" {
+        let contents = fs::read_to_string(config.input())?;
+        toml::from_str(&contents)?
+    } else {
+        InputParams::default()
+    };
 
     // Seed the rng
     let seed = config.seed();
@@ -220,10 +225,15 @@ fn main() {
 
     // Init I/O
     println!("Writing output to {}", config.output_dir());
+    // TODO: need to clear /out
     let out_path = std::path::Path::new(config.output_dir());
     create_dir_all(out_path).unwrap();
 
-    let mut writer = XYZWriter::new(&format!("{}/trajectory.xyz", config.output_dir()));
+    // dump full config toml to output directory
+    let toml = toml::to_string(&ip).unwrap();
+    fs::write(config.toml(), toml).expect("Unable to write file");
+
+    let mut writer = XYZWriter::new(&config.trajectory());
 
     // Check that initial conditions are reasonable
     debug_assert!(vmmc.well_formed());
@@ -233,6 +243,8 @@ fn main() {
     run_vmmc(&mut vmmc, ip.protocol, &mut writer, ip.num_sweeps, &mut rng);
 
     // Write visualizations to disc
-    write_tcl(&vmmc, &format!("{}/vmd.tcl", config.output_dir()));
-    write_geometry_png(&vmmc, &format!("{}/geometry.png", config.output_dir()));
+    write_tcl(&vmmc, &config.vmd());
+    write_geometry_png(&vmmc, &config.geometry());
+
+    Ok(())
 }
