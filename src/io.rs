@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{BufRead, BufReader, Write},
 };
 
@@ -7,6 +7,7 @@ use std::{
 use raqote::*;
 
 use crate::{
+    cli::VmmcConfig,
     particle::IsParticle,
     polygons::{calc_polygons, Polygon},
     position::DimVec,
@@ -206,4 +207,18 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
     }
 
     dt.write_png(pathname).unwrap();
+}
+
+fn try_delete(p: String) {
+    if std::path::Path::new(&p).is_file() {
+        fs::remove_file(p).expect("unreachable")
+    }
+}
+
+pub fn clear_out_files(config: &VmmcConfig) -> anyhow::Result<()> {
+    try_delete(config.toml());
+    try_delete(config.vmd());
+    try_delete(config.geometry());
+    try_delete(config.trajectory());
+    Ok(())
 }

@@ -6,7 +6,7 @@ use rand::{Rng, SeedableRng};
 use std::io::prelude::*;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::MAX_PARTICLES;
-use vmmc::io::write_geometry_png;
+use vmmc::io::{clear_out_files, write_geometry_png};
 use vmmc::polygons::{calc_polygon_count, calc_polygons};
 use vmmc::position::DimVec;
 use vmmc::protocol::FixedProtocol;
@@ -150,6 +150,7 @@ fn maybe_particle_exchange(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut S
     }
 }
 
+//TODO: double check probabilities on chemical potential
 fn run_vmmc(
     vmmc: &mut Vmmc,
     mut protocol: FixedProtocol,
@@ -179,10 +180,10 @@ fn run_vmmc(
         println!("# of particles: {:?}", vmmc.particles().num_particles());
         println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
         println!(
-            "Interaction Energy (Tau): {:.4}",
+            "Interaction Energy (epsilon): {:.4}",
             protocol_update.interaction_energy()
         );
-        println!("Chemical potential (Mu): {:.4}", chemical_potential);
+        println!("Chemical potential (mu): {:.4}", chemical_potential);
         println!(
             "Acceptance ratio: {:.4}",
             run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
@@ -201,7 +202,6 @@ fn run_vmmc(
     writer.write_xyz_frame(vmmc);
 }
 
-// TODO: builder pattern
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
@@ -225,9 +225,9 @@ fn main() -> anyhow::Result<()> {
 
     // Init I/O
     println!("Writing output to {}", config.output_dir());
-    // TODO: need to clear /out
     let out_path = std::path::Path::new(config.output_dir());
     create_dir_all(out_path).unwrap();
+    clear_out_files(&config)?;
 
     // dump full config toml to output directory
     let toml = toml::to_string(&ip).unwrap();

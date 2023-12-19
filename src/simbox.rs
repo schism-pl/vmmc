@@ -55,36 +55,6 @@ pub struct SimBox {
 // x_idx * cells_per_axis[1] * MAX_PARTICLES_PER_CELL + y_idx * MAX_PARTICLES_PER_CELL
 // ParticleIdx::MAX = empty
 impl SimBox {
-    // TODO: condense simbox constructors using new insert_particle and new_random_particle
-    // pub fn new(
-    //     dimensions: DimVec,
-    //     cells_per_axis: [usize; DIMENSION],
-    //     cell_dimensions: DimVec,
-    //     particles: Particles,
-    //     shapes: Vec<Morphology>,
-    // ) -> Self {
-    //     // assert_eq!(dimensions = cells_per_axis * cell_dimensions)
-    //     let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
-    //     let tenants = vec![0_u8; cells.len()];
-    //     let mut r = Self {
-    //         dimensions,
-    //         cells_per_axis,
-    //         cell_dimensions,
-    //         particles,
-    //         shapes,
-    //         cells,
-    //         tenants,
-    //     };
-
-    //     // let particles_to_insert: Vec<(ParticleId, Position)> = r.particles.iter().map(|p| (p.id(), p.pos())).collect();
-
-    //     // for (p_id, pos) in particles_to_insert.iter() {
-    //     //     let cell_id = r.get_cell_id(pos.clone());
-    //     //     r.insert_p_into_cell(p_id.clone(), cell_id);
-    //     // }
-    //     // r
-    // }
-
     pub fn new(
         dimensions: DimVec,
         cells_per_axis: [usize; DIMENSION],
@@ -92,14 +62,6 @@ impl SimBox {
         particles: Particles,
         shapes: Vec<Morphology>,
     ) -> Self {
-        // Self::new(
-        //     dimensions,
-        //     cells_per_axis,
-        //     cell_dimensions,
-        //     Particles::new(Vec::new()),
-        //     Vec::new(),
-        // )
-
         let cells = vec![[ParticleId::MAX; 4]; cells_per_axis[0] * cells_per_axis[1]];
         let tenants = vec![0_u8; cells.len()];
         Self {
@@ -194,7 +156,6 @@ impl SimBox {
         self.dimensions.x() * self.dimensions.y()
     }
 
-    // TODO: deduplicate insert_particle / remove_particle / new_random_particle with other impls
     pub fn insert_particle(&mut self, p: Particle) {
         let cell_id = self.get_cell_id(p.pos());
         self.insert_p_into_cell(p.id(), cell_id);

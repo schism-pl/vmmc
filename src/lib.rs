@@ -45,7 +45,7 @@ impl Default for InputParams {
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 100;
+        let num_sweeps = 1000;
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
 
@@ -76,12 +76,45 @@ impl InputParams {
     }
 
     // assert well-formedness predicate for InputParams
-    // TODO: complete
+    // Note: can stash all assumptions about layout here
+    // Note: this needs to be synced up with docs
+    // TODO: check smoothness of protocol?
     pub fn check(&self) {
+        // Basic range checks
         assert!(self.num_particles <= 2500);
         assert!(self.box_width >= 10.0 && self.box_height >= 10.0);
         assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
-        // assert!()
+        assert!(
+            self.prob_translate >= 0.0
+                && self.prob_translate <= 1.0
+                && (self.prob_translate.is_normal() || self.prob_translate.is_zero())
+        );
+        assert!(
+            self.max_translation > 0.0
+                && self.max_translation <= 1.0
+                && self.max_translation.is_normal()
+        );
+        assert!(
+            self.max_rotation > 0.0 && self.max_rotation <= 1.0 && self.max_rotation.is_normal()
+        );
+
+        // check well-formedness of protocol
+        for step in self.protocol.clone() {
+            let mu = step.chemical_potential();
+            let epsilon = step.interaction_energy();
+            assert!(-20.0 <= mu && mu <= 20.0);
+            assert!(0.01 <= epsilon && epsilon <= 20.0);
+        }
+
+        // make sure our patches are reasonable
+        for shape in &self.shapes {
+            assert!(shape.patches().len() >= 3);
+            assert!(shape.patches().len() <= 6);
+            for patch in shape.patches() {
+                assert!(patch.theta() >= 0.0 && patch.theta() > 360.0);
+                assert!(patch.radius() >= 0.01 && patch.radius() <= 0.25);
+            }
+        }
     }
 }
 
@@ -91,9 +124,7 @@ fn usize_in_range(g: &mut Gen, min: usize, max: usize) -> usize {
         return max;
     }
     let x = usize::arbitrary(g);
-    println!("[{:?}, {:?}] {:?}", min, max, x);
     let r = x % (max - min) + min;
-    println!("[{:?}, {:?}] {:?} => {:?}", min, max, x, r);
     assert!(r >= min && r < max);
     r
 }
@@ -103,7 +134,6 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
     while !(r.is_normal() || r.is_zero()) {
         let x = f64::arbitrary(g).abs();
         r = x % (max - min) + min;
-        println!("[{:?}, {:?}] {:?} => {:?}", min, max, x, r);
     }
 
     assert!(r.is_normal() || r.is_zero());
@@ -115,7 +145,7 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // we need num_cells >= 2*num_particles
 
 // for testing
-// the patch_radius we use is wrong
+// TODO: the patch_radius we use is wrong
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         let num_particles = usize_in_range(g, 0, 2500);
@@ -158,10 +188,8 @@ impl Arbitrary for InputParams {
 
         Self {
             num_particles,
-            // interaction_energy,
             protocol,
             shapes,
-            // patch_radius,
             box_width,
             box_height,
 

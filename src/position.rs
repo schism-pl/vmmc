@@ -119,6 +119,7 @@ impl DimVec {
         }
     }
 
+    // TODO: what are the units of theta? (update docs if its not radians)
     fn rotated_by_2d(&self, theta: f64) -> Self {
         let c = theta.cos();
         let s = theta.sin();

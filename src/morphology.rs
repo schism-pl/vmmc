@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 // Clone is implemented to enable quickcheck
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
     radius: f64,     // radius of patch (in units of particle diameter)
     theta: f64,      // angle in degrees

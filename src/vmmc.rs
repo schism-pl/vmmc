@@ -14,9 +14,6 @@ use std::collections::{HashSet, VecDeque};
 // NOTE: assuming not is_repulsive
 // NOTE: assuming no non-pairwise forces
 
-// TODO: documentation!
-// TODO: equation map
-
 #[derive(Clone, Copy, Debug)]
 pub enum MoveDir {
     Forward,
@@ -260,7 +257,7 @@ impl Vmmc {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
             let r: f64 = rng.gen();
-            // random number between (-1.0 and 1.0) * max_trial_translation
+            // random number between (-1.0 and 1.0) * max_translation
             self.params.max_translation * (2.0 * r - 1.0)
         };
 
