@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign};
+use std::ops::Add;
 
 #[derive(Debug)]
 pub struct RunStats {

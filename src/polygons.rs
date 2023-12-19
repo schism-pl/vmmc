@@ -14,7 +14,7 @@ pub struct Polygon {
 }
 
 impl Polygon {
-    fn new(id: PolygonId, vertices: Vec<ParticleId>) -> Self {
+    fn new(vertices: Vec<ParticleId>) -> Self {
         Self {
             // id,
             vertices,
@@ -118,7 +118,7 @@ pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
                 // polygon found!
                 visited.pop(); // remove duplicate vertex
                 let id = polygons.len();
-                let polygon = Polygon::new(id, visited.clone());
+                let polygon = Polygon::new(visited.clone());
                 // propagate polygon info
                 for edge in polygon.edge_iter() {
                     edge_to_polygon.insert(edge, id);

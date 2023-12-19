@@ -6,30 +6,23 @@ use std::{
 // use raqote::{PathBuilder, DrawTarget, Source, SolidSource, StrokeStyle, DrawOptions};
 use raqote::*;
 
-use crate::{
-    cli::VmmcConfig,
-    particle::IsParticle,
-    polygons::{calc_polygons, Polygon},
-    position::DimVec,
-    simbox,
-    vmmc::Vmmc,
-};
+use crate::{cli::VmmcConfig, particle::IsParticle, position::DimVec, vmmc::Vmmc};
 
 pub struct XYZWriter {
     file: File,
 }
 
-pub struct XYZReader {
-    rdr: BufReader<File>,
-}
+// pub struct XYZReader {
+//     rdr: BufReader<File>,
+// }
 
-impl XYZReader {
-    pub fn new(p: &str) -> Self {
-        let file = File::open(p).unwrap();
-        let rdr = BufReader::new(file);
-        Self { rdr }
-    }
-}
+// impl XYZReader {
+//     pub fn new(p: &str) -> Self {
+//         let file = File::open(p).unwrap();
+//         let rdr = BufReader::new(file);
+//         Self { rdr }
+//     }
+// }
 
 pub fn read_xyz_snapshot(path: &str) -> (Vec<DimVec>, Vec<DimVec>) {
     let mut positions = Vec::new();
@@ -123,44 +116,44 @@ fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
     Source::Solid(SolidSource { r, g, b, a })
 }
 
-fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
-    let x_off = vmmc.simbox().max_x() * scale;
-    let y_off = vmmc.simbox().max_y() * scale;
+// fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
+//     let x_off = vmmc.simbox().max_x() * scale;
+//     let y_off = vmmc.simbox().max_y() * scale;
 
-    let source = match polygon.vertices().len() {
-        0 | 1 | 2 => panic!("Detected \"polygon\" with less than 3 sides!"),
-        3 => rgba_solid(0xff, 0xff, 0, 0xff), // yellow
-        4 => rgba_solid(0, 0, 0xff, 0xff),    // blue
-        5 => rgba_solid(0xff, 0, 0, 0xff),    // red
-        6 => rgba_solid(0x0, 0xff, 0, 0xff),  // green
-        _ => rgba_solid(0xff, 0, 0xff, 0xff), // purple
-    };
+//     let source = match polygon.vertices().len() {
+//         0 | 1 | 2 => panic!("Detected \"polygon\" with less than 3 sides!"),
+//         3 => rgba_solid(0xff, 0xff, 0, 0xff), // yellow
+//         4 => rgba_solid(0, 0, 0xff, 0xff),    // blue
+//         5 => rgba_solid(0xff, 0, 0, 0xff),    // red
+//         6 => rgba_solid(0x0, 0xff, 0, 0xff),  // green
+//         _ => rgba_solid(0xff, 0, 0xff, 0xff), // purple
+//     };
 
-    let mut pb = PathBuilder::new();
-    let mut pos = vmmc.particle(polygon.vertices()[0]).pos();
-    pb.move_to(
-        (pos.x() * scale + x_off) as f32,
-        (pos.y() * scale + y_off) as f32,
-    );
+//     let mut pb = PathBuilder::new();
+//     let mut pos = vmmc.particle(polygon.vertices()[0]).pos();
+//     pb.move_to(
+//         (pos.x() * scale + x_off) as f32,
+//         (pos.y() * scale + y_off) as f32,
+//     );
 
-    for (src_p, dst_p) in polygon.edge_iter() {
-        let pos1 = vmmc.particle(dst_p).pos();
-        let sep = vmmc.simbox().sep_in_box(pos1, pos); // pos -> new_pos
-        let scaled_sep = sep.scalar_mul(scale);
-        let final_pos = pos + sep.scalar_mul(scale);
-        pb.line_to(final_pos.x() as f32, final_pos.y() as f32);
-        pos = final_pos;
-    }
+//     for (src_p, dst_p) in polygon.edge_iter() {
+//         let pos1 = vmmc.particle(dst_p).pos();
+//         let sep = vmmc.simbox().sep_in_box(pos1, pos); // pos -> new_pos
+//         let scaled_sep = sep.scalar_mul(scale);
+//         let final_pos = pos + sep.scalar_mul(scale);
+//         pb.line_to(final_pos.x() as f32, final_pos.y() as f32);
+//         pos = final_pos;
+//     }
 
-    let draw_path = pb.finish();
-    dt.fill(&draw_path, &source, &DrawOptions::new());
-}
+//     let draw_path = pb.finish();
+//     dt.fill(&draw_path, &source, &DrawOptions::new());
+// }
 
-fn color_polygons(vmmc: &Vmmc, polygons: &[Polygon], dt: &mut DrawTarget, scale: f64) {
-    for polygon in polygons.iter() {
-        color_polygon(vmmc, polygon, dt, scale);
-    }
-}
+// fn color_polygons(vmmc: &Vmmc, polygons: &[Polygon], dt: &mut DrawTarget, scale: f64) {
+//     for polygon in polygons.iter() {
+//         color_polygon(vmmc, polygon, dt, scale);
+//     }
+// }
 
 pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
     // need to adjust from 0-centered to all positive coordinates

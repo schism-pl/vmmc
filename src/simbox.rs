@@ -2,7 +2,7 @@ use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
 use crate::morphology::Morphology;
-use crate::particle::{Particles, ShapeId};
+use crate::particle::Particles;
 use crate::position::Orientation;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},

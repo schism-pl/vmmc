@@ -206,9 +206,9 @@ impl<'a> Iterator for ParticleIterator<'a> {
     type Item = &'a Particle;
     /// scan forward until we find a particle or run out of particles
     fn next(&mut self) -> Option<Self::Item> {
-        let mut particle = None;
+        // let mut particle = None;
         while self.index < self.particles.len() {
-            particle = match &self.particles[self.index] {
+            let particle = match &self.particles[self.index] {
                 Some(p) => Some(p),
                 None => None,
             };
