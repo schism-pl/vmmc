@@ -71,20 +71,41 @@ Description: Maximum rotation angle of a rotation move, in units of radians
 
 ##### num_sweeps
 Type: `usize`  
-Expected Value Range: `0 >= num_sweeps`   
+Expected Value Range: any `usize` is a valid `num_sweeps`   
 Description: Monte-Carlo steps for the simulation to take. 1 sweep = 10e6 moves.  
 
 ##### protocol
-Type: [ProtocolStep]
-Expected Value Range: `protocol.len() == num_sweeps. Foreach ProtocolStep(interaction_energy: f64, chemical_potential: f64). 0.01 <= interaction_energy <= 20.0 && -20.0 <= chemical_potential <=  `
+Type: `[ProtocolStep(mu: f64, epsilon: f64)]`  
+Expected Value Range:  
+```
+protocol.len() == num_sweeps 
+foreach ProtocolStep(mu, epsilon). -20.0 <= mu <= 20.0 && 0.01 <= epsilon <= 20.0
+```
+
 Description: Protocol for simulation. For each sweep, the protocol contains 1 ProtocolStep. 
-Each ProtocolStep contains an interaction_energy and a chemical potential.
-TODO: finish
+Each ProtocolStep contains a chemical potential (mu) in KbT (?) and interaction_energy (epsilon) in KbT (?) for that timestep.
+
+The default protocol is one that keeps mu fixed at 0.0 and epsilon at 10.0. 
 
 
 ##### shapes
-Type: [Shape]
+Type: 
+```
+shapes:: [Shape]
+Shape:: [Patch]
+Patch:: (color: , theta: f64, radius: f64)
+```
+
 Expected Value Range:
+```
+foreach shape. in shapes:
+  3 <= shape.patches.len() <= 6
+  foreach patch. in shape.patches:
+     color = any
+     0 <= theta <= 360.0 
+     0.01 <= radius <= 0.25 
+```
+
 Description:
 
 
