@@ -7,15 +7,13 @@ use vmmc::cli::VmmcConfig;
 use vmmc::consts::MAX_PARTICLES;
 use vmmc::io::{clear_out_files, write_geometry_png};
 use vmmc::polygons::calc_polygon_count;
-use vmmc::position::DimVec;
 use vmmc::protocol::FixedProtocol;
 use vmmc::stats::RunStats;
-use vmmc::InputParams;
 use vmmc::{
     io::{write_tcl, XYZWriter},
-    simbox::SimBox,
-    vmmc::{Vmmc, VmmcParams},
+    vmmc::Vmmc,
 };
+use vmmc::{vmmc_from_config, InputParams};
 
 // grab first frame from xyz and load particles
 // TODO: dedup with other particles_from_xyz
@@ -51,49 +49,6 @@ fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
 // 1. average energy monotonically increases (decreases?)
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
-
-fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
-    let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
-
-    let max_interaction_range = 1.0 + ip.max_patch_radius();
-
-    // let simbox = if !config.start_frame().is_empty() {
-    //     panic!("Loading a preexisting trajectory is currently broken")
-    //     // We have an initial position, so just use that
-    //     // let particles = particles_from_xyz_nomix(config.start_frame());
-    //     // let cells_x_axis = (box_dimensions.x() / max_interaction_range).floor();
-    //     // let cells_y_axis = (box_dimensions.y() / max_interaction_range).floor();
-
-    //     // let cell_width = box_dimensions.x() / cells_x_axis;
-    //     // assert!(cell_width >= max_interaction_range);
-
-    //     // let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
-
-    //     // // cells are always square
-    //     // let cell_dimensions = DimVec::new([cell_width, cell_width]);
-
-    //     // SimBox::new(
-    //     //     box_dimensions,
-    //     //     cells_per_axis,
-    //     //     cell_dimensions,
-    //     //     particles,
-    //     //     ip.shapes.clone(),
-    //     // )
-    // } else {
-    // No initial position, so we will use a randomized start position
-    let simbox = SimBox::new_with_randomized_particles(
-        box_dimensions,
-        max_interaction_range,
-        ip.num_particles,
-        ip.shapes.clone(),
-        rng,
-    );
-    //  };
-
-    let params = VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
-    let interaction_energy = ip.protocol.initial_interaction_energy();
-    Vmmc::new(simbox, params, interaction_energy)
-}
 
 fn maybe_remove_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut SmallRng) {
     let num_particles = vmmc.particles().num_particles();

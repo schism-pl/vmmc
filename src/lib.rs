@@ -219,3 +219,22 @@ impl Arbitrary for SimBox {
         )
     }
 }
+
+pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
+    let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
+
+    let max_interaction_range = 1.0 + ip.max_patch_radius();
+
+    // No initial position, so we will use a randomized start position
+    let simbox = SimBox::new_with_randomized_particles(
+        box_dimensions,
+        max_interaction_range,
+        ip.num_particles,
+        ip.shapes.clone(),
+        rng,
+    );
+
+    let params = vmmc::VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
+    let interaction_energy = ip.protocol.initial_interaction_energy();
+    vmmc::Vmmc::new(simbox, params, interaction_energy)
+}
