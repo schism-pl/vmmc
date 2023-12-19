@@ -53,7 +53,7 @@ fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
 
-fn vmmc_from_config(config: &VmmcConfig, ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
+fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> Vmmc {
     let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
 
     let max_interaction_range = 1.0 + ip.max_patch_radius();
@@ -221,7 +221,7 @@ fn main() -> anyhow::Result<()> {
     let mut rng = SmallRng::seed_from_u64(seed);
 
     // Generate the simulator
-    let mut vmmc = vmmc_from_config(&config, &ip, &mut rng);
+    let mut vmmc = vmmc_from_config(&ip, &mut rng);
 
     // Init I/O
     println!("Writing output to {}", config.output_dir());
