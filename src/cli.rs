@@ -24,6 +24,10 @@ impl VmmcConfig {
         &self.output_dir
     }
 
+    pub fn set_output_dir(&mut self, s: &str) {
+        self.output_dir = s.to_string();
+    }
+
     pub fn toml(&self) -> String {
         format!("{}/config.toml", self.output_dir())
     }
