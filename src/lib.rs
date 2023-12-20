@@ -7,6 +7,7 @@ use rand_distr::num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 
+pub mod chemical_potential;
 pub mod cli;
 pub mod consts;
 pub mod io;
