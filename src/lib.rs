@@ -259,7 +259,7 @@ pub fn run_vmmc(
             maybe_particle_exchange(vmmc, chemical_potential, rng);
         }
         if let Some(ref mut cb) = callback {
-            cb.run(&vmmc, &protocol_step, idx, &run_stats);
+            cb.run(vmmc, &protocol_step, idx, &run_stats);
         }
     }
 }

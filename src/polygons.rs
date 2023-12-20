@@ -151,7 +151,7 @@ pub fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
     for shape in vmmc.simbox().shapes() {
         let mut bond_counts = vec![0; shape.patches().len() + 1];
         for p in vmmc.particles().iter() {
-            let bond_count = vmmc.determine_interactions(p).iter().count();
+            let bond_count = vmmc.determine_interactions(p).len();
             bond_counts[bond_count] += 1;
         }
         bond_counts_per_shape.push(bond_counts);
