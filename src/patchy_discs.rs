@@ -31,10 +31,6 @@ impl PatchyDiscsPotential {
             cos_thetas.push(cos_theta);
         }
 
-        println!(
-            "{:?} {:?} {:?} {:?}",
-            shapes, interaction_energy, sin_thetas, cos_thetas
-        );
         Self {
             sin_thetas,
             cos_thetas,

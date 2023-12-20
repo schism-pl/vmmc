@@ -497,17 +497,6 @@ impl Vmmc {
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
-        // if virtual_moves.inner.len() >= self.particles().num_particles() {
-        //     println!(
-        //         "{:?}",
-        //         virtual_moves
-        //             .inner
-        //             .iter()
-        //             .map(|(a, _)| *a)
-        //             .collect::<Vec<ParticleId>>()
-        //     );
-        //     panic!("oh no");
-        // }
         if self.attempt_commit(rng, &mov, &virtual_moves).is_ok() {
             stats.record_accept();
         }
