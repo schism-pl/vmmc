@@ -242,7 +242,7 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
 pub trait VmmcCallback {
     type CbResult;
     fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats);
-    fn result(&self) -> Self::CbResult;
+    fn state(&self) -> Self::CbResult;
 }
 
 pub fn run_vmmc<Cbr>(
@@ -264,5 +264,5 @@ pub fn run_vmmc<Cbr>(
             cb.run(vmmc, &protocol_step, idx, &run_stats);
         }
     }
-    callback.map(|cb| cb.result())
+    callback.map(|cb| cb.state())
 }

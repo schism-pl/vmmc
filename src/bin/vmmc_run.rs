@@ -55,7 +55,7 @@ impl VmmcCallback for StdCallback {
         }
     }
 
-    fn result(&self) {}
+    fn state(&self) {}
 }
 
 fn main() -> anyhow::Result<()> {
