@@ -1,7 +1,7 @@
 use clap::Parser;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 pub struct VmmcConfig {
     #[arg(long, default_value_t = SmallRng::from_entropy().gen::<u64>())]
     seed: u64,
