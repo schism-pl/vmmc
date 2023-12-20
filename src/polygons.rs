@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     vmmc::Vmmc,
@@ -7,7 +9,7 @@ use crate::{
 
 pub type PolygonId = usize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Polygon {
     // id: PolygonId,
     vertices: Vec<ParticleId>,
