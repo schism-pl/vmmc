@@ -240,15 +240,17 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
 }
 
 pub trait VmmcCallback {
+    type CbResult;
     fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats);
+    fn result(&self) -> Self::CbResult;
 }
 
-pub fn run_vmmc(
+pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     protocol: FixedProtocol,
-    mut callback: Option<Box<dyn VmmcCallback>>,
+    mut callback: Option<Box<dyn VmmcCallback<CbResult = Cbr>>>,
     rng: &mut SmallRng,
-) -> Option<Box<dyn VmmcCallback>> {
+) -> Option<Cbr> {
     for (idx, protocol_step) in protocol.enumerate() {
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
@@ -262,5 +264,5 @@ pub fn run_vmmc(
             cb.run(vmmc, &protocol_step, idx, &run_stats);
         }
     }
-    callback
+    callback.map(|cb| cb.result())
 }

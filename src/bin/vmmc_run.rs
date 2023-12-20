@@ -23,6 +23,7 @@ struct StdCallback {
     writer: Box<XYZWriter>,
 }
 impl VmmcCallback for StdCallback {
+    type CbResult = ();
     // runs after every million steps
     fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
         self.writer.write_xyz_frame(vmmc);
@@ -53,6 +54,8 @@ impl VmmcCallback for StdCallback {
             );
         }
     }
+
+    fn result(&self) {}
 }
 
 fn main() -> anyhow::Result<()> {
