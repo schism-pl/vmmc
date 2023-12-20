@@ -248,7 +248,7 @@ pub fn run_vmmc(
     protocol: FixedProtocol,
     mut callback: Option<Box<dyn VmmcCallback>>,
     rng: &mut SmallRng,
-) {
+) -> Option<Box<dyn VmmcCallback>> {
     for (idx, protocol_step) in protocol.enumerate() {
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
@@ -262,4 +262,5 @@ pub fn run_vmmc(
             cb.run(vmmc, &protocol_step, idx, &run_stats);
         }
     }
+    callback
 }
