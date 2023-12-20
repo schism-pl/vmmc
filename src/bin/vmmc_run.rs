@@ -6,30 +6,14 @@ use rand::{Rng, SeedableRng};
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::MAX_PARTICLES;
 use vmmc::io::{clear_out_files, write_geometry_png};
-use vmmc::polygons::calc_polygon_count;
-use vmmc::protocol::FixedProtocol;
+use vmmc::polygons::{calc_polygon_count, Polygon};
+use vmmc::protocol::{FixedProtocol, ProtocolStep};
 use vmmc::stats::RunStats;
 use vmmc::{
     io::{write_tcl, XYZWriter},
     vmmc::Vmmc,
 };
 use vmmc::{vmmc_from_config, InputParams};
-
-// grab first frame from xyz and load particles
-// TODO: dedup with other particles_from_xyz
-// TODO: need to specify shape id, and specify morphologies somehow
-// fn particles_from_xyz_nomix(path: &str) -> Vec<Particle> {
-//     let mut particles = Vec::new();
-//     let (positions, orientations) = read_xyz_snapshot(path);
-
-//     for idx in 0..positions.len() {
-//         let pos = positions[idx];
-//         let or = orientations[idx];
-//         let particle = Particle::new(idx as u16, pos, or, 0);
-//         particles.push(particle);
-//     }
-//     particles
-// }
 
 // maps shapes to bond distribution
 fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
@@ -104,28 +88,18 @@ fn maybe_particle_exchange(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut S
     }
 }
 
-//TODO: double check probabilities on chemical potential
-fn run_vmmc(
-    vmmc: &mut Vmmc,
-    mut protocol: FixedProtocol,
-    writer: &mut XYZWriter,
-    num_sweeps: usize,
-    rng: &mut SmallRng,
-) {
-    // TODO: num sweeps is not the right name for this
-    for idx in 0..num_sweeps {
-        let mut run_stats = RunStats::new();
-        writer.write_xyz_frame(vmmc);
-        let protocol_update = protocol.next().unwrap();
-        vmmc.set_interaction_energy(protocol_update.interaction_energy());
-        let chemical_potential = protocol_update.chemical_potential();
-        for _ in 0..1000 {
-            let stats = vmmc.step_n(1000, rng);
-            run_stats = stats + run_stats;
-            // if rng.gen::<f64>() < 0.001 {
-            maybe_particle_exchange(vmmc, chemical_potential, rng);
-            // }
-        }
+pub trait VmmcCallback {
+    fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats);
+}
+
+struct StdCallback {
+    writer: Box<XYZWriter>,
+}
+impl VmmcCallback for StdCallback {
+    // runs after every million steps
+    fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
+        self.writer.write_xyz_frame(vmmc);
+
         println!(
             "-----------------------------------------\nStep {:?}",
             (idx + 1) * 1000 * 1000,
@@ -135,7 +109,69 @@ fn run_vmmc(
         println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
         println!(
             "Interaction Energy (epsilon): {:.4}",
-            protocol_update.interaction_energy()
+            step.interaction_energy()
+        );
+        println!("Chemical potential (mu): {:.4}", step.chemical_potential());
+        println!(
+            "Acceptance ratio: {:.4}",
+            run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
+        );
+        for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
+            let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
+            println!(
+                "shape_{:?} bond distribution: {:?} average degree = {:.4}",
+                idx,
+                shape_stats,
+                weighted_sum as f64 / vmmc.particles().num_particles() as f64
+            );
+        }
+    }
+}
+
+pub fn run_vmmc_w_callback(
+    vmmc: &mut Vmmc,
+    protocol: FixedProtocol,
+    mut callback: Option<Box<dyn VmmcCallback>>,
+    rng: &mut SmallRng,
+) {
+    for (idx, protocol_step) in protocol.enumerate() {
+        let mut run_stats = RunStats::new();
+        vmmc.set_interaction_energy(protocol_step.interaction_energy());
+        let chemical_potential = protocol_step.chemical_potential();
+        for _ in 0..1000 {
+            let stats = vmmc.step_n(1000, rng);
+            run_stats = stats + run_stats;
+            maybe_particle_exchange(vmmc, chemical_potential, rng);
+        }
+        if let Some(ref mut cb) = callback {
+            cb.run(&vmmc, &protocol_step, idx, &run_stats);
+        }
+    }
+}
+
+fn run_vmmc(vmmc: &mut Vmmc, protocol: FixedProtocol, writer: &mut XYZWriter, rng: &mut SmallRng) {
+    for (idx, protocol_step) in protocol.enumerate() {
+        let mut run_stats = RunStats::new();
+        writer.write_xyz_frame(vmmc);
+        // let protocol_update = protocol.next().unwrap();
+        vmmc.set_interaction_energy(protocol_step.interaction_energy());
+        let chemical_potential = protocol_step.chemical_potential();
+        for _ in 0..1000 {
+            let stats = vmmc.step_n(1000, rng);
+            run_stats = stats + run_stats;
+            maybe_particle_exchange(vmmc, chemical_potential, rng);
+        }
+
+        println!(
+            "-----------------------------------------\nStep {:?}",
+            (idx + 1) * 1000 * 1000,
+        );
+
+        println!("# of particles: {:?}", vmmc.particles().num_particles());
+        println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
+        println!(
+            "Interaction Energy (epsilon): {:.4}",
+            protocol_step.interaction_energy()
         );
         println!("Chemical potential (mu): {:.4}", chemical_potential);
         println!(
@@ -187,14 +223,22 @@ fn main() -> anyhow::Result<()> {
     let toml = toml::to_string(&ip).unwrap();
     fs::write(config.toml(), toml).expect("Unable to write file");
 
-    let mut writer = XYZWriter::new(&config.trajectory());
+    // let mut writer = XYZWriter::new(&config.trajectory());
+    // let wr
+    let mut writer = Box::new(XYZWriter::new(&config.trajectory()));
 
     // Check that initial conditions are reasonable
     debug_assert!(vmmc.well_formed());
     println!("Initial configuration ok");
 
     // Run the simulation
-    run_vmmc(&mut vmmc, ip.protocol, &mut writer, ip.num_sweeps, &mut rng);
+    writer.write_xyz_frame(&vmmc);
+    run_vmmc_w_callback(
+        &mut vmmc,
+        ip.protocol,
+        Some(Box::new(StdCallback { writer })),
+        &mut rng,
+    );
 
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());

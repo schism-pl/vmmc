@@ -33,7 +33,6 @@ pub struct InputParams {
     pub prob_translate: f64,
     pub max_translation: f64,
     pub max_rotation: f64,
-    pub num_sweeps: usize,
 }
 
 impl Default for InputParams {
@@ -45,9 +44,8 @@ impl Default for InputParams {
         let prob_translate = 0.5;
         let max_translation = 0.15;
         let max_rotation = 0.2;
-        let num_sweeps = 1000;
 
-        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, num_sweeps);
+        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 1000);
 
         let shapes = vec![Morphology::regular_3patch(0.1)];
 
@@ -62,7 +60,6 @@ impl Default for InputParams {
             prob_translate,
             max_translation,
             max_rotation,
-            num_sweeps,
         }
     }
 }
@@ -196,7 +193,6 @@ impl Arbitrary for InputParams {
             prob_translate,
             max_translation,
             max_rotation,
-            num_sweeps,
         }
     }
 }
