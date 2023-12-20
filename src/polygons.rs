@@ -144,3 +144,17 @@ pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
 pub fn calc_polygon_count(vmmc: &Vmmc, max_vertices: usize) -> usize {
     calc_polygons(vmmc, max_vertices).len()
 }
+
+// maps shapes to bond distribution
+pub fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
+    let mut bond_counts_per_shape = Vec::new();
+    for shape in vmmc.simbox().shapes() {
+        let mut bond_counts = vec![0; shape.patches().len() + 1];
+        for p in vmmc.particles().iter() {
+            let bond_count = vmmc.determine_interactions(p).iter().count();
+            bond_counts[bond_count] += 1;
+        }
+        bond_counts_per_shape.push(bond_counts);
+    }
+    bond_counts_per_shape
+}

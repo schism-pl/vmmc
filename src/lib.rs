@@ -1,11 +1,14 @@
+use chemical_potential::maybe_particle_exchange;
 use morphology::{Morphology, Patch};
 use position::DimVec;
-use protocol::FixedProtocol;
+use protocol::{FixedProtocol, ProtocolStep};
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, SeedableRng};
 use rand_distr::num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
+use stats::RunStats;
+use vmmc::Vmmc;
 
 pub mod chemical_potential;
 pub mod cli;
@@ -234,4 +237,29 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let params = vmmc::VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
     let interaction_energy = ip.protocol.initial_interaction_energy();
     vmmc::Vmmc::new(simbox, params, interaction_energy)
+}
+
+pub trait VmmcCallback {
+    fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats);
+}
+
+pub fn run_vmmc(
+    vmmc: &mut Vmmc,
+    protocol: FixedProtocol,
+    mut callback: Option<Box<dyn VmmcCallback>>,
+    rng: &mut SmallRng,
+) {
+    for (idx, protocol_step) in protocol.enumerate() {
+        let mut run_stats = RunStats::new();
+        vmmc.set_interaction_energy(protocol_step.interaction_energy());
+        let chemical_potential = protocol_step.chemical_potential();
+        for _ in 0..1000 {
+            let stats = vmmc.step_n(1000, rng);
+            run_stats = stats + run_stats;
+            maybe_particle_exchange(vmmc, chemical_potential, rng);
+        }
+        if let Some(ref mut cb) = callback {
+            cb.run(&vmmc, &protocol_step, idx, &run_stats);
+        }
+    }
 }
