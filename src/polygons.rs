@@ -9,7 +9,7 @@ use crate::{
 
 pub type PolygonId = usize;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Polygon {
     // id: PolygonId,
     vertices: Vec<ParticleId>,
