@@ -257,11 +257,16 @@ pub trait VmmcCallback {
     fn state(&self) -> Self::CbResult;
 }
 
-struct NoCallback {}
+pub struct NoCallback {}
 impl VmmcCallback for NoCallback {
     type CbResult = ();
     fn run(&mut self, _: &Vmmc, _: &ProtocolStep, _: usize, _: &RunStats) {}
     fn state(&self) {}
+}
+
+/// helper for when we use no callback
+pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
+    Box::new(NoCallback {})
 }
 
 pub fn run_vmmc<Cbr>(
