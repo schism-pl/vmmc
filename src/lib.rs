@@ -264,7 +264,6 @@ impl VmmcCallback for NoCallback {
     fn state(&self) {}
 }
 
-// TODO: catch unwind and return result
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     protocol: FixedProtocol,

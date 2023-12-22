@@ -33,6 +33,8 @@ impl VmmcCallback for StdCallback {
             (idx + 1) * 1000 * 1000,
         );
 
+        assert!(vmmc.well_formed());
+
         println!("# of particles: {:?}", vmmc.particles().num_particles());
         println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
         println!(
