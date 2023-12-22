@@ -1,3 +1,4 @@
+use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
 use morphology::{Morphology, Patch};
 use position::DimVec;
@@ -256,15 +257,20 @@ pub trait VmmcCallback {
     fn state(&self) -> Self::CbResult;
 }
 
-// TODO: need NoCallback type
+struct NoCallback {}
+impl VmmcCallback for NoCallback {
+    type CbResult = ();
+    fn run(&mut self, _: &Vmmc, _: &ProtocolStep, _: usize, _: &RunStats) {}
+    fn state(&self) {}
+}
 
 // TODO: catch unwind and return result
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     protocol: FixedProtocol,
-    mut callback: Option<Box<dyn VmmcCallback<CbResult = Cbr>>>,
+    mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
-) -> Option<Cbr> {
+) -> Result<Cbr> {
     for (idx, protocol_step) in protocol.enumerate() {
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
@@ -274,9 +280,7 @@ pub fn run_vmmc<Cbr>(
             run_stats = stats + run_stats;
             maybe_particle_exchange(vmmc, chemical_potential, rng);
         }
-        if let Some(ref mut cb) = callback {
-            cb.run(vmmc, &protocol_step, idx, &run_stats);
-        }
+        cb.run(vmmc, &protocol_step, idx, &run_stats);
     }
-    callback.map(|cb| cb.state())
+    Ok(cb.state())
 }

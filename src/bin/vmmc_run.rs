@@ -100,7 +100,7 @@ fn main() -> anyhow::Result<()> {
 
     // Run the simulation
     let cb = Box::new(StdCallback { writer });
-    run_vmmc(&mut vmmc, ip.protocol, Some(cb), &mut rng);
+    run_vmmc(&mut vmmc, ip.protocol, cb, &mut rng)?;
 
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
