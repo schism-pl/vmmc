@@ -235,10 +235,7 @@ impl SimBox {
                 return;
             }
         }
-        println!("p_{:?} =< c_{:?}", p_id, cell_id);
-        for idx in 0..MAX_PARTICLES_PER_CELL {
-            println!("c_{:?}[{:?}] = {:?}", cell_id, idx, cell[idx]);
-        }
+        println!("p_{:?} => c_{:?} [{:?} {:?} {:?} {:?}]", p_id, cell_id, cell[0], cell[1], cell[2], cell[3]);
         panic!("Tried to insert particle into full cell")
     }
 
