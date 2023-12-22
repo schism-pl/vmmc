@@ -3,7 +3,7 @@ use morphology::{Morphology, Patch};
 use position::DimVec;
 use protocol::{FixedProtocol, ProtocolStep};
 use quickcheck::{Arbitrary, Gen};
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rand_distr::num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
@@ -27,8 +27,11 @@ pub mod vmmc;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InputParams {
+    // TODO: change this to u64
+    pub seed: i64, // toml crashes when I try to store as u64?
+
     pub num_particles: usize,
-    pub protocol: FixedProtocol, // TODO: make more flexible
+    pub protocol: FixedProtocol,
     pub shapes: Vec<Morphology>,
 
     pub box_width: f64,
@@ -41,6 +44,8 @@ pub struct InputParams {
 
 impl Default for InputParams {
     fn default() -> Self {
+        let seed = SmallRng::from_entropy().gen::<i64>();
+
         let num_particles = 500;
         let box_width = 75.0;
         let box_height = 75.0;
@@ -54,6 +59,8 @@ impl Default for InputParams {
         let shapes = vec![Morphology::regular_3patch(0.1)];
 
         Self {
+            seed,
+
             num_particles,
             protocol,
             shapes,
@@ -149,6 +156,8 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // TODO: the patch_radius we use is wrong
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
+        let seed = SmallRng::from_entropy().gen::<i64>();
+
         let num_particles = usize_in_range(g, 0, 2500);
         let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
         let patch_radius = f64_in_range(g, 0.01, 0.2); // diameter of patch (in units of particle diameter)
@@ -188,6 +197,8 @@ impl Arbitrary for InputParams {
         }
 
         Self {
+            seed,
+
             num_particles,
             protocol,
             shapes,
@@ -245,6 +256,9 @@ pub trait VmmcCallback {
     fn state(&self) -> Self::CbResult;
 }
 
+// TODO: need NoCallback type
+
+// TODO: catch unwind and return result
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     protocol: FixedProtocol,

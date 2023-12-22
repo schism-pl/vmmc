@@ -72,9 +72,9 @@ fn main() -> anyhow::Result<()> {
     };
 
     // Seed the rng
-    let seed = config.seed();
-    println!("Using seed = {:?}", seed);
-    let mut rng = SmallRng::seed_from_u64(seed);
+    let seed = ip.seed;
+    println!("Using seed = {:x?}", seed);
+    let mut rng = SmallRng::seed_from_u64(seed as u64);
 
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&ip, &mut rng);
