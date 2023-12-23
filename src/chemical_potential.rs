@@ -29,12 +29,16 @@ fn maybe_insert_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut Sma
     // P(insert) = V/(N+1) * e^(E - mu)
     // Note: E will be negative and mu can be positive, can be negative
     // more positive means more crowded substrate
+
     let p = vmmc.simbox_mut().new_random_particle(rng);
     let energy = vmmc.get_particle_energy(&p);
     let energy_factor = energy + chemical_potential;
     let p_accept = (num_particles as f64 + 1.0) / vmmc.simbox().volume() * f64::exp(energy_factor);
     if rng.gen::<f64>() < p_accept {
         vmmc.simbox_mut().insert_particle(p);
+    } else {
+        // we aren't using this particle, so its id is up for grabs
+        vmmc.simbox_mut().particles_mut().push_unused_p_id(p.id());
     }
 }
 

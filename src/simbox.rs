@@ -76,7 +76,6 @@ impl SimBox {
     }
 
     // check if a particle overlaps any other particles
-    // TODO: take particle reference as argument?
     fn has_overlap(&self, pos: &Position) -> bool {
         for other in self.particles.iter() {
             // dist < 1.0 (hard sphere radius)
@@ -169,6 +168,7 @@ impl SimBox {
         self.particles.delete(p_id)
     }
 
+    // TODO: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Particle {
         let p_id = self.particles.get_unused_p_id();
         let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
@@ -235,7 +235,20 @@ impl SimBox {
                 return;
             }
         }
-        println!("p_{:?} => c_{:?} [{:?} {:?} {:?} {:?}]", p_id, cell_id, cell[0], cell[1], cell[2], cell[3]);
+        let cell = &self.cells[cell_id];
+        println!(
+            "p_{:?} => c_{:?} [{:?}:({:?}) {:?}:({:?}) {:?}:({:?}) {:?}:({:?})]",
+            p_id,
+            cell_id,
+            cell[0],
+            self.particle(cell[0]),
+            cell[1],
+            self.particle(cell[1]),
+            cell[2],
+            self.particle(cell[2]),
+            cell[3],
+            self.particle(cell[3]),
+        );
         panic!("Tried to insert particle into full cell")
     }
 

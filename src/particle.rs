@@ -176,6 +176,10 @@ impl Particles {
         }
     }
 
+    pub fn push_unused_p_id(&mut self, p_id: ParticleId) {
+        self.reserve.push(p_id);
+    }
+
     pub fn delete(&mut self, p_id: ParticleId) {
         self.num_particles -= 1;
         assert!(self.particles[p_id as usize].is_some());
