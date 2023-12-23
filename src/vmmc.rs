@@ -143,6 +143,10 @@ impl Vmmc {
         self.simbox.particle(p_id)
     }
 
+    pub fn particle_mut(&mut self, p_id: ParticleId) -> &mut Particle {
+        self.simbox.particle_mut(p_id)
+    }
+
     pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
         self.potential.compute_pair_energy(&self.simbox, p1, p2)
     }
@@ -364,26 +368,72 @@ impl Vmmc {
         }
     }
 
-    fn commit_moves(&mut self, vmoves: &VirtualMoves) {
-        for (p_id, vp) in vmoves.inner.iter() {
-            let old_pos = self.simbox.particles().particle(*p_id).pos();
-            self.simbox.move_particle_tenancy(*p_id, old_pos, vp.pos());
-            let p = self.simbox.particles_mut().particle_mut(*p_id);
-            p.update_pos(vp.pos());
-            p.update_or(vp.or());
+    /// Commits a set of virtual moves to simulator state
+    /// Returns Ok if commit was accepted, Err if there was an overlap
+    /// Either way, the simulator should be in an invalid state after returning from this function.
+    ///
+    ///
+    /// This function is a little finicky, since we need to check for overlaps before updating tenancy, or else
+    /// we can include > MAX_PARTICLES_PER_CELL in a cell and cause a crash
+    /// so we remove all particles involved in the vmove, check for overlaps in the new position, then move all of them
+    fn commit_moves(&mut self, vmoves: &VirtualMoves) -> Result<()> {
+        // let old_pos = self.particle(*p_id).pos();
+
+        // 1) remove all moved particles from the tenancy array so we ignore them
+        // when checking for overlaps
+        for (p_id, _) in vmoves.inner.iter() {
+            self.simbox.remove_particle_tenancy(*p_id);
         }
+
+        // 2) check for overlaps
+        let is_overlap = vmoves
+            .inner
+            .iter()
+            .any(|(_, vp)| self.simbox.move_will_overlap(vp.orig_pos(), vp.pos()));
+
+        if is_overlap {
+            // if overlap, put the particles back in the tenancy array and return an error
+            for (p_id, _) in vmoves.inner.iter() {
+                self.simbox.insert_particle_tenancy(*p_id);
+            }
+            return Err(anyhow!("Overlap"));
+        } else {
+            // if no overlap, proceed with commit
+            for (p_id, vp) in vmoves.inner.iter() {
+                let p = self.simbox.particles_mut().particle_mut(*p_id);
+                p.update_pos(vp.pos());
+                p.update_or(vp.or());
+                self.simbox.insert_particle_tenancy(*p_id);
+            }
+        };
+        Ok(())
+
+        // for (p_id, vp) in vmoves.inner.iter() {
+        //     if self.simbox.move_will_overlap(vp.orig_pos(), vp.pos()) {
+        //         return Err(anyhow!("Overlap"));
+        //     }
+
+        //     let p = self.simbox.particles_mut().particle_mut(*p_id);
+        //     p.update_pos(vp.pos());
+        //     p.update_or(vp.or());
+        //     self.simbox.move_particle_tenancy(*p_id, vp.orig_pos(), vp.pos());
+        // }
+        // Ok(())
     }
 
-    fn revert_moves(&mut self, vmoves: &VirtualMoves) {
-        for (p_id, vp) in vmoves.inner.iter() {
-            let old_pos = self.simbox.particles().particle(*p_id).pos();
-            self.simbox
-                .move_particle_tenancy(*p_id, old_pos, vp.orig_pos());
-            let p = &mut self.simbox.particles_mut().particle_mut(*p_id);
-            p.update_pos(vp.orig_pos());
-            p.update_or(vp.orig_or());
-        }
-    }
+    /// Revert the simulation to the start position of a set of virtual moves.
+    /// Should work even if not all of the virtual moves have actually been committed to the simulator.
+    /// Reverts should always be valid, and should always place the simulator into a well-formed state
+    // fn revert_moves(&mut self, vmoves: &VirtualMoves) {
+    //     for (p_id, vp) in vmoves.inner.iter() {
+    //         let old_pos = self.particle(*p_id).pos();
+    //         self.simbox
+    //             .move_particle_tenancy(*p_id, old_pos, vp.orig_pos());
+    //         let p = self.particle_mut(*p_id);
+    //         p.update_pos(vp.orig_pos());
+    //         p.update_or(vp.orig_or());
+    //     }
+    // }
 
     fn attempt_commit(
         &mut self,
@@ -402,14 +452,15 @@ impl Vmmc {
             return Err(anyhow!("Stokes drag rejection"));
         }
 
-        self.commit_moves(vmoves);
+        self.commit_moves(vmoves)?;
 
         // check for overlaps
+        // might be redundant
         for (p_id, _) in vmoves.inner.iter() {
             let p = self.particle(*p_id);
-            if self.overlaps(p) {
-                self.revert_moves(vmoves);
-                return Err(anyhow!("Overlapping particle"));
+            if self.simbox().overlaps(p) {
+                panic!("Unreachable: we should have already checked for overlap")
+                // return Err(anyhow!("Overlapping particle"));
             }
         }
 
@@ -417,22 +468,23 @@ impl Vmmc {
     }
 
     // check if a particle overlaps any other particles
-    fn overlaps(&self, p: &Particle) -> bool {
-        for neighbor_id in self.simbox.get_neighbors(p) {
-            let neighbor = self.particle(neighbor_id);
-            if neighbor == p {
-                continue;
-            }
-            // dist < 1.0 (hard sphere radius)
-            if self.simbox.sep_in_box(p.pos(), neighbor.pos()).norm() < 1.0 {
-                return true;
-            }
-        }
-        false
-    }
+    // TODO: dedup with other overlaps
+    // fn overlaps(&self, p: &Particle) -> bool {
+    //     for neighbor_id in self.simbox.get_neighbors(p) {
+    //         let neighbor = self.particle(neighbor_id);
+    //         if neighbor == p {
+    //             continue;
+    //         }
+    //         // dist < 1.0 (hard sphere radius)
+    //         if self.simbox.sep_in_box(p.pos(), neighbor.pos()).norm() < 1.0 {
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
 
     fn sim_has_overlaps(&self) -> bool {
-        self.particles().iter().any(|p| self.overlaps(p))
+        self.particles().iter().any(|p| self.simbox().overlaps(p))
     }
 
     // run a bunch of checks on the vmmc object to make sure it looks good

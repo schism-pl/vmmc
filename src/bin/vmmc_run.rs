@@ -29,8 +29,8 @@ impl VmmcCallback for StdCallback {
         self.writer.write_xyz_frame(vmmc);
 
         println!(
-            "-----------------------------------------\nStep {:?}",
-            (idx + 1) * 1000 * 1000,
+            "------------------------------------\nStep {:?} x 10e6",
+            (idx + 1),
         );
 
         assert!(vmmc.well_formed());

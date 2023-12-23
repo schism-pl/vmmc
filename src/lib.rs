@@ -55,7 +55,7 @@ impl Default for InputParams {
         let max_translation = 0.15;
         let max_rotation = 0.2;
 
-        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 1000);
+        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 20);
 
         let shapes = vec![Morphology::regular_3patch(0.1)];
 

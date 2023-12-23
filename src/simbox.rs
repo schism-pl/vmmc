@@ -75,11 +75,36 @@ impl SimBox {
         }
     }
 
-    // check if a particle overlaps any other particles
-    fn has_overlap(&self, pos: &Position) -> bool {
-        for other in self.particles.iter() {
+    /// Given a position `new_pos`, check that it will not overlap any existing particles
+    /// An exception is that it is allowed to overlap the old position (since it moved)
+    pub fn move_will_overlap(&self, old_pos: Position, new_pos: Position) -> bool {
+        for other_id in self.get_neighbors(new_pos) {
+            let other = self.particle(other_id);
+
+            if other.pos() == old_pos {
+                // its fine to overlap with our old position
+                continue;
+            }
+
             // dist < 1.0 (hard sphere radius)
-            if self.sep_in_box(*pos, other.pos()).norm() < 1.0 {
+            if self.sep_in_box(new_pos, other.pos()).norm() < 1.0 {
+                return true;
+            }
+        }
+        false
+    }
+
+    // check if a particle overlaps any other particles
+    /// must work even if p has invalid tenancy info due to its use in commit_moves
+    pub fn overlaps(&self, p: &Particle) -> bool {
+        for other_id in self.get_neighbors(p.pos()) {
+            if other_id == p.id() {
+                continue;
+            }
+
+            let other = self.particle(other_id);
+            // dist < 1.0 (hard sphere radius)
+            if self.sep_in_box(p.pos(), other.pos()).norm() < 1.0 {
                 return true;
             }
         }
@@ -168,12 +193,24 @@ impl SimBox {
         self.particles.delete(p_id)
     }
 
-    // TODO: removes a particle from reserved particle ids even if particle isn't inserted
+    // TODO: clean up this accursed function
+    // Note: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Particle {
+        // check if a position overlaps any existing
+        fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
+            for other in simbox.particles.iter() {
+                // dist < 1.0 (hard sphere radius)
+                if simbox.sep_in_box(*pos, other.pos()).norm() < 1.0 {
+                    return true;
+                }
+            }
+            false
+        }
+
         let p_id = self.particles.get_unused_p_id();
         let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
         let mut pos = self.random_pos(rng);
-        while self.has_overlap(&pos) {
+        while pos_has_overlap(self, &pos) {
             pos = self.random_pos(rng);
         }
         let or = Orientation::unit_vector(rng);
@@ -252,27 +289,37 @@ impl SimBox {
         panic!("Tried to insert particle into full cell")
     }
 
-    pub fn move_particle_tenancy(
-        &mut self,
-        p_id: ParticleId,
-        old_pos: Position,
-        new_pos: Position,
-    ) {
-        let old_cell_id = self.get_cell_id(old_pos);
-        let new_cell_id = self.get_cell_id(new_pos);
-        if old_cell_id != new_cell_id {
-            // 1. remove particleId from previous location
-            self.delete_p_from_cell(p_id, old_cell_id);
-            // 2. add particle to its new location
-            self.insert_p_into_cell(p_id, new_cell_id);
-        }
+    pub fn remove_particle_tenancy(&mut self, p_id: ParticleId) {
+        let pos = self.particle(p_id).pos();
+        let cell_id = self.get_cell_id(pos);
+        self.delete_p_from_cell(p_id, cell_id);
     }
+
+    pub fn insert_particle_tenancy(&mut self, p_id: ParticleId) {
+        let pos = self.particle(p_id).pos();
+        let cell_id = self.get_cell_id(pos);
+        self.insert_p_into_cell(p_id, cell_id);
+    }
+
+    // pub fn move_particle_tenancy(
+    //     &mut self,
+    //     p_id: ParticleId,
+    //     old_pos: Position,
+    //     new_pos: Position,
+    // ) {
+    //     let old_cell_id = self.get_cell_id(old_pos);
+    //     let new_cell_id = self.get_cell_id(new_pos);
+    //     if old_cell_id != new_cell_id {
+    //         // 1. remove particleId from previous location
+    //         self.delete_p_from_cell(p_id, old_cell_id);
+    //         // 2. add particle to its new location
+    //         self.insert_p_into_cell(p_id, new_cell_id);
+    //     }
+    // }
 
     // TODO: make pretty
     // TODO: optimize since we know x_off and y_off will only ever be 1 or -1?
     pub fn get_neighbor_id(&self, id: CellId, x_off: i32, y_off: i32) -> CellId {
-        // let num_cells = self.cell_dimensions[0] * self.cell_dimensions[1];
-
         let x = id / self.cells_per_axis[1];
         let y = id - x * self.cells_per_axis[1];
         let x = x as i32;
@@ -290,10 +337,10 @@ impl SimBox {
     }
 
     // ugly function, but surprisingly effective
-    pub fn get_neighbors(&self, p: &Particle) -> Vec<ParticleId> {
+    pub fn get_neighbors(&self, pos: Position) -> Vec<ParticleId> {
         let mut r: Vec<ParticleId> = Vec::new();
 
-        let center_id = self.get_cell_id(p.pos());
+        let center_id = self.get_cell_id(pos);
 
         let up_left_id = self.get_neighbor_id(center_id, -1, 1);
         let up_id = self.get_neighbor_id(center_id, 0, 1);
