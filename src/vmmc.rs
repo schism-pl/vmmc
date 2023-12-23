@@ -459,8 +459,10 @@ impl Vmmc {
         for (p_id, _) in vmoves.inner.iter() {
             let p = self.particle(*p_id);
             if self.simbox().overlaps(p) {
-                panic!("Unreachable: we should have already checked for overlap")
-                // return Err(anyhow!("Overlapping particle"));
+                // panic!("Unreachable: we should have already checked for overlap")
+                // TODO: this should probably never be triggered.
+                // But it does. need to investigate
+                return Err(anyhow!("Overlapping particle"));
             }
         }
 
