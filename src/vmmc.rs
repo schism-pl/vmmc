@@ -245,8 +245,8 @@ impl Vmmc {
     fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {
         // 1. Choose a particle that will lead the move
         let seed_id = self.choose_random_p_id(rng);
-        // 2. Choose a direction (unit vector) for the move
-        let rand_vec = Position::unit_vector(rng);
+        // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
+        let rand_vec = DimVec::rand_unit_vector(rng);
         // 3. Choose a move type (translation or rotation)
         let is_rotation = rng.gen::<f64>() >= self.params.prob_translate;
         // 4. Pick a cluster size cutoff
@@ -309,14 +309,6 @@ impl Vmmc {
 
                 let (link_weight, reverse_link_weight) =
                     self.compute_link_weights(particle, neighbor, &final_p, &reverse_p);
-
-                log::debug!(
-                    "p{:?} is attempting to link p{:?} with weights fwd:{:?} back:{:?}",
-                    id,
-                    neighbor_id,
-                    link_weight,
-                    reverse_link_weight
-                );
 
                 if rng.gen::<f64>() <= link_weight {
                     if rng.gen::<f64>() <= reverse_link_weight / link_weight {
@@ -385,11 +377,11 @@ impl Vmmc {
             self.simbox.remove_particle_tenancy(*p_id);
         }
 
-        // 2) check for overlaps
+        // 2) check if making any of the moves would cause an overlap
         let is_overlap = vmoves
             .inner
             .iter()
-            .any(|(_, vp)| self.simbox.move_will_overlap(vp.orig_pos(), vp.pos()));
+            .any(|(p_id, vp)| self.simbox.would_overlap(*p_id, vp.pos()));
 
         if is_overlap {
             // if overlap, put the particles back in the tenancy array and return an error
@@ -459,31 +451,15 @@ impl Vmmc {
         for (p_id, _) in vmoves.inner.iter() {
             let p = self.particle(*p_id);
             if self.simbox().overlaps(p) {
-                // panic!("Unreachable: we should have already checked for overlap")
+                panic!("Unreachable: we should have already checked for overlap")
                 // TODO: this should probably never be triggered.
                 // But it does. need to investigate
-                return Err(anyhow!("Overlapping particle"));
+                // return Err(anyhow!("Overlapping particle"));
             }
         }
 
         Ok(())
     }
-
-    // check if a particle overlaps any other particles
-    // TODO: dedup with other overlaps
-    // fn overlaps(&self, p: &Particle) -> bool {
-    //     for neighbor_id in self.simbox.get_neighbors(p) {
-    //         let neighbor = self.particle(neighbor_id);
-    //         if neighbor == p {
-    //             continue;
-    //         }
-    //         // dist < 1.0 (hard sphere radius)
-    //         if self.simbox.sep_in_box(p.pos(), neighbor.pos()).norm() < 1.0 {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // }
 
     fn sim_has_overlaps(&self) -> bool {
         self.particles().iter().any(|p| self.simbox().overlaps(p))

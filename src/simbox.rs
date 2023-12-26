@@ -77,17 +77,32 @@ impl SimBox {
 
     /// Given a position `new_pos`, check that it will not overlap any existing particles
     /// An exception is that it is allowed to overlap the old position (since it moved)
-    pub fn move_will_overlap(&self, old_pos: Position, new_pos: Position) -> bool {
-        for other_id in self.get_neighbors(new_pos) {
-            let other = self.particle(other_id);
+    // pub fn move_will_overlap(&self, old_pos: Position, new_pos: Position) -> bool {
+    //     for other_id in self.get_neighbors(new_pos) {
+    //         let other = self.particle(other_id);
 
-            if other.pos() == old_pos {
-                // its fine to overlap with our old position
+    //         if other.pos() == old_pos {
+    //             // its fine to overlap with our old position
+    //             continue;
+    //         }
+
+    //         // dist < 1.0 (hard sphere radius)
+    //         if self.sep_in_box(new_pos, other.pos()).norm() < 1.0 {
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
+
+    /// if particle `p_id` were at position `pos`, would it cause any overlaps?
+    pub fn would_overlap(&self, p_id: ParticleId, pos: Position) -> bool {
+        for other_id in self.get_neighbors(pos) {
+            let other = self.particle(other_id);
+            if other_id == p_id {
                 continue;
             }
-
             // dist < 1.0 (hard sphere radius)
-            if self.sep_in_box(new_pos, other.pos()).norm() < 1.0 {
+            if self.sep_in_box(pos, other.pos()).norm() < 1.0 {
                 return true;
             }
         }
@@ -97,18 +112,7 @@ impl SimBox {
     // check if a particle overlaps any other particles
     /// must work even if p has invalid tenancy info due to its use in commit_moves
     pub fn overlaps(&self, p: &Particle) -> bool {
-        for other_id in self.get_neighbors(p.pos()) {
-            if other_id == p.id() {
-                continue;
-            }
-
-            let other = self.particle(other_id);
-            // dist < 1.0 (hard sphere radius)
-            if self.sep_in_box(p.pos(), other.pos()).norm() < 1.0 {
-                return true;
-            }
-        }
-        false
+        self.would_overlap(p.id(), p.pos())
     }
 
     // uniform distribution of morphologies present in `shapes`
@@ -213,7 +217,7 @@ impl SimBox {
         while pos_has_overlap(self, &pos) {
             pos = self.random_pos(rng);
         }
-        let or = Orientation::unit_vector(rng);
+        let or = Orientation::rand_unit_vector(rng);
         Particle::new(p_id, pos, or, shape_id)
     }
 

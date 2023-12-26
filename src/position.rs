@@ -56,6 +56,7 @@ impl DimVec {
         r
     }
 
+    // pick dimvec from normal distribution
     pub fn random(rng: &mut SmallRng) -> Self {
         let normal = Normal::new(0.0, 1.0).unwrap();
         let mut r = Position::zeroes();
@@ -65,9 +66,9 @@ impl DimVec {
         r
     }
 
-    // picks a random position then does a scalar div by maginitude
-    pub fn unit_vector(rng: &mut SmallRng) -> Self {
-        let rand_pos = Position::random(rng);
+    // normalized radom dimvec
+    pub fn rand_unit_vector(rng: &mut SmallRng) -> Self {
+        let rand_pos = DimVec::random(rng);
         let norm = rand_pos.norm();
         rand_pos.scalar_div(norm)
     }
