@@ -1,4 +1,5 @@
 use std::{
+    f32::consts::PI,
     fs::{self, File},
     io::{BufRead, BufReader, Write},
 };
@@ -175,6 +176,28 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
     let style = StrokeStyle::default();
     let draw_options = DrawOptions::new();
 
+    // draw circles
+    for p in vmmc.particles().iter() {
+        let mut pb = PathBuilder::new();
+        let x = (p.pos().x() * scale + x_off) as f32;
+        let y = (p.pos().y() * scale + y_off) as f32;
+        // pb.move_to(x,y);
+        pb.arc(x, y, (scale / 2.0) as f32, 0.0, 2.0 * PI);
+        pb.close();
+        let draw_path = pb.finish();
+        dt.stroke(&draw_path, &source, &style, &draw_options);
+
+        // draw patches
+        for patch in vmmc.simbox().morphology(p).patches() {
+            let mut pb = PathBuilder::new();
+            pb.arc(x, y, (scale * patch.radius()) as f32, 0.0, 2.0 * PI);
+            pb.close();
+            let draw_path = pb.finish();
+            dt.stroke(&draw_path, &source, &style, &draw_options);
+        }
+    }
+
+    // render lines
     for p0 in vmmc.particles().iter() {
         let interactions = vmmc.potential().determine_interactions(vmmc.simbox(), p0);
         for &neighbor_id in interactions.iter() {

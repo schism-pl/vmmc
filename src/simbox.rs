@@ -1,6 +1,6 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER};
+use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::Orientation;
@@ -13,7 +13,7 @@ type CellId = usize;
 type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
 
 // cells_per_axis * cells_per_axis
-type CellGrid = Vec<Cell>; //
+type CellGrid = Vec<Cell>;
 
 fn map_into_range(p: f64, lower: f64, upper: f64) -> f64 {
     if p < lower {
@@ -416,6 +416,23 @@ impl SimBox {
         } else {
             panic!("Dimension is not 2 or 3")
         }
+    }
+
+    // TODO: patch_center and send to simbox
+    // sin_thetas/cos_thetas should be part of morphology
+    // function then goes to simbox
+    pub fn patch_center(
+        &self,
+        patch_idx: usize,
+        p: Position,
+        or: Orientation,
+        shape: &Morphology,
+    ) -> Position {
+        let sin_theta = shape.sin_theta(patch_idx);
+        let cos_theta = shape.cos_theta(patch_idx);
+        let x = p.x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
+        let y = p.y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
+        self.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 
     pub fn map_pos_into_box(&self, pos: Position) -> Position {

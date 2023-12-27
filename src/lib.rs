@@ -58,7 +58,7 @@ impl Default for InputParams {
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 20);
 
-        let shapes = vec![Morphology::regular_3patch(0.05)];
+        let shapes = vec![Morphology::regular_4patch(0.05)];
 
         Self {
             seed,

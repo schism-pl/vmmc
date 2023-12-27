@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -33,6 +35,10 @@ impl Patch {
 pub struct Morphology {
     patches: Vec<Patch>,
     max_radius: f64,
+    // maps theta -> sin(theta) for each patch angle
+    sin_theta: Vec<f64>,
+    // maps theta -> cos(theta) for each patch angle
+    cos_theta: Vec<f64>,
 }
 
 impl Morphology {
@@ -42,9 +48,19 @@ impl Morphology {
             .map(|p| p.radius)
             .fold(f64::MIN, |a, b| a.max(b));
 
+        let mut sin_theta: Vec<_> = Vec::new();
+        let mut cos_theta: Vec<_> = Vec::new();
+        for patch in &patches {
+            let theta = patch.theta() * PI / 180.0; // convert degrees to radians
+            sin_theta.push(theta.sin());
+            cos_theta.push(theta.cos());
+        }
+
         Self {
             patches,
             max_radius,
+            sin_theta,
+            cos_theta,
         }
     }
 
@@ -54,6 +70,14 @@ impl Morphology {
 
     pub fn max_patch_radius(&self) -> f64 {
         self.max_radius
+    }
+
+    pub fn sin_theta(&self, patch_idx: usize) -> f64 {
+        self.sin_theta[patch_idx]
+    }
+
+    pub fn cos_theta(&self, patch_idx: usize) -> f64 {
+        self.cos_theta[patch_idx]
     }
 
     pub fn regular_3patch(radius: f64) -> Self {
