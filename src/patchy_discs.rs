@@ -84,24 +84,28 @@ impl PatchyDiscsPotential {
         }
 
         // theres no way they can interact
-        if dist_sqd > m0.sqd_cutoff_max().max(m1.sqd_cutoff_max()) {
+        // if dist_sqd > m0.sqd_cutoff_max().max(m1.sqd_cutoff_max()) {
+        //     return 0.0;
+        // }
+
+        if dist_sqd.sqrt() > PARTICLE_DIAMETER + m0.max_patch_radius() + m1.max_patch_radius() {
             return 0.0;
         }
 
         // check all pairs of patches
         for (p_idx0, patch0) in m0.patches().iter().enumerate() {
             // Compute position of patch i on first disc.
-            let new_p0 = self.pos_on_disc(simbox, p_idx0, p0, or0, particle0.shape_id());
+            let patch_center0 = self.pos_on_disc(simbox, p_idx0, p0, or0, particle0.shape_id());
             for (p_idx1, patch1) in m1.patches().iter().enumerate() {
                 // if these patches aren't compatible, skip
                 if patch0.color() != patch1.color() {
                     continue;
                 }
 
-                let new_p1 = self.pos_on_disc(simbox, p_idx1, p1, or1, particle1.shape_id());
-                let sqd_dist = simbox.sep_in_box(new_p0, new_p1).norm_sqd();
+                let patch_center1 = self.pos_on_disc(simbox, p_idx1, p1, or1, particle1.shape_id());
+                let patch_dist = simbox.sep_in_box(patch_center0, patch_center1).norm();
 
-                if sqd_dist < patch0.radius_sqd().max(patch1.radius_sqd()) {
+                if patch_dist < patch0.radius() + patch1.radius() {
                     // theres no way for more than 2 patches to interact between 2 particles
                     // TODO: write out exact conditions for this and assert it
                     return -self.interaction_energy;

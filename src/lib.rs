@@ -58,7 +58,7 @@ impl Default for InputParams {
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 20);
 
-        let shapes = vec![Morphology::regular_3patch(0.1)];
+        let shapes = vec![Morphology::regular_3patch(0.05)];
 
         Self {
             seed,
@@ -162,13 +162,13 @@ impl Arbitrary for InputParams {
 
         let num_particles = usize_in_range(g, 0, 2500);
         let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
-        let patch_radius = f64_in_range(g, 0.01, 0.2); // diameter of patch (in units of particle diameter)
+        let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
 
         let mut box_width = 0.0;
         let mut box_height = 0.0;
 
         // while less than 1.5 cell per particle, pick a new box radius
-        while box_width * box_height / (PARTICLE_DIAMETER + patch_radius).powi(2)
+        while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
             <= 1.5 * num_particles as f64
         {
             box_width = f64_in_range(g, 10.0, 200.0);
@@ -222,7 +222,7 @@ impl Arbitrary for SimBox {
         let ip = InputParams::arbitrary(g);
         let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
         let patch_radius = 0.05; // TODO: remove this
-        let max_interaction_range = PARTICLE_DIAMETER + patch_radius;
+        let max_interaction_range = PARTICLE_DIAMETER + patch_radius + patch_radius;
 
         let mut rng = SmallRng::from_entropy();
         SimBox::new_with_randomized_particles(
