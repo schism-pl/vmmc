@@ -226,10 +226,11 @@ impl Vmmc {
         if !mov.is_rotation() {
             final_p += mov.scaled_vec(dir);
         } else {
-            let rel_pos = particle.pos() - seed.pos();
-            final_p += rel_pos.rotated_by(mov.vec(), mov.step_factor(dir));
+            let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
+            let theta = mov.step_factor(dir);
 
-            final_or += final_or.rotated_by(mov.vec(), mov.step_factor(dir));
+            final_p += rel_pos.rotated_by(theta);
+            final_or += final_or.rotated_by(theta);
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);
@@ -444,6 +445,17 @@ impl Vmmc {
             return Err(anyhow!("Stokes drag rejection"));
         }
 
+        for (p_id, _) in vmoves.inner.iter() {
+            let p = self.particle(*p_id);
+            if self.simbox().overlaps(p) {
+                // println!("mov = {:?} vmoves = {:?}", mov, vmoves);
+                panic!("Particles overlap before committing move!")
+                // TODO: this should probably never be triggered.
+                // But it does. need to investigate
+                // return Err(anyhow!("Overlapping particle"));
+            }
+        }
+
         self.commit_moves(vmoves)?;
 
         // check for overlaps
@@ -451,6 +463,11 @@ impl Vmmc {
         for (p_id, _) in vmoves.inner.iter() {
             let p = self.particle(*p_id);
             if self.simbox().overlaps(p) {
+                println!("p_{:?} overlaps!", p_id);
+                println!("mov = {:?}", mov);
+                for (idx, vmove) in vmoves.inner.iter() {
+                    println!("p_{:?}: {:?} -> {:?}", idx, vmove.orig_pos(), vmove.pos());
+                }
                 panic!("Unreachable: we should have already checked for overlap")
                 // TODO: this should probably never be triggered.
                 // But it does. need to investigate
@@ -546,13 +563,4 @@ impl Vmmc {
     pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
         self.potential.set_interaction_energy(interaction_energy)
     }
-
-    // pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
-    //     let mut run_stats = RunStats::new(self.particles().len());
-    //     for idx in 0..n {
-    //         log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);
-    //         let _ = self.step(rng, &mut run_stats);
-    //     }
-    //     run_stats
-    // }
 }

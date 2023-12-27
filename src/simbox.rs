@@ -103,6 +103,7 @@ impl SimBox {
             }
             // dist < 1.0 (hard sphere radius)
             if self.sep_in_box(pos, other.pos()).norm() < 1.0 {
+                // println!("p_{:?}({:?}) overlaps with p_{:?}({:?})", p_id, pos, other_id, other.pos());
                 return true;
             }
         }

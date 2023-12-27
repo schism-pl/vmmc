@@ -55,9 +55,9 @@ impl Particle {
         self.or = new_or;
     }
 
-    pub fn rotate(&mut self, other: Orientation, theta: f64) {
-        self.or = self.or.rotated_by(other, theta)
-    }
+    // pub fn rotate_in_place(&mut self, theta: f64) {
+    //     self.or = self.or.rotated_by(theta)
+    // }
 
     pub fn random(rng: &mut SmallRng, id: ParticleId, shape_id: ShapeId) -> Self {
         Particle::new(

@@ -121,7 +121,7 @@ impl DimVec {
     }
 
     // TODO: what are the units of theta? (update docs if its not radians)
-    fn rotated_by_2d(&self, theta: f64) -> Self {
+    pub fn rotated_by(&self, theta: f64) -> Self {
         let c = theta.cos();
         let s = theta.sin();
 
@@ -131,25 +131,25 @@ impl DimVec {
     }
 
     // reenable if we do 3d
-    fn rotated_by_3d(&self, _other: Self, _theta: f64) -> Self {
-        panic!("Reenable if we do 3d");
-        // let c  = theta.cos();
-        // let s = theta.sin();
+    // fn rotated_by_3d(&self, _other: Self, _theta: f64) -> Self {
+    //     panic!("Reenable if we do 3d");
+    //     // let c  = theta.cos();
+    //     // let s = theta.sin();
 
-        // let cross_prod = self.cross_prod(other);
-        // let x = ((self.x() - other.x()*cross_prod))*(c - 1.0) + (other.z()*self.y() - other.y()*self.z())*s;
-        // let y = ((self.y() - other.y()*cross_prod))*(c - 1.0) + (other.x()*self.z() - other.z()*self.x())*s;
-        // let z = ((self.z() - other.z()*cross_prod))*(c - 1.0) + (other.y()*self.x() - other.x()*self.y())*s;
-        // Self::new([x,y,z])
-    }
+    //     // let cross_prod = self.cross_prod(other);
+    //     // let x = ((self.x() - other.x()*cross_prod))*(c - 1.0) + (other.z()*self.y() - other.y()*self.z())*s;
+    //     // let y = ((self.y() - other.y()*cross_prod))*(c - 1.0) + (other.x()*self.z() - other.z()*self.x())*s;
+    //     // let z = ((self.z() - other.z()*cross_prod))*(c - 1.0) + (other.y()*self.x() - other.x()*self.y())*s;
+    //     // Self::new([x,y,z])
+    // }
 
-    pub fn rotated_by(&self, other: Self, theta: f64) -> Self {
-        match DIMENSION {
-            2 => self.rotated_by_2d(theta),
-            3 => self.rotated_by_3d(other, theta),
-            _ => panic!("Dimension is not 2 or 3"),
-        }
-    }
+    // pub fn rotated_by(&self, other: Self, theta: f64) -> Self {
+    //     match DIMENSION {
+    //         2 => self.rotated_by_2d(theta),
+    //         3 => self.rotated_by_3d(other, theta),
+    //         _ => panic!("Dimension is not 2 or 3"),
+    //     }
+    // }
 
     pub fn div_u32(self, other: [u32; 2]) -> Self {
         let mut r = Position::zeroes();
