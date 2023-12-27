@@ -1,23 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-use crate::consts::PARTICLE_DIAMETER;
-
-// Clone is implemented to enable quickcheck
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
     radius: f64, // radius of patch (in units of particle diameter)
     theta: f64,  // angle in degrees
-    color: u8,   // TODO: rename color?
+    chemtype: u8, // TODO: rename color?
                  // radius_sqd: f64, // cache radius squared
 }
 
 impl Patch {
-    pub fn new(radius: f64, theta: f64, color: u8) -> Self {
+    pub fn new(radius: f64, theta: f64, chemtype: u8) -> Self {
         Self {
             radius,
             theta,
-            color,
-            // radius_sqd: radius * radius,
+            chemtype,
         }
     }
 
@@ -25,27 +21,19 @@ impl Patch {
         self.radius
     }
 
-    // pub fn radius_sqd(&self) -> f64 {
-    //     self.radius_sqd
-    // }
-
     pub fn theta(&self) -> f64 {
         self.theta
     }
 
-    pub fn color(&self) -> u8 {
-        self.color
+    pub fn chemtype(&self) -> u8 {
+        self.chemtype
     }
 }
 
-// Clone is implemented to enable quickcheck
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Morphology {
     patches: Vec<Patch>,
     max_radius: f64,
-    // max distance that this particle can interact with another
-    // used for optimization
-    // sqd_cutoff_max: f64,
 }
 
 impl Morphology {
@@ -55,25 +43,15 @@ impl Morphology {
             .map(|p| p.radius)
             .fold(f64::MIN, |a, b| a.max(b));
 
-        // max of all squared cutoff distances
-        // let sqd_cutoff_max = patches
-        //     .iter()
-        //     .map(|p| (PARTICLE_DIAMETER + p.radius) * (PARTICLE_DIAMETER + p.radius))
-        //     .fold(f64::MIN, |a, b| a.max(b));
         Self {
             patches,
             max_radius,
-            // sqd_cutoff_max,
         }
     }
 
     pub fn patches(&self) -> &[Patch] {
         &self.patches
     }
-
-    // pub fn sqd_cutoff_max(&self) -> f64 {
-    //     self.sqd_cutoff_max
-    // }
 
     pub fn max_patch_radius(&self) -> f64 {
         self.max_radius

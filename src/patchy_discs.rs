@@ -98,7 +98,7 @@ impl PatchyDiscsPotential {
             let patch_center0 = self.pos_on_disc(simbox, p_idx0, p0, or0, particle0.shape_id());
             for (p_idx1, patch1) in m1.patches().iter().enumerate() {
                 // if these patches aren't compatible, skip
-                if patch0.color() != patch1.color() {
+                if patch0.chemtype() != patch1.chemtype() {
                     continue;
                 }
 
