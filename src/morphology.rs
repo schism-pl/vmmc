@@ -2,10 +2,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
-    radius: f64, // radius of patch (in units of particle diameter)
-    theta: f64,  // angle in degrees
-    chemtype: u8, // TODO: rename color?
-                 // radius_sqd: f64, // cache radius squared
+    radius: f64,  // radius of patch (in units of particle diameter)
+    theta: f64,   // angle in degrees
+    chemtype: u8, // patches must have same chemtype to be compatible
 }
 
 impl Patch {
@@ -57,7 +56,6 @@ impl Morphology {
         self.max_radius
     }
 
-    // TODO: condense these 3 functions into `regular`
     pub fn regular_3patch(radius: f64) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 120.0, 0);

@@ -62,7 +62,6 @@ impl<'a> Iterator for PolygonEdgeIterator<'a> {
 }
 
 // Note: counter-clockwise-edges uniquely map to polygons
-// TODO: figure out the trig here
 pub fn tightest_neighbor(vmmc: &Vmmc, p0: &Particle, p1: &Particle) -> Option<ParticleId> {
     let mut lowest_cos = 1.0; // we only want tightest_angle that goes clockwise
     let mut tightest = ParticleId::MAX;

@@ -155,7 +155,6 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // we need num_cells >= 2*num_particles
 
 // for testing
-// TODO: the patch_radius we use is wrong
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         let seed = SmallRng::from_entropy().gen::<i64>();

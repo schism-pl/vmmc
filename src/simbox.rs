@@ -15,7 +15,6 @@ type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
 // cells_per_axis * cells_per_axis
 type CellGrid = Vec<Cell>; //
 
-// TODO: test boundary conditions extensively
 fn map_into_range(p: f64, lower: f64, upper: f64) -> f64 {
     if p < lower {
         p + (upper - lower)

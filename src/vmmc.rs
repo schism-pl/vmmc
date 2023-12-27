@@ -212,7 +212,6 @@ impl Vmmc {
     }
 
     // returns difference in position between final and original
-    // TODO: is this function right? it reads wierd
     fn calculate_motion(
         &self,
         particle: &Particle,
