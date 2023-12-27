@@ -1,6 +1,6 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL};
+use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::Orientation;
@@ -75,25 +75,6 @@ impl SimBox {
         }
     }
 
-    /// Given a position `new_pos`, check that it will not overlap any existing particles
-    /// An exception is that it is allowed to overlap the old position (since it moved)
-    // pub fn move_will_overlap(&self, old_pos: Position, new_pos: Position) -> bool {
-    //     for other_id in self.get_neighbors(new_pos) {
-    //         let other = self.particle(other_id);
-
-    //         if other.pos() == old_pos {
-    //             // its fine to overlap with our old position
-    //             continue;
-    //         }
-
-    //         // dist < 1.0 (hard sphere radius)
-    //         if self.sep_in_box(new_pos, other.pos()).norm() < 1.0 {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // }
-
     /// if particle `p_id` were at position `pos`, would it cause any overlaps?
     pub fn would_overlap(&self, p_id: ParticleId, pos: Position) -> bool {
         for other_id in self.get_neighbors(pos) {
@@ -101,9 +82,7 @@ impl SimBox {
             if other_id == p_id {
                 continue;
             }
-            // dist < 1.0 (hard sphere radius)
-            if self.sep_in_box(pos, other.pos()).norm() < 1.0 {
-                // println!("p_{:?}({:?}) overlaps with p_{:?}({:?})", p_id, pos, other_id, other.pos());
+            if self.sep_in_box(pos, other.pos()).norm() < PARTICLE_DIAMETER {
                 return true;
             }
         }
@@ -204,8 +183,7 @@ impl SimBox {
         // check if a position overlaps any existing
         fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
             for other in simbox.particles.iter() {
-                // dist < 1.0 (hard sphere radius)
-                if simbox.sep_in_box(*pos, other.pos()).norm() < 1.0 {
+                if simbox.sep_in_box(*pos, other.pos()).norm() < PARTICLE_DIAMETER {
                     return true;
                 }
             }

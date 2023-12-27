@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::consts::PARTICLE_DIAMETER;
+
 // Clone is implemented to enable quickcheck
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
@@ -56,7 +58,7 @@ impl Morphology {
         // max of all squared cutoff distances
         let sqd_cutoff_max = patches
             .iter()
-            .map(|p| (1.0 + p.radius) * (1.0 + p.radius))
+            .map(|p| (PARTICLE_DIAMETER + p.radius) * (PARTICLE_DIAMETER + p.radius))
             .fold(f64::MIN, |a, b| a.max(b));
         Self {
             patches,
@@ -77,6 +79,7 @@ impl Morphology {
         self.max_radius
     }
 
+    // TODO: condense these 3 functions into `regular`
     pub fn regular_3patch(radius: f64) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 120.0, 0);

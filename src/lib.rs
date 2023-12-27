@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
+use consts::PARTICLE_DIAMETER;
 use morphology::{Morphology, Patch};
 use position::DimVec;
 use protocol::{FixedProtocol, ProtocolStep};
@@ -166,8 +167,10 @@ impl Arbitrary for InputParams {
         let mut box_width = 0.0;
         let mut box_height = 0.0;
 
-        // while less than 1.5 cell per particle, pick a new box raidus
-        while box_width * box_height / (1.0 + patch_radius).powi(2) <= 1.5 * num_particles as f64 {
+        // while less than 1.5 cell per particle, pick a new box radius
+        while box_width * box_height / (PARTICLE_DIAMETER + patch_radius).powi(2)
+            <= 1.5 * num_particles as f64
+        {
             box_width = f64_in_range(g, 10.0, 200.0);
             box_height = f64_in_range(g, 10.0, 200.0);
         }
@@ -219,7 +222,7 @@ impl Arbitrary for SimBox {
         let ip = InputParams::arbitrary(g);
         let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
         let patch_radius = 0.05; // TODO: remove this
-        let max_interaction_range = 1.0 + patch_radius;
+        let max_interaction_range = PARTICLE_DIAMETER + patch_radius;
 
         let mut rng = SmallRng::from_entropy();
         SimBox::new_with_randomized_particles(
@@ -235,7 +238,7 @@ impl Arbitrary for SimBox {
 pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
 
-    let max_interaction_range = 1.0 + ip.max_patch_radius();
+    let max_interaction_range = PARTICLE_DIAMETER + ip.max_patch_radius();
 
     // No initial position, so we will use a randomized start position
     let simbox = SimBox::new_with_randomized_particles(

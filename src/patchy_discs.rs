@@ -1,4 +1,4 @@
-use crate::consts::PARTICLE_RADIUS;
+use crate::consts::{PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::{IsParticle, Particle, ParticleId, ShapeId};
 use crate::position::{Orientation, Position};
@@ -78,7 +78,8 @@ impl PatchyDiscsPotential {
         // norm_sqd < 1.0 => norm < 1.0
         let dist_sqd = simbox.sep_in_box(p0, p1).norm_sqd();
 
-        if dist_sqd < 1.0 {
+        // overlap!
+        if dist_sqd < PARTICLE_DIAMETER {
             return f64::INFINITY;
         }
 

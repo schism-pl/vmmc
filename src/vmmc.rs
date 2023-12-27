@@ -449,8 +449,8 @@ impl Vmmc {
                 panic!("Orientation not normalized!: {:?} off by ", p);
             }
         }
-        // check that distance between all particles is at least 1.0
-        // (assuming radius is 0.5) (hard spheres are not allowed to overlap)
+
+        // check for overlaps
         if self.sim_has_overlaps() {
             panic!("Sim has overlaps!");
         }
