@@ -1,9 +1,6 @@
-use crate::consts::{PARTICLE_DIAMETER, PARTICLE_RADIUS};
-use crate::morphology::Morphology;
-use crate::particle::{IsParticle, Particle, ParticleId, ShapeId};
-use crate::position::{Orientation, Position};
+use crate::consts::PARTICLE_DIAMETER;
+use crate::particle::{IsParticle, Particle, ParticleId};
 use crate::simbox::SimBox;
-use std::f64::consts::PI;
 
 // Note: Pairwise potentials are just a filter map
 
