@@ -1,7 +1,7 @@
 use crate::consts::PARTICLE_RADIUS;
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
-use crate::position::Position;
+use crate::position::{random_unit_vec, Position};
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use crate::{consts::DIMENSION, position::DimVec};
@@ -84,7 +84,7 @@ impl ProposedMove {
     }
 
     pub fn scaled_vec(&self, dir: MoveDir) -> DimVec {
-        self.vec.scalar_mul(self.step_factor(dir))
+        self.vec.scale_by(self.step_factor(dir))
     }
 }
 
@@ -188,7 +188,7 @@ impl Vmmc {
                     .sep_in_box(vp.orig_pos(), self.particle(mov.seed_id).pos())
             };
 
-            stokes_radius += delta.cross_prod_magnitude_sqd(mov.vec);
+            stokes_radius += delta.cross_prod_sqd(mov.vec);
         }
         stokes_radius /= vmoves.inner.len() as f64;
         stokes_radius = stokes_radius.sqrt();
@@ -208,7 +208,7 @@ impl Vmmc {
         for (_, vp) in vmoves.inner.iter() {
             com += vp.orig_pos(); //particle.pos();
         }
-        com.scalar_div(vmoves.inner.len() as f64)
+        com.div_by(vmoves.inner.len() as f64)
     }
 
     // returns difference in position between final and original
@@ -246,7 +246,7 @@ impl Vmmc {
         // 1. Choose a particle that will lead the move
         let seed_id = self.choose_random_p_id(rng);
         // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
-        let rand_vec = DimVec::rand_unit_vector(rng);
+        let rand_vec = random_unit_vec(rng);
         // 3. Choose a move type (translation or rotation)
         let is_rotation = rng.gen::<f64>() >= self.params.prob_translate;
         // 4. Pick a cluster size cutoff
@@ -444,7 +444,7 @@ impl Vmmc {
             // check that magnitude of orientation is about 1.0
             // this is because it should be a unit vector
             // allow for a bit of deviation due to rounding errors
-            if (p.or().norm() - 1.0).abs() >= 0.0001 {
+            if (p.or().l2_norm() - 1.0).abs() >= 0.0001 {
                 panic!("Orientation not normalized!: {:?} off by ", p);
             }
         }
@@ -489,7 +489,7 @@ impl Vmmc {
         debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);
-        debug_assert!((mov.vec().norm() - 1.0).abs() < 0.00001);
+        debug_assert!((mov.vec().l2_norm() - 1.0).abs() < 0.00001);
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);
