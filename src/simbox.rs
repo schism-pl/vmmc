@@ -1,6 +1,6 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
+use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::{random_unit_vec, Orientation};
@@ -43,7 +43,7 @@ fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
 #[derive(Clone, Debug)]
 pub struct SimBox {
     dimensions: DimVec,
-    cells_per_axis: [usize; DIMENSION],
+    cells_per_axis: [usize; 2],
     cell_dimensions: DimVec,
     particles: Particles,
     shapes: Vec<Morphology>, // maps shape_id to morphology
@@ -56,7 +56,7 @@ pub struct SimBox {
 impl SimBox {
     pub fn new(
         dimensions: DimVec,
-        cells_per_axis: [usize; DIMENSION],
+        cells_per_axis: [usize; 2],
         cell_dimensions: DimVec,
         particles: Particles,
         shapes: Vec<Morphology>,
@@ -396,26 +396,15 @@ impl SimBox {
         self.cell_dimensions
     }
 
-    pub fn cells_per_axis(&self) -> [usize; DIMENSION] {
+    pub fn cells_per_axis(&self) -> [usize; 2] {
         self.cells_per_axis
     }
 
     pub fn pos_in_box(&self, pos: Position) -> bool {
-        if DIMENSION == 2 {
-            pos.x() >= self.min_x()
-                && pos.x() < self.max_x()
-                && pos.y() >= self.min_y()
-                && pos.y() < self.max_y()
-        } else if DIMENSION == 3 {
-            pos.x() >= self.min_x()
-                && pos.x() < self.max_x()
-                && pos.y() >= self.min_y()
-                && pos.y() < self.max_y()
-            // && pos.z() >= self.min_z()
-            // && pos.z() < self.max_z()
-        } else {
-            panic!("Dimension is not 2 or 3")
-        }
+        pos.x() >= self.min_x()
+            && pos.x() < self.max_x()
+            && pos.y() >= self.min_y()
+            && pos.y() < self.max_y()
     }
 
     // TODO: patch_center and send to simbox
@@ -453,7 +442,6 @@ impl SimBox {
     }
 
     pub fn sep_in_box(&self, p0: Position, p1: Position) -> DimVec {
-        assert_eq!(DIMENSION, 2);
         self.map_pos_into_box(p0 - p1)
     }
 

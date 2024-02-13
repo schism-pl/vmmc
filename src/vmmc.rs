@@ -1,10 +1,10 @@
 use crate::consts::PARTICLE_RADIUS;
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
+use crate::position::DimVec;
 use crate::position::{random_unit_vec, Position};
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
-use crate::{consts::DIMENSION, position::DimVec};
 use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
@@ -256,7 +256,7 @@ impl Vmmc {
         let step_size = if is_rotation {
             // Rotation
             let r: f64 = rng.gen();
-            self.params.max_rotation * r.powf(1.0 / (DIMENSION as f64))
+            self.params.max_rotation * r.powf(0.5)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
