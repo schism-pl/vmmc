@@ -156,27 +156,14 @@ fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
 //     }
 // }
 
-pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
-    // need to adjust from 0-centered to all positive coordinates
-    let scale = 20.0;
-    let x_dim = vmmc.simbox().max_x() * 2.0 * scale;
-    let y_dim = vmmc.simbox().max_y() * 2.0 * scale;
-    let mut dt = DrawTarget::new(x_dim.ceil() as i32, y_dim.ceil() as i32);
+fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
-
-    draw_white_background(vmmc, &mut dt, scale);
-
-    // let polygons = calc_polygons(vmmc, 6);
-    // color_polygon(vmmc, &polygons[0], &mut dt, scale);
-
-    // black
     let source = rgba_solid(0, 0, 0, 0xff);
 
     let style = StrokeStyle::default();
     let draw_options = DrawOptions::new();
 
-    // draw circles
     for p in vmmc.particles().iter() {
         let mut pb = PathBuilder::new();
         let x = (p.pos().x() * scale + x_off) as f32;
@@ -188,16 +175,33 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
         dt.stroke(&draw_path, &source, &style, &draw_options);
 
         // draw patches
-        for patch in vmmc.simbox().morphology(p).patches() {
+        for (patch_idx, patch) in vmmc.simbox().morphology(p).patches().iter().enumerate() {
             let mut pb = PathBuilder::new();
-            pb.arc(x, y, (scale * patch.radius()) as f32, 0.0, 2.0 * PI);
+            let patch_center = vmmc.simbox().patch_center(p, patch_idx);
+            let patch_x = (patch_center.x() * scale + x_off) as f32;
+            let patch_y = (patch_center.y() * scale + y_off) as f32;
+            pb.arc(
+                patch_x,
+                patch_y,
+                (scale * patch.radius()) as f32,
+                0.0,
+                2.0 * PI,
+            );
             pb.close();
             let draw_path = pb.finish();
             dt.stroke(&draw_path, &source, &style, &draw_options);
         }
     }
+}
 
-    // render lines
+fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+    let x_off = vmmc.simbox().max_x() * scale;
+    let y_off = vmmc.simbox().max_y() * scale;
+    let source = rgba_solid(0, 0, 0, 0xff);
+
+    let style = StrokeStyle::default();
+    let draw_options = DrawOptions::new();
+
     for p0 in vmmc.particles().iter() {
         let interactions = vmmc.potential().determine_interactions(vmmc.simbox(), p0);
         for &neighbor_id in interactions.iter() {
@@ -221,6 +225,18 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
             dt.stroke(&draw_path, &source, &style, &draw_options);
         }
     }
+}
+
+pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
+    // need to adjust from 0-centered to all positive coordinates
+    let scale = 100.0;
+    let x_dim = vmmc.simbox().max_x() * 2.0 * scale;
+    let y_dim = vmmc.simbox().max_y() * 2.0 * scale;
+    let mut dt = DrawTarget::new(x_dim.ceil() as i32, y_dim.ceil() as i32);
+
+    draw_white_background(vmmc, &mut dt, scale);
+    render_particles(vmmc, &mut dt, scale);
+    render_interactions(vmmc, &mut dt, scale);
 
     dt.write_png(pathname).unwrap();
 }

@@ -53,12 +53,12 @@ impl Default for InputParams {
         let box_height = 75.0;
 
         let prob_translate = 0.5;
-        let max_translation = 0.15;
+        let max_translation = 0.3;
         let max_rotation = 0.2;
 
         let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 20);
 
-        let shapes = vec![Morphology::regular_4patch(0.05)];
+        let shapes = vec![Morphology::regular_3patch(0.05)];
 
         Self {
             seed,
@@ -281,8 +281,9 @@ pub fn run_vmmc<Cbr>(
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();
-        for _ in 0..1000 {
-            let stats = vmmc.step_n(1000, rng);
+        // TODO: optimize?
+        for _ in 0..(1000 * 1000) {
+            let stats = vmmc.step_n(1, rng);
             run_stats = stats + run_stats;
             maybe_particle_exchange(vmmc, chemical_potential, rng);
         }

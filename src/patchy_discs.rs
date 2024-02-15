@@ -1,9 +1,6 @@
-use crate::consts::{PARTICLE_DIAMETER, PARTICLE_RADIUS};
-use crate::morphology::Morphology;
-use crate::particle::{IsParticle, Particle, ParticleId, ShapeId};
-use crate::position::{Orientation, Position};
+use crate::consts::PARTICLE_DIAMETER;
+use crate::particle::{IsParticle, Particle, ParticleId};
 use crate::simbox::SimBox;
-use std::f64::consts::PI;
 
 // Note: Pairwise potentials are just a filter map
 
@@ -34,9 +31,7 @@ impl PatchyDiscsPotential {
         let m1 = simbox.morphology(particle1);
 
         let p0 = particle0.pos();
-        let or0 = particle0.or();
         let p1 = particle1.pos();
-        let or1 = particle1.or();
 
         // norm_sqd < 1.0 => norm < 1.0
         let dist_sqd = simbox.sep_in_box(p0, p1).norm_sqd();
@@ -53,14 +48,14 @@ impl PatchyDiscsPotential {
         // check all pairs of patches
         for (p_idx0, patch0) in m0.patches().iter().enumerate() {
             // Compute position of patch i on first disc.
-            let pc0 = simbox.patch_center(p_idx0, p0, or0, m0);
+            let pc0 = simbox.patch_center(particle0, p_idx0);
             for (p_idx1, patch1) in m1.patches().iter().enumerate() {
                 // if these patches aren't compatible, skip
                 if patch0.chemtype() != patch1.chemtype() {
                     continue;
                 }
 
-                let pc1 = simbox.patch_center(p_idx1, p1, or1, m1);
+                let pc1 = simbox.patch_center(particle1, p_idx1);
                 let patch_dist = simbox.sep_in_box(pc0, pc1).norm();
 
                 if patch_dist < patch0.radius() + patch1.radius() {

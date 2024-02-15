@@ -421,17 +421,19 @@ impl SimBox {
     // TODO: patch_center and send to simbox
     // sin_thetas/cos_thetas should be part of morphology
     // function then goes to simbox
-    pub fn patch_center(
+    pub fn patch_center<P: IsParticle>(
         &self,
+        p: &P,
         patch_idx: usize,
-        p: Position,
-        or: Orientation,
-        shape: &Morphology,
+        // p: Position,
+        // or: Orientation,
+        // shape: &Morphology,
     ) -> Position {
-        let sin_theta = shape.sin_theta(patch_idx);
-        let cos_theta = shape.cos_theta(patch_idx);
-        let x = p.x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
-        let y = p.y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
+        let or = p.or();
+        let sin_theta = self.morphology(p).sin_theta(patch_idx);
+        let cos_theta = self.morphology(p).cos_theta(patch_idx);
+        let x = p.pos().x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
+        let y = p.pos().y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
         self.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 
