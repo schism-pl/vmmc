@@ -10,10 +10,6 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 use std::collections::{HashSet, VecDeque};
 
-// NOTE: I'm just assuming things aren't isotropic
-// NOTE: assuming not is_repulsive
-// NOTE: assuming no non-pairwise forces
-
 #[derive(Clone, Copy, Debug)]
 pub enum MoveDir {
     Forward,

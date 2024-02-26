@@ -3,7 +3,7 @@ use rand::{rngs::SmallRng, Rng};
 use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
-use crate::position::{random_unit_vec, Orientation};
+use crate::position::random_unit_vec;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -254,20 +254,6 @@ impl SimBox {
                 return;
             }
         }
-        let cell = &self.cells[cell_id];
-        println!(
-            "p_{:?} => c_{:?} [{:?}:({:?}) {:?}:({:?}) {:?}:({:?}) {:?}:({:?})]",
-            p_id,
-            cell_id,
-            cell[0],
-            self.particle(cell[0]),
-            cell[1],
-            self.particle(cell[1]),
-            cell[2],
-            self.particle(cell[2]),
-            cell[3],
-            self.particle(cell[3]),
-        );
         panic!("Tried to insert particle into full cell")
     }
 
@@ -282,22 +268,6 @@ impl SimBox {
         let cell_id = self.get_cell_id(pos);
         self.insert_p_into_cell(p_id, cell_id);
     }
-
-    // pub fn move_particle_tenancy(
-    //     &mut self,
-    //     p_id: ParticleId,
-    //     old_pos: Position,
-    //     new_pos: Position,
-    // ) {
-    //     let old_cell_id = self.get_cell_id(old_pos);
-    //     let new_cell_id = self.get_cell_id(new_pos);
-    //     if old_cell_id != new_cell_id {
-    //         // 1. remove particleId from previous location
-    //         self.delete_p_from_cell(p_id, old_cell_id);
-    //         // 2. add particle to its new location
-    //         self.insert_p_into_cell(p_id, new_cell_id);
-    //     }
-    // }
 
     // TODO: make pretty
     // TODO: optimize since we know x_off and y_off will only ever be 1 or -1?
@@ -385,12 +355,6 @@ impl SimBox {
     pub fn max_y(&self) -> f64 {
         0.5 * self.dimensions.y()
     }
-    // pub fn min_z(&self) -> f64 {
-    //     -0.5 * self.dimensions.z()
-    // }
-    // pub fn max_z(&self) -> f64 {
-    //     0.5 * self.dimensions.z()
-    // }
 
     pub fn cell_dimensions(&self) -> DimVec {
         self.cell_dimensions
@@ -410,14 +374,7 @@ impl SimBox {
     // TODO: patch_center and send to simbox
     // sin_thetas/cos_thetas should be part of morphology
     // function then goes to simbox
-    pub fn patch_center<P: IsParticle>(
-        &self,
-        p: &P,
-        patch_idx: usize,
-        // p: Position,
-        // or: Orientation,
-        // shape: &Morphology,
-    ) -> Position {
+    pub fn patch_center<P: IsParticle>(&self, p: &P, patch_idx: usize) -> Position {
         let or = p.or();
         let sin_theta = self.morphology(p).sin_theta(patch_idx);
         let cos_theta = self.morphology(p).cos_theta(patch_idx);
@@ -427,20 +384,10 @@ impl SimBox {
     }
 
     pub fn map_pos_into_box(&self, pos: Position) -> Position {
-        // if DIMENSION == 2 {
         let x = map_into_range(pos.x(), self.min_x(), self.max_x());
         let y = map_into_range(pos.y(), self.min_y(), self.max_y());
         // debug_assert!(self.pos_in_box(pos));
         Position::new([x, y])
-        // } else if DIMENSION == 3 {
-        //     let _x = map_into_range(pos.x(), self.min_x(), self.max_x());
-        //     let _y = map_into_range(pos.y(), self.min_y(), self.max_y());
-        //     let _z = map_into_range(pos.z(), self.min_z(), self.max_z());
-        //     panic!("DIMENSION IS SET TO 2")
-        //     // Position::new([x,y,z])
-        // } else {
-        //     panic!("Dimension is not 2 or 3")
-        // }
     }
 
     pub fn sep_in_box(&self, p0: Position, p1: Position) -> DimVec {
