@@ -1,9 +1,9 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::consts::{DIMENSION, MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
+use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
-use crate::position::Orientation;
+use crate::position::{random_unit_vec, Orientation};
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -43,7 +43,7 @@ fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
 #[derive(Clone, Debug)]
 pub struct SimBox {
     dimensions: DimVec,
-    cells_per_axis: [usize; DIMENSION],
+    cells_per_axis: [usize; 2],
     cell_dimensions: DimVec,
     particles: Particles,
     shapes: Vec<Morphology>, // maps shape_id to morphology
@@ -56,7 +56,7 @@ pub struct SimBox {
 impl SimBox {
     pub fn new(
         dimensions: DimVec,
-        cells_per_axis: [usize; DIMENSION],
+        cells_per_axis: [usize; 2],
         cell_dimensions: DimVec,
         particles: Particles,
         shapes: Vec<Morphology>,
@@ -81,7 +81,7 @@ impl SimBox {
             if other_id == p_id {
                 continue;
             }
-            if self.sep_in_box(pos, other.pos()).norm() < PARTICLE_DIAMETER {
+            if self.sep_in_box(pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
                 return true;
             }
         }
@@ -182,7 +182,7 @@ impl SimBox {
         // check if a position overlaps any existing
         fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
             for other in simbox.particles.iter() {
-                if simbox.sep_in_box(*pos, other.pos()).norm() < PARTICLE_DIAMETER {
+                if simbox.sep_in_box(*pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
                     return true;
                 }
             }
@@ -195,7 +195,7 @@ impl SimBox {
         while pos_has_overlap(self, &pos) {
             pos = self.random_pos(rng);
         }
-        let or = Orientation::rand_unit_vector(rng);
+        let or = random_unit_vec(rng);
         Particle::new(p_id, pos, or, shape_id)
     }
 
@@ -228,7 +228,7 @@ impl SimBox {
     }
 
     pub fn get_neighbor(&self, p: &Particle, x: f64, y: f64) -> &Cell {
-        let neighbor_pos = p.pos().shifted_by(x, y);
+        let neighbor_pos = p.pos().translated_by(x, y);
         let neighbor_pos = self.map_pos_into_box(neighbor_pos);
         self.get_cell(neighbor_pos)
     }
@@ -385,37 +385,26 @@ impl SimBox {
     pub fn max_y(&self) -> f64 {
         0.5 * self.dimensions.y()
     }
-    pub fn min_z(&self) -> f64 {
-        -0.5 * self.dimensions.z()
-    }
-    pub fn max_z(&self) -> f64 {
-        0.5 * self.dimensions.z()
-    }
+    // pub fn min_z(&self) -> f64 {
+    //     -0.5 * self.dimensions.z()
+    // }
+    // pub fn max_z(&self) -> f64 {
+    //     0.5 * self.dimensions.z()
+    // }
 
     pub fn cell_dimensions(&self) -> DimVec {
         self.cell_dimensions
     }
 
-    pub fn cells_per_axis(&self) -> [usize; DIMENSION] {
+    pub fn cells_per_axis(&self) -> [usize; 2] {
         self.cells_per_axis
     }
 
     pub fn pos_in_box(&self, pos: Position) -> bool {
-        if DIMENSION == 2 {
-            pos.x() >= self.min_x()
-                && pos.x() < self.max_x()
-                && pos.y() >= self.min_y()
-                && pos.y() < self.max_y()
-        } else if DIMENSION == 3 {
-            pos.x() >= self.min_x()
-                && pos.x() < self.max_x()
-                && pos.y() >= self.min_y()
-                && pos.y() < self.max_y()
-                && pos.z() >= self.min_z()
-                && pos.z() < self.max_z()
-        } else {
-            panic!("Dimension is not 2 or 3")
-        }
+        pos.x() >= self.min_x()
+            && pos.x() < self.max_x()
+            && pos.y() >= self.min_y()
+            && pos.y() < self.max_y()
     }
 
     // TODO: patch_center and send to simbox
@@ -438,24 +427,23 @@ impl SimBox {
     }
 
     pub fn map_pos_into_box(&self, pos: Position) -> Position {
-        if DIMENSION == 2 {
-            let x = map_into_range(pos.x(), self.min_x(), self.max_x());
-            let y = map_into_range(pos.y(), self.min_y(), self.max_y());
-            // debug_assert!(self.pos_in_box(pos));
-            Position::new([x, y])
-        } else if DIMENSION == 3 {
-            let _x = map_into_range(pos.x(), self.min_x(), self.max_x());
-            let _y = map_into_range(pos.y(), self.min_y(), self.max_y());
-            let _z = map_into_range(pos.z(), self.min_z(), self.max_z());
-            panic!("DIMENSION IS SET TO 2")
-            // Position::new([x,y,z])
-        } else {
-            panic!("Dimension is not 2 or 3")
-        }
+        // if DIMENSION == 2 {
+        let x = map_into_range(pos.x(), self.min_x(), self.max_x());
+        let y = map_into_range(pos.y(), self.min_y(), self.max_y());
+        // debug_assert!(self.pos_in_box(pos));
+        Position::new([x, y])
+        // } else if DIMENSION == 3 {
+        //     let _x = map_into_range(pos.x(), self.min_x(), self.max_x());
+        //     let _y = map_into_range(pos.y(), self.min_y(), self.max_y());
+        //     let _z = map_into_range(pos.z(), self.min_z(), self.max_z());
+        //     panic!("DIMENSION IS SET TO 2")
+        //     // Position::new([x,y,z])
+        // } else {
+        //     panic!("Dimension is not 2 or 3")
+        // }
     }
 
     pub fn sep_in_box(&self, p0: Position, p1: Position) -> DimVec {
-        assert_eq!(DIMENSION, 2);
         self.map_pos_into_box(p0 - p1)
     }
 

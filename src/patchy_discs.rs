@@ -34,7 +34,7 @@ impl PatchyDiscsPotential {
         let p1 = particle1.pos();
 
         // norm_sqd < 1.0 => norm < 1.0
-        let dist_sqd = simbox.sep_in_box(p0, p1).norm_sqd();
+        let dist_sqd = simbox.sep_in_box(p0, p1).l2_norm_sqd();
 
         // overlap!
         if dist_sqd < PARTICLE_DIAMETER {
@@ -56,7 +56,7 @@ impl PatchyDiscsPotential {
                 }
 
                 let pc1 = simbox.patch_center(particle1, p_idx1);
-                let patch_dist = simbox.sep_in_box(pc0, pc1).norm();
+                let patch_dist = simbox.sep_in_box(pc0, pc1).l2_norm();
 
                 if patch_dist < patch0.radius() + patch1.radius() {
                     // theres no way for more than 2 patches to interact between 2 particles

@@ -1,6 +1,6 @@
 use rand::rngs::SmallRng;
 
-use crate::position::{Orientation, Position};
+use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
 
 pub type ParticleId = u16;
 pub type ShapeId = u16;
@@ -56,12 +56,7 @@ impl Particle {
     }
 
     pub fn random(rng: &mut SmallRng, id: ParticleId, shape_id: ShapeId) -> Self {
-        Particle::new(
-            id,
-            Position::random(rng),
-            Orientation::random(rng),
-            shape_id,
-        )
+        Particle::new(id, random_dimvec(rng), random_unit_vec(rng), shape_id)
     }
 }
 

@@ -26,6 +26,8 @@ pub mod simbox;
 pub mod stats;
 pub mod vmmc;
 
+// TODO: use approx crate for floating point equality
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InputParams {

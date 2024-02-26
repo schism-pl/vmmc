@@ -67,13 +67,13 @@ pub fn tightest_neighbor(vmmc: &Vmmc, p0: &Particle, p1: &Particle) -> Option<Pa
     let mut tightest = ParticleId::MAX;
     // vector form p0 to p1
     let dist0 = vmmc.simbox().sep_in_box(p1.pos(), p0.pos());
-    let nd0 = dist0.scalar_div(dist0.norm());
+    let nd0 = dist0.div_by(dist0.l2_norm());
     for &p2_id in vmmc.determine_interactions(p1).iter() {
         let p2 = vmmc.particle(p2_id);
         if p0.id() != p2.id() {
             // vector from p1 to p2
             let dist1 = vmmc.simbox().sep_in_box(p2.pos(), p1.pos());
-            let nd1 = dist1.scalar_div(dist1.norm());
+            let nd1 = dist1.div_by(dist1.l2_norm());
 
             // dot product of 2 unit vectors = sin(theta)
             let sin_theta = nd0.cross_prod(nd1);
