@@ -1,4 +1,4 @@
-use crate::consts::PARTICLE_RADIUS;
+use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLATE};
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::DimVec;
@@ -84,35 +84,31 @@ impl ProposedMove {
     }
 }
 
-pub struct VmmcParams {
-    prob_translate: f64,
-    max_translation: f64,
-    max_rotation: f64,
-}
+// pub struct VmmcParams {
+//     prob_translate: f64,
+//     max_translation: f64,
+//     max_rotation: f64,
+// }
 
-impl VmmcParams {
-    pub fn new(prob_translate: f64, max_translation: f64, max_rotation: f64) -> Self {
-        Self {
-            prob_translate,
-            max_translation,
-            max_rotation,
-        }
-    }
-}
+// impl VmmcParams {
+//     pub fn new(prob_translate: f64, max_translation: f64, max_rotation: f64) -> Self {
+//         Self {
+//             prob_translate,
+//             max_translation,
+//             max_rotation,
+//         }
+//     }
+// }
 
 pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
-    params: VmmcParams,
+    // params: VmmcParams,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, params: VmmcParams, interaction_energy: f64) -> Self {
+    pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {
         let potential = PatchyDiscsPotential::new(interaction_energy);
-        Self {
-            simbox,
-            potential,
-            params,
-        }
+        Self { simbox, potential }
     }
 
     pub fn particles(&self) -> &Particles {
@@ -244,7 +240,7 @@ impl Vmmc {
         // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
         let rand_vec = random_unit_vec(rng);
         // 3. Choose a move type (translation or rotation)
-        let is_rotation = rng.gen::<f64>() >= self.params.prob_translate;
+        let is_rotation = rng.gen::<f64>() >= PROB_TRANSLATE;
         // 4. Pick a cluster size cutoff
         // I don't know why we use this distribution, but it has something to do with particle choice fairness
         let cluster_cutoff = (1.0 / rng.gen::<f64>()).floor() as usize;
@@ -252,13 +248,13 @@ impl Vmmc {
         let step_size = if is_rotation {
             // Rotation
             let r: f64 = rng.gen();
-            self.params.max_rotation * r.powf(0.5)
+            MAX_ROTATION * r.powf(0.5)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
             let r: f64 = rng.gen();
             // random number between (-1.0 and 1.0) * max_translation
-            self.params.max_translation * (2.0 * r - 1.0)
+            MAX_TRANSLATION * (2.0 * r - 1.0)
         };
 
         ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)

@@ -40,10 +40,9 @@ pub struct InputParams {
 
     pub box_width: f64,
     pub box_height: f64,
-
-    pub prob_translate: f64,
-    pub max_translation: f64,
-    pub max_rotation: f64,
+    // pub prob_translate: f64,
+    // pub max_translation: f64,
+    // pub max_rotation: f64,
 }
 
 impl Default for InputParams {
@@ -54,9 +53,9 @@ impl Default for InputParams {
         let box_width = 75.0;
         let box_height = 75.0;
 
-        let prob_translate = 0.5;
-        let max_translation = 0.3;
-        let max_rotation = 0.2;
+        // let prob_translate = 0.5;
+        // let max_translation = 0.3;
+        // let max_rotation = 0.2;
 
         let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 20);
 
@@ -71,10 +70,9 @@ impl Default for InputParams {
 
             box_width,
             box_height,
-
-            prob_translate,
-            max_translation,
-            max_rotation,
+            // prob_translate,
+            // max_translation,
+            // max_rotation,
         }
     }
 }
@@ -96,19 +94,19 @@ impl InputParams {
         assert!(self.initial_particles <= 2500);
         assert!(self.box_width >= 10.0 && self.box_height >= 10.0);
         assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
-        assert!(
-            self.prob_translate >= 0.0
-                && self.prob_translate <= 1.0
-                && (self.prob_translate.is_normal() || self.prob_translate.is_zero())
-        );
-        assert!(
-            self.max_translation > 0.0
-                && self.max_translation <= 1.0
-                && self.max_translation.is_normal()
-        );
-        assert!(
-            self.max_rotation > 0.0 && self.max_rotation <= 1.0 && self.max_rotation.is_normal()
-        );
+        // assert!(
+        //     self.prob_translate >= 0.0
+        //         && self.prob_translate <= 1.0
+        //         && (self.prob_translate.is_normal() || self.prob_translate.is_zero())
+        // );
+        // assert!(
+        //     self.max_translation > 0.0
+        //         && self.max_translation <= 1.0
+        //         && self.max_translation.is_normal()
+        // );
+        // assert!(
+        //     self.max_rotation > 0.0 && self.max_rotation <= 1.0 && self.max_rotation.is_normal()
+        // );
 
         // check well-formedness of protocol
         for step in self.protocol.clone() {
@@ -176,9 +174,9 @@ impl Arbitrary for InputParams {
             box_height = f64_in_range(g, 10.0, 200.0);
         }
 
-        let prob_translate = f64_in_range(g, 0.0, 1.0);
-        let max_translation = f64_in_range(g, 0.0, 1.0);
-        let max_rotation = f64_in_range(g, 0.0, 1.0);
+        // let prob_translate = f64_in_range(g, 0.0, 1.0);
+        // let max_translation = f64_in_range(g, 0.0, 1.0);
+        // let max_rotation = f64_in_range(g, 0.0, 1.0);
         let num_megasteps = 10;
 
         // TODO: make this more varied
@@ -209,10 +207,9 @@ impl Arbitrary for InputParams {
             shapes,
             box_width,
             box_height,
-
-            prob_translate,
-            max_translation,
-            max_rotation,
+            // prob_translate,
+            // max_translation,
+            // max_rotation,
         }
     }
 }
@@ -250,9 +247,9 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
         rng,
     );
 
-    let params = vmmc::VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
+    // let params = vmmc::VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
     let interaction_energy = ip.protocol.initial_interaction_energy();
-    vmmc::Vmmc::new(simbox, params, interaction_energy)
+    vmmc::Vmmc::new(simbox, interaction_energy)
 }
 
 pub trait VmmcCallback {
