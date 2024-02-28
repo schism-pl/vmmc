@@ -34,7 +34,7 @@ pub struct InputParams {
     // TODO: change this to u64
     pub seed: i64, // toml crashes when I try to store as u64?
 
-    pub num_particles: usize,
+    pub initial_particles: usize,
     pub protocol: SynthesisProtocol,
     pub shapes: Vec<Morphology>,
 
@@ -50,7 +50,7 @@ impl Default for InputParams {
     fn default() -> Self {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
-        let num_particles = 500;
+        let initial_particles = 500;
         let box_width = 75.0;
         let box_height = 75.0;
 
@@ -65,7 +65,7 @@ impl Default for InputParams {
         Self {
             seed,
 
-            num_particles,
+            initial_particles,
             protocol,
             shapes,
 
@@ -93,7 +93,7 @@ impl InputParams {
     // TODO: check smoothness of protocol?
     pub fn check(&self) {
         // Basic range checks
-        assert!(self.num_particles <= 2500);
+        assert!(self.initial_particles <= 2500);
         assert!(self.box_width >= 10.0 && self.box_height >= 10.0);
         assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
         assert!(
@@ -154,14 +154,14 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 }
 
 // num_cells = box_x * box_y / (1 + patch_radius)^2
-// we need num_cells >= 2*num_particles
+// we need num_cells >= 2*initial_particles
 
 // for testing
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
-        let num_particles = usize_in_range(g, 0, 2500);
+        let initial_particles = usize_in_range(g, 0, 2500);
         let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
         let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
 
@@ -170,7 +170,7 @@ impl Arbitrary for InputParams {
 
         // while less than 1.5 cell per particle, pick a new box radius
         while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
-            <= 1.5 * num_particles as f64
+            <= 1.5 * initial_particles as f64
         {
             box_width = f64_in_range(g, 10.0, 200.0);
             box_height = f64_in_range(g, 10.0, 200.0);
@@ -204,7 +204,7 @@ impl Arbitrary for InputParams {
         Self {
             seed,
 
-            num_particles,
+            initial_particles,
             protocol,
             shapes,
             box_width,
@@ -229,7 +229,7 @@ impl Arbitrary for SimBox {
         SimBox::new_with_randomized_particles(
             box_dimensions,
             max_interaction_range,
-            ip.num_particles,
+            ip.initial_particles,
             ip.shapes,
             &mut rng,
         )
@@ -245,7 +245,7 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(
         box_dimensions,
         max_interaction_range,
-        ip.num_particles,
+        ip.initial_particles,
         ip.shapes.clone(),
         rng,
     );
