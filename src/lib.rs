@@ -3,7 +3,7 @@ use chemical_potential::maybe_particle_exchange;
 use consts::PARTICLE_DIAMETER;
 use morphology::{Morphology, Patch};
 use position::DimVec;
-use protocol::{SynthesisProtocol, ProtocolStep};
+use protocol::{ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rand_distr::num_traits::Zero;

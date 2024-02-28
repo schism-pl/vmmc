@@ -1,5 +1,5 @@
+use equations::Expr;
 use serde::{Deserialize, Serialize};
-use equations::Equation;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,8 +31,8 @@ impl ProtocolStep {
 // TODO: [(Equation, Duration)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SynthesisProtocol {
-    chemical_potential_eq: Equation,
-    interaction_energy_eq: Equation,
+    chemical_potential_eq: Expr,
+    interaction_energy_eq: Expr,
     t: f64,
     end: usize, // in megasteps
 }
@@ -46,8 +46,8 @@ impl Iterator for SynthesisProtocol {
             return None;
         }
 
-        let chemical_potential = self.chemical_potential_eq.eval(self.t as f64);
-        let interaction_energy = self.interaction_energy_eq.eval(self.t as f64);
+        let chemical_potential = self.chemical_potential_eq.eval(self.t);
+        let interaction_energy = self.interaction_energy_eq.eval(self.t);
         let step = ProtocolStep::new(chemical_potential, interaction_energy);
         self.t += 0.001; // t is counted in megasteps, but we iter every 1000 steps
         Some(step)
@@ -56,9 +56,14 @@ impl Iterator for SynthesisProtocol {
 
 impl SynthesisProtocol {
     pub fn new(chemical_potential_s: &str, interaction_energy_s: &str, end: usize) -> Self {
-        let chemical_potential_eq = Equation::from_str(chemical_potential_s).unwrap();
-        let interaction_energy_eq = Equation::from_str(interaction_energy_s).unwrap();
-        Self { chemical_potential_eq, interaction_energy_eq, t: 0.0, end }
+        let chemical_potential_eq = Expr::from_str(chemical_potential_s).unwrap();
+        let interaction_energy_eq = Expr::from_str(interaction_energy_s).unwrap();
+        Self {
+            chemical_potential_eq,
+            interaction_energy_eq,
+            t: 0.0,
+            end,
+        }
     }
 
     pub fn initial_interaction_energy(&self) -> f64 {
@@ -70,8 +75,8 @@ impl SynthesisProtocol {
     }
 
     pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, end: usize) -> Self {
-        let chemical_potential_s = format!("mu = {}", chemical_potential);
-        let interaction_energy_s = format!("tau = {}", interaction_energy);
+        let chemical_potential_s = format!("{}", chemical_potential);
+        let interaction_energy_s = format!("{}", interaction_energy);
         Self::new(&chemical_potential_s, &interaction_energy_s, end)
     }
 }
