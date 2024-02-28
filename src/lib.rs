@@ -3,7 +3,7 @@ use chemical_potential::maybe_particle_exchange;
 use consts::PARTICLE_DIAMETER;
 use morphology::{Morphology, Patch};
 use position::DimVec;
-use protocol::{FixedProtocol, ProtocolStep};
+use protocol::{SynthesisProtocol, ProtocolStep};
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rand_distr::num_traits::Zero;
@@ -35,7 +35,7 @@ pub struct InputParams {
     pub seed: i64, // toml crashes when I try to store as u64?
 
     pub num_particles: usize,
-    pub protocol: FixedProtocol,
+    pub protocol: SynthesisProtocol,
     pub shapes: Vec<Morphology>,
 
     pub box_width: f64,
@@ -58,7 +58,7 @@ impl Default for InputParams {
         let max_translation = 0.3;
         let max_rotation = 0.2;
 
-        let protocol = FixedProtocol::flat_protocol(0.0, 10.0, 20);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 20);
 
         let shapes = vec![Morphology::regular_3patch(0.05)];
 
@@ -179,10 +179,10 @@ impl Arbitrary for InputParams {
         let prob_translate = f64_in_range(g, 0.0, 1.0);
         let max_translation = f64_in_range(g, 0.0, 1.0);
         let max_rotation = f64_in_range(g, 0.0, 1.0);
-        let num_sweeps = 10;
+        let num_megasteps = 10;
 
         // TODO: make this more varied
-        let protocol = FixedProtocol::flat_protocol(0.0, interaction_energy, num_sweeps);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
 
         let mut shapes = Vec::new();
         let num_shapes = usize_in_range(g, 1, 3);
@@ -275,7 +275,7 @@ pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
 
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
-    protocol: FixedProtocol,
+    protocol: SynthesisProtocol,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
 ) -> Result<Cbr> {

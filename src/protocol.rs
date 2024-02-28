@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use equations::Equation;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolStep {
@@ -23,48 +25,53 @@ impl ProtocolStep {
     }
 }
 
-trait Protocol: Iterator<Item = ProtocolStep> {}
-impl<T: Iterator<Item = ProtocolStep>> Protocol for T {}
+// trait Protocol: Iterator<Item = ProtocolStep> {}
+// impl<T: Iterator<Item = ProtocolStep>> Protocol for T {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FixedProtocol {
-    inner: Vec<ProtocolStep>,
-    t: usize,
+// TODO: [(Equation, Duration)]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SynthesisProtocol {
+    chemical_potential_eq: Equation,
+    interaction_energy_eq: Equation,
+    t: f64,
+    end: usize, // in megasteps
 }
 
-impl Iterator for FixedProtocol {
+// kilostep iterator
+impl Iterator for SynthesisProtocol {
     type Item = ProtocolStep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.t >= self.inner.len() {
+        if self.t >= self.end as f64 {
             return None;
         }
 
-        let step = self.inner[self.t].clone();
-        self.t += 1;
+        let chemical_potential = self.chemical_potential_eq.eval(self.t as f64);
+        let interaction_energy = self.interaction_energy_eq.eval(self.t as f64);
+        let step = ProtocolStep::new(chemical_potential, interaction_energy);
+        self.t += 0.001; // t is counted in megasteps, but we iter every 1000 steps
         Some(step)
     }
 }
 
-impl FixedProtocol {
-    pub fn new(inner: Vec<ProtocolStep>) -> Self {
-        Self { inner, t: 0 }
-    }
-
-    fn initial_config(&self) -> ProtocolStep {
-        self.inner[0].clone()
+impl SynthesisProtocol {
+    pub fn new(chemical_potential_s: &str, interaction_energy_s: &str, end: usize) -> Self {
+        let chemical_potential_eq = Equation::from_str(chemical_potential_s).unwrap();
+        let interaction_energy_eq = Equation::from_str(interaction_energy_s).unwrap();
+        Self { chemical_potential_eq, interaction_energy_eq, t: 0.0, end }
     }
 
     pub fn initial_interaction_energy(&self) -> f64 {
-        self.initial_config().interaction_energy()
+        self.interaction_energy_eq.eval(0.0)
     }
 
     pub fn initial_chemical_potential(&self) -> f64 {
-        self.initial_config().chemical_potential()
+        self.chemical_potential_eq.eval(0.0)
     }
 
-    pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, len: usize) -> Self {
-        let inner = vec![ProtocolStep::new(chemical_potential, interaction_energy); len];
-        Self::new(inner)
+    pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, end: usize) -> Self {
+        let chemical_potential_s = format!("mu = {}", chemical_potential);
+        let interaction_energy_s = format!("tau = {}", interaction_energy);
+        Self::new(&chemical_potential_s, &interaction_energy_s, end)
     }
 }
