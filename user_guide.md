@@ -28,8 +28,16 @@ Below is a description of the Toml file, examples of valid config files, and an 
 ### Config.toml
 
 Below is an example of a VMMC config file.
-The first 4 parameters (seed, initial_particles, box_width, and box_height) are all self explanatory (although they are described in detail in the section below).
-The protocol argument describes 
+The first 4 parameters (`seed`, `initial_particles`, `box_width`, and `box_height`) are all self explanatory (although they are described in detail in the section below).
+
+The `protocol` argument describes the synthesis protocol that we are simulating. 
+It has 3 fields, `chemical_potential_eq` and `interaction_energy_eq` are two equations that describe the chemical potential and interaction_energy over the length of the simulation.
+Currently, these equations can have at max only 1 variable, and this variable is the time variable, counted in megasteps (so t=1 when the simulation has taken 10e6 steps).
+The `num_megasteps` field describes the length of the protocol, and therefore the simulation: for the below config, the simulation would end after 20\*10e6 steps.
+
+The `shapes` argument describes the morphologies of the particles in the simulation. Each `shapes` entry describes one morphology (in the below example, there are two, a uniform 4 patch and a uniform 3 patch particle). If there is more than 1 morphology, the simulation uses a uniform mixture of the particles (non-uniform mixtures are not implemented, but can be easily).
+
+Each patch consists of a `radius` and `theta` (self-explanatory) as well as a `chemtype`, which describes the chemical selectivity of the patch, i.e., a `chemtype=0` patch can bond with a `chemtype=0` patch but not a `chemtype=1` patch.
 
 ```TOML
 seed = 2037276277152067866
@@ -62,6 +70,23 @@ chemtype = 0
 [[shapes.patches]]
 radius = 0.05
 theta = 270.0
+chemtype = 0
+
+[[shapes]]
+
+[[shapes.patches]]
+radius = 0.05
+theta = 0.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 120.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 240.0
 chemtype = 0
 
 ```
