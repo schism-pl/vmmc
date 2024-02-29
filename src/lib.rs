@@ -47,14 +47,12 @@ impl Default for InputParams {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
         let initial_particles = 500;
-        let box_width = 50.0;
-        let box_height = 50.0;
+        let box_width = 75.0;
+        let box_height = 75.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 10);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 1000);
 
-        let shapes = vec![
-            Morphology::regular_4patch(0.05),
-        ];
+        let shapes = vec![Morphology::regular_4patch(0.05)];
 
         Self {
             seed,
