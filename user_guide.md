@@ -11,12 +11,15 @@ First, make sure you have https://rustup.rs/ installed.
 Then, you can build and run the code using:
 ```bash
 cargo build --release
-cargo run -- --help // see info about default parameters  
-cargo run --release // runs 1000 sweeps of 1000 step attempts per particle. 
 ```
 
 ### Running
-
+```
+// runs 1000 sweeps of 1000 step attempts per particle.
+cargo run --release
+// run, but do so by reading `config.toml` for config info and writing files to the directory `out`
+cargo run --release -- --input=config.toml output=out
+```
 
 # Inputs
 The tool reads parameters from a config file in the [Toml](https://toml.io/en/) format.
@@ -24,12 +27,46 @@ Below is a description of the Toml file, examples of valid config files, and an 
 
 ### Config.toml
 
-description of types
+Below is an example of a VMMC config file.
+The first 4 parameters (seed, initial_particles, box_width, and box_height) are all self explanatory (although they are described in detail in the section below).
+The protocol argument describes 
 
-Short example
-Link to defaults
+```TOML
+seed = 2037276277152067866
+initial_particles = 500
+box_width = 50.0
+box_height = 50.0
 
-how to specify which file to use
+[protocol]
+chemical_potential_eq = "(0.05 * t)"
+interaction_energy_eq = "(5 + (0.05 * (t^2)))"
+num_megasteps = 20
+
+[[shapes]]
+
+[[shapes.patches]]
+radius = 0.05
+theta = 0.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 90.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 180.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 270.0
+chemtype = 0
+
+```
+
+
 
 ### Parameters
 Below I describe the parameters that the tool uses. 
@@ -37,44 +74,37 @@ Each parameter has a name, type, a short description, its default value, as well
 Any value not specified will take its default value.
 The tool should reject parameters outside of the expected value range, but if it doesn't file and issue or ping Evan (the same if you think the expected value range is wrong / unreasonable).
 
+##### seed
+Description: Random seed for the simulation. 
+Type: `i64`  
+Expected Value Range: `any`  
+Default Value: `random`  
+
+##### initial_particles
+Description: Number of initial particles. Placed uniformly at random within the simulation box.  
+Type: `usize`  
+Expected Value Range: `0 <= initial_particles <= 2000`  
+Default Value: `500`  
+
 ##### box_width
+Description: Width of simulation box in units of particle diameter  
 Type: `f64`  
 Expected Value Range: `10.0 <= box_width <= 200.0`  
-Description: Width of simulation box in units of particle diameter  
+Default Value: `50.0`  
 
 ##### box_height
+Description: Height of simulation box in units of particle diameter  
 Type: `f64`  
 Expected Value Range: `10.0 <= box_height <= 200.0`  
-Description: Height of simulation box in units of particle diameter  
-
-##### num_particles
-Type: `usize`  
-Expected Value Range: `0 <= num_particles <= 2000`  
-Description: Number of particles. Placed uniformly at random within the specified box.  
+Default Value: `50.0`  
 
 
-##### prob_translate
-Type: `f64`  
-Expected Value Range:  `0.0 <= prob_translate <= 1.0`  
-Description: Probability of a particle move being a translate (as opposed to a rotation)   
 
-##### max_translate
-Type: `f64`  
-Expected Value Range:  `0.0 <= max_translate <= 1.0`  
-Description: Maximum distance of a translation move, in units of particle diameter 
-
-##### max_rotation
-Type: `f64`  
-Expected Value Range: `0.0 <= max_rotation <= 1.0`  
-Description: Maximum rotation angle of a rotation move, in units of radians 
-
-
-##### num_sweeps
-Type: `usize`  
-Expected Value Range: any `usize` is a valid `num_sweeps`   
-Description: Monte-Carlo steps for the simulation to take. 1 sweep = 10e6 moves.  
 
 ##### protocol
+Description: Protocol for simulation. For each sweep, the protocol contains 1 ProtocolStep. 
+Each ProtocolStep contains a chemical potential (mu) in KbT (?) and interaction_energy (epsilon) in KbT (?) for that timestep.
+
 Type: `[ProtocolStep(mu: f64, epsilon: f64)]`  
 Expected Value Range:  
 ```
@@ -82,8 +112,7 @@ protocol.len() == num_sweeps
 foreach ProtocolStep(mu, epsilon). -20.0 <= mu <= 20.0 && 0.01 <= epsilon <= 20.0
 ```
 
-Description: Protocol for simulation. For each sweep, the protocol contains 1 ProtocolStep. 
-Each ProtocolStep contains a chemical potential (mu) in KbT (?) and interaction_energy (epsilon) in KbT (?) for that timestep.
+
 
 The default protocol is one that keeps mu fixed at 0.0 and epsilon at 10.0. 
 
