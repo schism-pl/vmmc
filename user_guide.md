@@ -115,13 +115,13 @@ Default Value: `500`
 Description: Width of simulation box in units of particle diameter  
 Type: `f64`  
 Expected Value Range: `10.0 <= box_width <= 200.0`  
-Default Value: `50.0`  
+Default Value: `75.0`  
 
 ##### box_height
 Description: Height of simulation box in units of particle diameter  
 Type: `f64`  
 Expected Value Range: `10.0 <= box_height <= 200.0`  
-Default Value: `50.0`  
+Default Value: `75.0`  
 
 
 
@@ -136,7 +136,7 @@ forall. 0 <= t <= num_megasteps: 0.01 <= interaction_energy_eq(t) <= 20.0
 forall. 0 <= t <= num_megasteps: -20.0 <= chemical_potential_eq(t) <= 20.0
 ```
 
-Default value: The default protocol is one that keeps chemical_potential fixed at 0.0 and interaction_energy fixed at 10.0 for a total of 1000 megasteps. 
+Default value: The default protocol is one that keeps chemical_potential fixed at 0.0 and interaction_energy fixed at 8.0 for a total of 1000 megasteps. 
 
 
 ##### shapes
@@ -163,7 +163,7 @@ Default value: The default `shapes` is a a regular 4-patch particle with `radius
 
 
 ### Visualizing the simulation
-The code produces an XYZ trajectory `trajectory.xyz` and a VMD script `vmd.tcl`
+The code produces 4 files: an XYZ trajectory `trajectory.xyz, a VMD script `vmd.tcl`, a copy of the config `config.toml` (useful for reproducing runs), and an image `geometry.png` that shows the patch interactions for the end state of the simulation.
 To visualize the simulation, just run:
 ```Bash
 vmd trajectory.xyz -e vmd.tcl
