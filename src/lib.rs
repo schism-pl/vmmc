@@ -59,7 +59,7 @@ impl Default for InputParams {
 
         let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 20);
 
-        let shapes = vec![Morphology::regular_3patch(0.05)];
+        let shapes = vec![Morphology::regular_4patch(0.05)];
 
         Self {
             seed,
@@ -70,9 +70,6 @@ impl Default for InputParams {
 
             box_width,
             box_height,
-            // prob_translate,
-            // max_translation,
-            // max_rotation,
         }
     }
 }
@@ -88,25 +85,11 @@ impl InputParams {
     // assert well-formedness predicate for InputParams
     // Note: can stash all assumptions about layout here
     // Note: this needs to be synced up with docs
-    // TODO: check smoothness of protocol?
     pub fn check(&self) {
         // Basic range checks
         assert!(self.initial_particles <= 2500);
         assert!(self.box_width >= 10.0 && self.box_height >= 10.0);
         assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
-        // assert!(
-        //     self.prob_translate >= 0.0
-        //         && self.prob_translate <= 1.0
-        //         && (self.prob_translate.is_normal() || self.prob_translate.is_zero())
-        // );
-        // assert!(
-        //     self.max_translation > 0.0
-        //         && self.max_translation <= 1.0
-        //         && self.max_translation.is_normal()
-        // );
-        // assert!(
-        //     self.max_rotation > 0.0 && self.max_rotation <= 1.0 && self.max_rotation.is_normal()
-        // );
 
         // check well-formedness of protocol
         for step in self.protocol.clone() {
@@ -174,9 +157,6 @@ impl Arbitrary for InputParams {
             box_height = f64_in_range(g, 10.0, 200.0);
         }
 
-        // let prob_translate = f64_in_range(g, 0.0, 1.0);
-        // let max_translation = f64_in_range(g, 0.0, 1.0);
-        // let max_rotation = f64_in_range(g, 0.0, 1.0);
         let num_megasteps = 10;
 
         // TODO: make this more varied
