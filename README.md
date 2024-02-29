@@ -33,9 +33,9 @@ The first 4 parameters (`seed`, `initial_particles`, `box_width`, and `box_heigh
 The `protocol` argument describes the synthesis protocol that we are simulating. 
 It has 3 fields, `chemical_potential_eq` and `interaction_energy_eq` are two equations that describe the chemical potential and interaction energy over the length of the simulation.
 Currently, these equations can have at max only 1 variable, and this variable is the time variable, counted in Megasteps (so t=1 is equivalent to 10e6 simulation steps).
-The `num_megasteps` field describes the length of the protocol, and therefore the simulation: for the below config, the simulation would end after 20\*10e6 steps.
+The `num_megasteps` field describes the length of the simulation. For the below config, the simulation would end after 20\*10e6 steps.
 
-The `shapes` argument describes the morphologies of the particles in the simulation. Each `shapes` entry describes one morphology (in the below example, there are two, a uniform 4 patch and a uniform 3 patch particle). If there is more than 1 morphology, the simulation uses a uniform mixture of the particles (non-uniform mixtures are not implemented, but can be easily).
+The `shapes` argument describes the morphologies of the particles in the simulation. Each `shapes` entry describes one morphology (in the below example, there are two, a uniform 4 patch and a uniform 3 patch particle). If there is more than 1 morphology, the simulation uses a uniform mixture of the particles (non-uniform mixtures are not implemented, but can be added easily).
 
 Each patch consists of a `radius` and `theta` (self-explanatory) as well as a `chemtype`, which describes the chemical selectivity of the patch, i.e., a `chemtype=0` patch can bond with a `chemtype=0` patch but not a `chemtype=1` patch.
 
@@ -97,7 +97,7 @@ chemtype = 0
 Below I describe the parameters that the tool uses. 
 Each parameter has a name, type, a short description, its default value, as well as the expected value range for it.
 Any value not specified will take its default value.
-The tool should reject parameters outside of the expected value range, but if it doesn't file and issue or ping Evan (the same if you think the expected value range is wrong / unreasonable).
+The tool should reject parameters outside of the expected value range. If it doesn't, file an issue or message Evan. Let us know if you think the expected value range is wrong / unreasonable for any of the parameters.
 
 ##### seed
 Description: Random seed for the simulation. 
