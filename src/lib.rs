@@ -50,11 +50,10 @@ impl Default for InputParams {
         let box_width = 50.0;
         let box_height = 50.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(-5.0, 10.0, 20);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 10);
 
         let shapes = vec![
             Morphology::regular_4patch(0.05),
-            Morphology::regular_3patch(0.05),
         ];
 
         Self {
