@@ -12,16 +12,12 @@ pub type PolygonId = usize;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Polygon {
-    // id: PolygonId,
     vertices: Vec<ParticleId>,
 }
 
 impl Polygon {
     fn new(vertices: Vec<ParticleId>) -> Self {
-        Self {
-            // id,
-            vertices,
-        }
+        Self { vertices }
     }
 
     pub fn vertices(&self) -> &[ParticleId] {
@@ -147,11 +143,13 @@ pub fn calc_polygon_count(vmmc: &Vmmc, max_vertices: usize) -> usize {
     calc_polygons(vmmc, max_vertices).len()
 }
 
-pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology) -> Vec<usize> {
+pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology, shape_id: u16) -> Vec<usize> {
     let mut bond_counts = vec![0; shape.patches().len() + 1];
     for p in vmmc.particles().iter() {
-        let bond_count = vmmc.determine_interactions(p).len();
-        bond_counts[bond_count] += 1;
+        if p.shape_id() == shape_id {
+            let bond_count = vmmc.determine_interactions(p).len();
+            bond_counts[bond_count] += 1;
+        }
     }
     bond_counts
 }
@@ -159,8 +157,8 @@ pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology) -> Vec<usiz
 // maps shapes to bond distribution
 pub fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
     let mut bond_counts_per_shape = Vec::new();
-    for shape in vmmc.simbox().shapes() {
-        let bond_counts = calc_shape_bond_distribution(vmmc, shape);
+    for (shape_id, shape) in vmmc.simbox().shapes().iter().enumerate() {
+        let bond_counts = calc_shape_bond_distribution(vmmc, shape, shape_id as u16);
         bond_counts_per_shape.push(bond_counts);
     }
     bond_counts_per_shape
