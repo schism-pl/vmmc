@@ -127,28 +127,22 @@ Default Value: `50.0`
 
 
 ##### protocol
-Description: Protocol for simulation. For each sweep, the protocol contains 1 ProtocolStep. 
-Each ProtocolStep contains a chemical potential (mu) in KbT (?) and interaction_energy (epsilon) in KbT (?) for that timestep.
+Description: Synthesis protocol for the simulation. See above for more in-depth description
+Type: `Protocol` 
 
-Type: `[ProtocolStep(mu: f64, epsilon: f64)]`  
 Expected Value Range:  
 ```
-protocol.len() == num_sweeps 
-foreach ProtocolStep(mu, epsilon). -20.0 <= mu <= 20.0 && 0.01 <= epsilon <= 20.0
+forall. 0 <= t <= num_megasteps: 0.01 <= interaction_energy_eq(t) <= 20.0
+forall. 0 <= t <= num_megasteps: -20.0 <= chemical_potential_eq(t) <= 20.0
 ```
 
-
-
-The default protocol is one that keeps mu fixed at 0.0 and epsilon at 10.0. 
+Default value: The default protocol is one that keeps chemical_potential fixed at 0.0 and interaction_energy fixed at 10.0 for a total of 1000 megasteps. 
 
 
 ##### shapes
-Type: 
-```
-shapes:: [Shape]
-Shape:: [Patch]
-Patch:: (color: , theta: f64, radius: f64)
-```
+Description:
+
+Type: `Shapes`
 
 Expected Value Range:
 ```
@@ -160,9 +154,7 @@ foreach shape. in shapes:
      0.01 <= radius <= 0.25 
 ```
 
-Description:
-
-
+Default value: The default `shapes` is a a regular 4-patch particle with `radius=0.05` and all `chemtype=0`.
 
 
 
