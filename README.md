@@ -163,7 +163,7 @@ Default value: The default `shapes` is a a regular 4-patch particle with `radius
 
 
 ### Visualizing the simulation
-The code produces 4 files: an XYZ trajectory `trajectory.xyz, a VMD script `vmd.tcl`, a copy of the config `config.toml` (useful for reproducing runs), and an image `geometry.png` that shows the patch interactions for the end state of the simulation.
+The code produces 4 files: an XYZ trajectory `trajectory.xyz`, a VMD script `vmd.tcl`, a copy of the config `config.toml` (useful for reproducing runs), and an image `geometry.png` that shows the patch interactions for the end state of the simulation.
 To visualize the simulation, just run:
 ```Bash
 vmd trajectory.xyz -e vmd.tcl
