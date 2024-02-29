@@ -460,7 +460,7 @@ impl Vmmc {
         true
     }
 
-    fn step(&mut self, rng: &mut SmallRng, stats: &mut RunStats) -> Result<()> {
+    pub fn step(&mut self, rng: &mut SmallRng, stats: &mut RunStats) -> Result<()> {
         debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);

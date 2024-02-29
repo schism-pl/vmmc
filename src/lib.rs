@@ -47,23 +47,18 @@ impl Default for InputParams {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
         let initial_particles = 500;
-        let box_width = 75.0;
-        let box_height = 75.0;
+        let box_width = 50.0;
+        let box_height = 50.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 20);
+        let protocol = SynthesisProtocol::flat_protocol(-5.0, 10.0, 20);
 
-        let shapes = vec![
-            Morphology::regular_4patch(0.05),
-            Morphology::regular_3patch(0.05),
-        ];
+        let shapes = vec![Morphology::regular_4patch(0.05)];
 
         Self {
             seed,
-
             initial_particles,
             protocol,
             shapes,
-
             box_width,
             box_height,
         }
@@ -88,7 +83,7 @@ impl InputParams {
         assert!(self.box_width <= 200.0 && self.box_height <= 200.0);
 
         // check well-formedness of protocol
-        for step in self.protocol.clone() {
+        for step in self.protocol.megastep_iter() {
             let mu = step.chemical_potential();
             let epsilon = step.interaction_energy();
             assert!(-20.0 <= mu && mu <= 20.0);
@@ -241,20 +236,20 @@ pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
     Box::new(NoCallback {})
 }
 
+// updates chemical potential and interaction energy every 10e6 steps
+// attempts particle exchange every step
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     protocol: SynthesisProtocol,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
 ) -> Result<Cbr> {
-    for (idx, protocol_step) in protocol.enumerate() {
+    for (idx, protocol_step) in protocol.megastep_iter().enumerate() {
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();
-        // TODO: optimize?
         for _ in 0..(1000 * 1000) {
-            let stats = vmmc.step_n(1, rng);
-            run_stats = stats + run_stats;
+            let _ = vmmc.step(rng, &mut run_stats);
             maybe_particle_exchange(vmmc, chemical_potential, rng);
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
