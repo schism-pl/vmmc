@@ -84,26 +84,9 @@ impl ProposedMove {
     }
 }
 
-// pub struct VmmcParams {
-//     prob_translate: f64,
-//     max_translation: f64,
-//     max_rotation: f64,
-// }
-
-// impl VmmcParams {
-//     pub fn new(prob_translate: f64, max_translation: f64, max_rotation: f64) -> Self {
-//         Self {
-//             prob_translate,
-//             max_translation,
-//             max_rotation,
-//         }
-//     }
-// }
-
 pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
-    // params: VmmcParams,
 }
 impl Vmmc {
     pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {

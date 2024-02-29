@@ -40,9 +40,6 @@ pub struct InputParams {
 
     pub box_width: f64,
     pub box_height: f64,
-    // pub prob_translate: f64,
-    // pub max_translation: f64,
-    // pub max_rotation: f64,
 }
 
 impl Default for InputParams {
@@ -53,13 +50,12 @@ impl Default for InputParams {
         let box_width = 75.0;
         let box_height = 75.0;
 
-        // let prob_translate = 0.5;
-        // let max_translation = 0.3;
-        // let max_rotation = 0.2;
-
         let protocol = SynthesisProtocol::flat_protocol(0.0, 10.0, 20);
 
-        let shapes = vec![Morphology::regular_4patch(0.05)];
+        let shapes = vec![
+            Morphology::regular_4patch(0.05),
+            Morphology::regular_3patch(0.05),
+        ];
 
         Self {
             seed,
@@ -181,15 +177,11 @@ impl Arbitrary for InputParams {
 
         Self {
             seed,
-
             initial_particles,
             protocol,
             shapes,
             box_width,
             box_height,
-            // prob_translate,
-            // max_translation,
-            // max_rotation,
         }
     }
 }
@@ -227,7 +219,6 @@ pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
         rng,
     );
 
-    // let params = vmmc::VmmcParams::new(ip.prob_translate, ip.max_translation, ip.max_rotation);
     let interaction_energy = ip.protocol.initial_interaction_energy();
     vmmc::Vmmc::new(simbox, interaction_energy)
 }

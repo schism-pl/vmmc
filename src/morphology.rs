@@ -1,6 +1,6 @@
 use std::{f64::consts::PI, fmt};
 
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
@@ -44,41 +44,6 @@ pub struct Morphology {
     cos_theta: Vec<f64>,
 }
 
-// impl Serialize for Equation {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         serializer.serialize_str(&self.to_string())
-//     }
-// }
-
-// impl<'de> Deserialize<'de> for Equation {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         let s = String::deserialize(deserializer)?;
-//         FromStr::from_str(&s).map_err(de::Error::custom)
-//     }
-// }
-
-#[derive(Debug, Deserialize)]
-struct Inner {
-    patches: Vec<Patch>,
-}
-
-// impl<'de> Deserialize<'de> for Morphology {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-
-//         let patches = Vec::<Patch>::deserialize(deserializer)?;
-//         Ok(Morphology::new(patches))
-//     }
-// }
-
 impl<'de> de::Deserialize<'de> for Morphology {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -97,37 +62,12 @@ impl<'de> de::Deserialize<'de> for Morphology {
             where
                 V: de::MapAccess<'de>,
             {
-                // let patches: Inner = Vec::<Patch>::deserialize(deserializer)?;
-                // Ok(Morphology::new(patches))
-
-                if let Some(k1) = map.next_key::<Inner>()? {
-                    println!("k1 = {:?}", k1);
-                    let v1: Inner = map.next_value()?;
-                    println!("v1 = {:?}", v1);
-                    if let Some(k2) = map.next_key::<Inner>()? {
-                        println!("k2 = {:?}", k2);
-                        let value: Inner = map.next_value()?;
-                        Ok(Morphology::new(value.patches))
-                    } else {
-                        Err(de::Error::missing_field("shapes"))
-                    }
+                if let Some(_) = map.next_key::<String>()? {
+                    let v1: Vec<Patch> = map.next_value()?;
+                    Ok(Morphology::new(v1))
                 } else {
-                    unimplemented!()
+                    Err(de::Error::missing_field("shapes"))
                 }
-
-                // if let Some(key) = map.next_key()? {
-                //     let value: Inner = map.next_value()?;
-                //     if let Some(_) = map.next_key::<&str>()? {
-                //         Err(de::Error::duplicate_field("name"))
-                //     } else {
-                //         Ok(Self::Value {
-                //             name: key,
-                //             topics: value.topics,
-                //         })
-                //     }
-                // } else {
-                //     Err(de::Error::missing_field("name"))
-                // }
             }
         }
 
