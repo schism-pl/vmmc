@@ -345,6 +345,8 @@ dependencies = [
 [[package]]
 name = "equationx"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c41838ac2a25938d636ec2c26d8ba821a8f417a3e09ed596595f0377d7e38752"
 dependencies = [
  "anyhow",
  "lalrpop",
