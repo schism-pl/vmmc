@@ -15,7 +15,7 @@ path = "src/bin/vmmc_run.rs"
 anyhow = "1.0.75" # better errors
 clap = { version = "4.4.6", features = ["derive"] } # commandline parsing
 env_logger = "0.10.0"
-equations = { version = "0.1.0", path = "../equations" }
+equationx = { version = "0.1.0", path = "../equationx" }
 log = "0.4.20"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"

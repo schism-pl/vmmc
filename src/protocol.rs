@@ -1,4 +1,4 @@
-use equations::Expr;
+use equationx::Expr;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 

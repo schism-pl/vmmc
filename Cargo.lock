@@ -343,7 +343,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "equations"
+name = "equationx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1158,7 +1158,7 @@ dependencies = [
  "anyhow",
  "clap",
  "env_logger 0.10.2",
- "equations",
+ "equationx",
  "log",
  "quickcheck",
  "quickcheck_macros",
