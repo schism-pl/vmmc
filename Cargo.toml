@@ -24,7 +24,7 @@ rand_distr = "0.4.3"
 raqote = "0.8.3"
 serde = { version = "1.0.193", features = ["derive"] }
 toml = "0.8.8"
-xyzvec = "0.1.1"
+xyzvec = "0.1.5"
 
 
 
