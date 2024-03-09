@@ -30,8 +30,15 @@ fn maybe_insert_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut Sma
     // Note: E will be negative and mu can be positive, can be negative
     // more positive means more crowded substrate
 
-    let p = vmmc.simbox_mut().new_random_particle(rng);
+    let p = vmmc.simbox_mut().try_new_random_particle(rng);
+    if p.is_none() {
+        return;
+    }
+    let p = p.unwrap();
+
     let energy = vmmc.get_particle_energy(&p);
+    // energy is negative
+    // println!("{energy}");
     let energy_factor = chemical_potential - energy;
     let p_accept = vmmc.simbox().volume() / (num_particles as f64 + 2.0) * f64::exp(energy_factor);
     if rng.gen::<f64>() < p_accept {

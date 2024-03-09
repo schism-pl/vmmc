@@ -125,7 +125,7 @@ impl SimBox {
         );
 
         for _ in 0..num_particles {
-            let p = simbox.new_random_particle(rng);
+            let p = simbox.new_random_particle(rng).unwrap(); // TODO: better error message
             simbox.insert_particle(p);
         }
         simbox
@@ -178,7 +178,40 @@ impl SimBox {
 
     // TODO: clean up this accursed function
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
-    pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Particle {
+    pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
+        // // check if a position overlaps any existing
+        // fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
+        //     for other in simbox.particles.iter() {
+        //         if simbox.sep_in_box(*pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
+        //             return true;
+        //         }
+        //     }
+        //     false
+        // }
+
+        // let p_id = self.particles.get_unused_p_id();
+        // let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
+        // let mut pos = self.random_pos(rng);
+        // while pos_has_overlap(self, &pos) {
+        //     pos = self.random_pos(rng);
+        // }
+        // let or = random_unit_vec(rng);
+        // Particle::new(p_id, pos, or, shape_id)
+        let mut attempts = 0;
+        while attempts < 10000 {
+            // arbitrary # of reaatempts
+            let p = self.try_new_random_particle(rng);
+            if p.is_some() {
+                return p;
+            }
+            attempts += 1;
+        }
+        None
+    }
+
+    // TODO: clean up this accursed function
+    // Note: removes a particle from reserved particle ids even if particle isn't inserted
+    pub fn try_new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
         // check if a position overlaps any existing
         fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
             for other in simbox.particles.iter() {
@@ -191,12 +224,13 @@ impl SimBox {
 
         let p_id = self.particles.get_unused_p_id();
         let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
-        let mut pos = self.random_pos(rng);
-        while pos_has_overlap(self, &pos) {
-            pos = self.random_pos(rng);
+        let pos = self.random_pos(rng);
+        if pos_has_overlap(self, &pos) {
+            self.particles.push_unused_p_id(p_id);
+            return None;
         }
         let or = random_unit_vec(rng);
-        Particle::new(p_id, pos, or, shape_id)
+        Some(Particle::new(p_id, pos, or, shape_id))
     }
 
     pub fn get_cell_id(&self, pos: Position) -> CellId {

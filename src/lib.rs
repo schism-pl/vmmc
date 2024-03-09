@@ -46,9 +46,9 @@ impl Default for InputParams {
     fn default() -> Self {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
-        let initial_particles = 500;
-        let box_width = 75.0;
-        let box_height = 75.0;
+        let initial_particles = 400;
+        let box_width = 30.0;
+        let box_height = 30.0;
 
         let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 1000);
 

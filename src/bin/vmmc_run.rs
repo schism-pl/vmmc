@@ -1,9 +1,12 @@
+use std::f64::consts::PI;
 use std::fs::{self, create_dir_all};
+use std::process::exit;
 
 use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
+use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
 use vmmc::io::{clear_out_files, write_geometry_png};
 use vmmc::polygons::{calc_bond_distribution, calc_polygon_count};
 use vmmc::protocol::ProtocolStep;
@@ -18,6 +21,11 @@ use vmmc::{run_vmmc, vmmc_from_config, InputParams, VmmcCallback};
 // 1. average energy monotonically increases (decreases?)
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
+
+fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
+    let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
+    particle_volume / volume
+}
 
 struct StdCallback {
     writer: Box<XYZWriter>,
@@ -36,6 +44,10 @@ impl VmmcCallback for StdCallback {
         assert!(vmmc.well_formed());
 
         println!("# of particles: {:?}", vmmc.particles().num_particles());
+        println!(
+            "Packing fraction: {:?}",
+            packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
+        );
         println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
         println!(
             "Interaction Energy (epsilon): {:.4}",
@@ -77,6 +89,14 @@ fn main() -> anyhow::Result<()> {
     let seed = ip.seed;
     println!("Using seed = {:x?}", seed);
     let mut rng = SmallRng::seed_from_u64(seed as u64);
+
+    let packing_fraction = packing_fraction(ip.initial_particles, ip.box_height * ip.box_width);
+    println!("Requested initial packing fraction: {packing_fraction}");
+    if packing_fraction >= MAX_INITIAL_PACKING_FRACTION {
+        println!("Initial packing fraction > {MAX_INITIAL_PACKING_FRACTION}");
+        println!("Exiting, as it is not likely that we can pack particles this densely");
+        exit(1);
+    }
 
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&ip, &mut rng);
