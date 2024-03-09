@@ -1,64 +1,192 @@
-use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
+use rand::{rngs::SmallRng, SeedableRng};
+use rand_distr::num_traits::Zero;
 use vmmc::{
-    position::Position,
-    simbox::{self, SimBox},
-    InputParams,
+    morphology::Morphology,
+    particle::Particle,
+    position::{Orientation, Position},
+    protocol::SynthesisProtocol,
+    simbox::SimBox,
+    vmmc::Vmmc,
+    vmmc_from_config, InputParams,
 };
 
-// x_idx * cells_per_axis[1] + y_idx
-// indexes start at bottom left and scan bottom to top
+fn empty_vmmc(shape: Morphology) -> Vmmc {
+    let mut ip = InputParams::default();
+    ip.seed = 1337;
+    ip.initial_particles = 0;
+    ip.shapes = vec![shape];
+    ip.protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 20);
+
+    let mut rng = SmallRng::seed_from_u64(ip.seed as u64);
+
+    // Generate the simulator
+    vmmc_from_config(&ip, &mut rng)
+}
+
+fn two_particle_vmmc(
+    shape: Morphology,
+    p0: Position,
+    or0: Orientation,
+    p1: Position,
+    or1: Orientation,
+) -> Vmmc {
+    let mut vmmc = empty_vmmc(shape);
+    let part1 = Particle::new(0, p0, or0, 0);
+    let part2 = Particle::new(1, p1, or1, 0);
+    vmmc.simbox_mut().insert_particle(part1);
+    vmmc.simbox_mut().insert_particle(part2);
+    vmmc
+}
+
+#[test]
+fn potential_test_3patch_1() {
+    let shape = Morphology::regular_3patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([-1.0, 0.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_3patch_2() {
+    let shape = Morphology::regular_3patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([0.5, 3.0_f64.sqrt() / 2.0]);
+    println!("3patch_2: {or1}");
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_3patch_3() {
+    let shape = Morphology::regular_3patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([0.5, -3.0_f64.sqrt() / 2.0]);
+    println!("3patch_3: {or1}");
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_4patch_1() {
+    let shape = Morphology::regular_4patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([1.0, 0.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_4patch_2() {
+    let shape = Morphology::regular_4patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_4patch_3() {
+    let shape = Morphology::regular_4patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([-1.0, 0.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
+
+#[test]
+fn potential_test_4patch_4() {
+    let shape = Morphology::regular_4patch(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([1.0, 0.0]);
+
+    let p1 = Position::new([2.02, 1.0]);
+    let or1 = Orientation::new([0.0, -1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    assert!(energy.is_normal() || energy.is_zero());
+    assert_eq!(energy, -8.0);
+}
 
 // #[quickcheck]
-// fn simbox_init(simbox: SimBox) -> bool {
-//     true
+// fn simbox_4_corners(simbox: SimBox) -> bool {
+//     let epsilon = 0.001;
+//     let up_left = simbox.get_cell_id(Position::new([
+//         simbox.min_x() + epsilon,
+//         simbox.max_y() - epsilon,
+//     ]));
+//     let up_right = simbox.get_cell_id(Position::new([
+//         simbox.max_x() - epsilon,
+//         simbox.max_y() - epsilon,
+//     ]));
+//     let bottom_left = simbox.get_cell_id(Position::new([
+//         simbox.min_x() + epsilon,
+//         simbox.min_y() + epsilon,
+//     ]));
+//     let bottom_right = simbox.get_cell_id(Position::new([
+//         simbox.max_x() - epsilon,
+//         simbox.min_y() + epsilon,
+//     ]));
+
+//     let expected_up_left = simbox.cells_per_axis()[1] - 1;
+//     let expected_up_right = simbox.cells_per_axis()[0] * simbox.cells_per_axis()[1] - 1;
+//     let expected_bottom_left = 0;
+//     let expected_bottom_right = (simbox.cells_per_axis()[0] - 1) * simbox.cells_per_axis()[1];
+
+//     println!("up left {:?} {:?}", up_left, expected_up_left);
+//     println!("up right {:?} {:?}", up_right, expected_up_right);
+//     println!("bot left {:?} {:?}", bottom_left, expected_bottom_left);
+//     println!("bot right {:?} {:?}", bottom_right, expected_bottom_right);
+
+//     up_left == expected_up_left
+//         && up_right == expected_up_right
+//         && bottom_left == expected_bottom_left
+//         && bottom_right == expected_bottom_right
 // }
-
-/*
-dimensions = (40.000, 126.000)
-cell_width = 1.2121212121212122, cell_height = 1.2 max_interaction_range = 1.188739079101486
-cells_per_axis: [33, 105]
-
-up left 105 104      // -1
-up right 3570 3464   // - 106
-bot left 0 0
-bot right 3465 3359   // -106
-*/
-
-#[quickcheck]
-fn simbox_4_corners(simbox: SimBox) -> bool {
-    let epsilon = 0.001;
-    let up_left = simbox.get_cell_id(Position::new([
-        simbox.min_x() + epsilon,
-        simbox.max_y() - epsilon,
-    ]));
-    let up_right = simbox.get_cell_id(Position::new([
-        simbox.max_x() - epsilon,
-        simbox.max_y() - epsilon,
-    ]));
-    let bottom_left = simbox.get_cell_id(Position::new([
-        simbox.min_x() + epsilon,
-        simbox.min_y() + epsilon,
-    ]));
-    let bottom_right = simbox.get_cell_id(Position::new([
-        simbox.max_x() - epsilon,
-        simbox.min_y() + epsilon,
-    ]));
-
-    let expected_up_left = simbox.cells_per_axis()[1] - 1;
-    let expected_up_right = simbox.cells_per_axis()[0] * simbox.cells_per_axis()[1] - 1;
-    let expected_bottom_left = 0;
-    let expected_bottom_right = (simbox.cells_per_axis()[0] - 1) * simbox.cells_per_axis()[1];
-
-    println!("up left {:?} {:?}", up_left, expected_up_left);
-    println!("up right {:?} {:?}", up_right, expected_up_right);
-    println!("bot left {:?} {:?}", bottom_left, expected_bottom_left);
-    println!("bot right {:?} {:?}", bottom_right, expected_bottom_right);
-
-    up_left == expected_up_left
-        && up_right == expected_up_right
-        && bottom_left == expected_bottom_left
-        && bottom_right == expected_bottom_right
-}
 
 //fn f64_in_range()

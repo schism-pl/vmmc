@@ -1,4 +1,7 @@
-use std::{f64::consts::PI, fmt};
+use std::{
+    f64::consts::{PI, TAU},
+    fmt,
+};
 
 use serde::{de, Deserialize, Serialize};
 
@@ -36,8 +39,9 @@ impl Patch {
     /// +- radians where it can still interact
     ///  = +- acos 1-(patch_radius^2/2)
     pub fn angle_tolerance(&self) -> f64 {
-        let r = self.radius;
-        1.0 - (r * r) / (2.0 * PARTICLE_RADIUS * PARTICLE_RADIUS)
+        let pr = self.radius;
+        (1.0 - 0.5 * pr * pr).acos()
+        //(1.0 - (r * r) / (2.0 * PARTICLE_RADIUS * PARTICLE_RADIUS)).acos()
     }
 }
 
@@ -106,6 +110,7 @@ impl Morphology {
             angle_tolerances.push(patch.angle_tolerance());
         }
 
+        // println!("tolerances = {:?}", angle_tolerances);
         Self {
             patches,
             max_radius,
@@ -139,7 +144,10 @@ impl Morphology {
             let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
                                                           // TODO: use in_range?
             let angle_tolerance = self.angle_tolerances[p_idx];
-            if theta >= patch_theta - angle_tolerance && theta < patch_theta + angle_tolerance {
+            // TODO: less janky
+            if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
+                && theta < ((patch_theta + angle_tolerance) % TAU)
+            {
                 // TODO: wrap-around?
                 return Some(patch);
             }
