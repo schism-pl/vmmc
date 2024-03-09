@@ -1371,9 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "xyzvec"
-version = "0.1.1"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5405126d2679e5484ded9ad9d073413eec1df6b03c74ad624ee3e497f65814b"
+checksum = "a5fcfd8c6b3c9d69d64bdd52fd4d018378db27a9dab6cc3d5f9745da20bfca3b"
 dependencies = [
  "fmt",
 ]
