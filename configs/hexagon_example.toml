@@ -1,0 +1,29 @@
+seed = 168235197561895567
+initial_particles = 500
+box_width = 30.0
+box_height = 30.0
+
+[protocol]
+chemical_potential_eq = "0.0"
+interaction_energy_eq = "8.0"
+num_megasteps = 100
+
+[[shapes]]
+
+[[shapes.patches]]
+radius = 0.05
+theta = 0.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 120.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta = 240.0
+chemtype = 0
+
+
+
