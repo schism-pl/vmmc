@@ -7,6 +7,27 @@ use serde::{de, Deserialize, Serialize};
 
 use crate::consts::PARTICLE_RADIUS;
 
+// a = upper_bound
+// b = lower_bound
+// c = theta
+
+// TODO: extensively test
+// Note: assumes theta, target_theta, and tolerance are all in [0, 2pi]
+fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
+    let lower_bound = ((target_theta - tolerance) + TAU) % TAU;
+    let upper_bound = (target_theta + tolerance) % TAU;
+    if lower_bound <= upper_bound {
+        theta >= lower_bound && theta <= upper_bound
+    } else {
+        !(theta < lower_bound && theta > upper_bound)
+    }
+}
+
+// #[test]
+// fn in_modular_range_test(){
+
+// }
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
     radius: f64,  // radius of patch (in units of particle diameter)
@@ -140,17 +161,23 @@ impl Morphology {
     /// given an angle, the patch that contains the angle
     /// if there is no such patch, returns None
     pub fn closest_patch(&self, theta: f64) -> Option<&Patch> {
+        // println!("Finding closest patch to {theta}");
         for (p_idx, patch) in self.patches.iter().enumerate() {
             let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
-                                                          // TODO: use in_range?
+                                                          // println!("Finding patch theta = {patch_theta}");
             let angle_tolerance = self.angle_tolerances[p_idx];
-            // TODO: less janky
-            if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
-                && theta < ((patch_theta + angle_tolerance) % TAU)
-            {
-                // TODO: wrap-around?
+
+            // println!("Lower bound = {}", (((patch_theta - angle_tolerance) + TAU) % TAU));
+            // println!("Upper bound = {}", ((patch_theta + angle_tolerance) % TAU));
+            if in_modular_range(theta, patch_theta, angle_tolerance) {
                 return Some(patch);
             }
+            // // TODO: less janky
+            // if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
+            //     && theta <= ((patch_theta + angle_tolerance) % TAU)
+            // {
+            //     return Some(patch);
+            // }
         }
         None
     }

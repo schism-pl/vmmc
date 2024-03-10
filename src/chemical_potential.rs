@@ -38,7 +38,6 @@ fn maybe_insert_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut Sma
 
     let energy = vmmc.get_particle_energy(&p);
     // energy is negative
-    // println!("{energy}");
     let energy_factor = chemical_potential - energy;
     let p_accept = vmmc.simbox().volume() / (num_particles as f64 + 2.0) * f64::exp(energy_factor);
     if rng.gen::<f64>() < p_accept {

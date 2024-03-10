@@ -39,6 +39,9 @@ fn two_particle_vmmc(
     vmmc
 }
 
+// TODO: make sure pair potential works in both directions
+// TODO: check vertical
+
 #[test]
 fn potential_test_3patch_1() {
     let shape = Morphology::regular_3patch(0.05);
@@ -50,9 +53,12 @@ fn potential_test_3patch_1() {
     let or1 = Orientation::new([-1.0, 0.0]);
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -64,12 +70,14 @@ fn potential_test_3patch_2() {
 
     let p1 = Position::new([2.02, 1.0]);
     let or1 = Orientation::new([0.5, 3.0_f64.sqrt() / 2.0]);
-    println!("3patch_2: {or1}");
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -84,9 +92,12 @@ fn potential_test_3patch_3() {
     println!("3patch_3: {or1}");
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -100,9 +111,12 @@ fn potential_test_4patch_1() {
     let or1 = Orientation::new([1.0, 0.0]);
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -116,9 +130,12 @@ fn potential_test_4patch_2() {
     let or1 = Orientation::new([0.0, 1.0]);
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -132,9 +149,12 @@ fn potential_test_4patch_3() {
     let or1 = Orientation::new([-1.0, 0.0]);
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 #[test]
@@ -148,9 +168,12 @@ fn potential_test_4patch_4() {
     let or1 = Orientation::new([0.0, -1.0]);
 
     let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
-    let energy = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
-    assert!(energy.is_normal() || energy.is_zero());
-    assert_eq!(energy, -8.0);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_eq!(energy10, -8.0);
+    assert_eq!(energy01, -8.0);
 }
 
 // #[quickcheck]
