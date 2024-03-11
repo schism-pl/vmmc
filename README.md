@@ -39,7 +39,8 @@ The `num_megasteps` field describes the length of the simulation. For the below 
 
 The `shapes` argument describes the morphologies of the particles in the simulation. Each `shapes` entry describes one morphology (in the below example, there are two, a uniform 4 patch and a uniform 3 patch particle). If there is more than 1 morphology, the simulation uses a uniform mixture of the particles (non-uniform mixtures are not implemented, but can be added easily).
 
-![Screenshot from 2024-03-11 11-14-06](https://github.com/schism-pl/vmmc/assets/82984409/c0228ed3-825c-4856-bdb1-c099f960f126)
+<img src="https://github.com/schism-pl/vmmc/assets/82984409/c0228ed3-825c-4856-bdb1-c099f960f126" width="300" height="230"/>
+
 
 Each patch consists of a `radius` and `theta`. Where `radius` is defined as half the length of a chord subtended by the disc, and `theta` is defined as the location for the center of a patch. `chemtype` describes the chemical selectivity of the patch, i.e., a `chemtype=0` patch can bond with a `chemtype=0` patch but not a `chemtype=1` patch.
 
