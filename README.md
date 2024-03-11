@@ -17,8 +17,8 @@ cargo build --release
 ```
 // runs 1000 sweeps of 1000 step attempts per particle.
 cargo run --release
-// run, but do so by reading `config.toml` for config info and writing files to the directory `out`
-cargo run --release -- --input=config.toml --output=out
+// run, but do so by reading `config.toml` for config info and writing files to the directory `out` "&" designates a background task
+cargo run --release -- --input=config.toml --output=out &
 ```
 
 # Inputs
