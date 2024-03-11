@@ -101,8 +101,11 @@ fn main() -> anyhow::Result<()> {
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&ip, &mut rng);
 
-    println!("Using {} bytes", vmmc.needed_mem());
-    println!("Could use of to {} bytes", vmmc.max_needed_mem());
+    println!("Using {} Mb", vmmc.needed_mem() as f64 / (1024.0 * 1024.0));
+    println!(
+        "Could use up to {} Mb",
+        vmmc.max_needed_mem() as f64 / (1024.0 * 1024.0)
+    );
 
     // Init I/O
     println!("Writing output to {}", config.output_dir());

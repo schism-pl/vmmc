@@ -152,7 +152,7 @@ impl Particles {
     }
 
     pub fn needed_mem(&self) -> usize {
-        size_of_val(&self.particles) + size_of_val(&self.reserve)
+        size_of::<Option<Particle>>() * self.num_particles + size_of_val(&self.reserve)
     }
 
     pub fn max_needed_mem(&self) -> usize {

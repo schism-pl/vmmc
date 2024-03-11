@@ -124,19 +124,16 @@ impl Vmmc {
     }
 
     pub fn needed_mem(&self) -> usize {
-        // particles
         let particles_mem = self.particles().needed_mem();
-        let tenancy_mem = size_of_val(&self.simbox.cells());
-        let shapes_mem = size_of_val(&self.simbox.shapes());
-        println!("{particles_mem} {tenancy_mem} {shapes_mem}");
+        let tenancy_mem = size_of_val(self.simbox.cells());
+        let shapes_mem = size_of_val(self.simbox.shapes());
         particles_mem + tenancy_mem + shapes_mem
     }
 
     pub fn max_needed_mem(&self) -> usize {
         let particles_mem = self.particles().max_needed_mem();
-        println!("{particles_mem}");
         let tenancy_mem = size_of_val(self.simbox.cells());
-        let shapes_mem = size_of_val(&self.simbox.shapes());
+        let shapes_mem = size_of_val(self.simbox.shapes());
         particles_mem + tenancy_mem + shapes_mem
     }
 
