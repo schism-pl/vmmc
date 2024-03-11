@@ -101,6 +101,9 @@ fn main() -> anyhow::Result<()> {
     // Generate the simulator
     let mut vmmc = vmmc_from_config(&ip, &mut rng);
 
+    println!("Using {} bytes", vmmc.needed_mem());
+    println!("Could use of to {} bytes", vmmc.max_needed_mem());
+
     // Init I/O
     println!("Writing output to {}", config.output_dir());
     let out_path = std::path::Path::new(config.output_dir());
@@ -127,6 +130,8 @@ fn main() -> anyhow::Result<()> {
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
     write_geometry_png(&vmmc, &config.geometry());
+
+    println!("Done!");
 
     Ok(())
 }

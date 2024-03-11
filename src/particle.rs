@@ -1,6 +1,8 @@
 use rand::rngs::SmallRng;
 
+use crate::consts::MAX_PARTICLES;
 use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
+use std::mem::{size_of, size_of_val};
 
 pub type ParticleId = u16;
 pub type ShapeId = u16;
@@ -147,6 +149,14 @@ impl Particles {
     }
     pub fn num_particles(&self) -> usize {
         self.num_particles
+    }
+
+    pub fn needed_mem(&self) -> usize {
+        size_of_val(&self.particles) + size_of_val(&self.reserve)
+    }
+
+    pub fn max_needed_mem(&self) -> usize {
+        size_of::<Option<Particle>>() * MAX_PARTICLES
     }
 
     pub fn insert(&mut self, p: Particle) {

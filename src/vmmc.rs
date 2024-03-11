@@ -9,6 +9,7 @@ use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
 use std::collections::{HashSet, VecDeque};
+use std::mem::size_of_val;
 
 #[derive(Clone, Copy, Debug)]
 pub enum MoveDir {
@@ -120,6 +121,23 @@ impl Vmmc {
 
     pub fn particle_mut(&mut self, p_id: ParticleId) -> &mut Particle {
         self.simbox.particle_mut(p_id)
+    }
+
+    pub fn needed_mem(&self) -> usize {
+        // particles
+        let particles_mem = self.particles().needed_mem();
+        let tenancy_mem = size_of_val(&self.simbox.cells());
+        let shapes_mem = size_of_val(&self.simbox.shapes());
+        println!("{particles_mem} {tenancy_mem} {shapes_mem}");
+        particles_mem + tenancy_mem + shapes_mem
+    }
+
+    pub fn max_needed_mem(&self) -> usize {
+        let particles_mem = self.particles().max_needed_mem();
+        println!("{particles_mem}");
+        let tenancy_mem = size_of_val(self.simbox.cells());
+        let shapes_mem = size_of_val(&self.simbox.shapes());
+        particles_mem + tenancy_mem + shapes_mem
     }
 
     pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
