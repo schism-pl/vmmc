@@ -43,3 +43,9 @@ impl Add for RunStats {
         }
     }
 }
+
+impl Default for RunStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}

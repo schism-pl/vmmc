@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
 use consts::PARTICLE_DIAMETER;
@@ -86,8 +88,8 @@ impl InputParams {
         for step in self.protocol.megastep_iter() {
             let mu = step.chemical_potential();
             let epsilon = step.interaction_energy();
-            assert!(-20.0 <= mu && mu <= 20.0);
-            assert!(0.01 <= epsilon && epsilon <= 20.0);
+            assert!((-20.0..=20.0).contains(&mu));
+            assert!((0.01..=20.0).contains(&epsilon));
         }
 
         // make sure our patches are reasonable

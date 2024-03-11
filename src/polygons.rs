@@ -140,7 +140,8 @@ pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
 }
 
 pub fn calc_polygon_count(vmmc: &Vmmc, max_vertices: usize) -> usize {
-    calc_polygons(vmmc, max_vertices).len()
+    // TODO: why does this +1 need to be here?
+    calc_polygons(vmmc, max_vertices + 1).len()
 }
 
 pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology, shape_id: u16) -> Vec<usize> {

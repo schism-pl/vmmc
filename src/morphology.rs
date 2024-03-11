@@ -5,8 +5,6 @@ use std::{
 
 use serde::{de, Deserialize, Serialize};
 
-use crate::consts::PARTICLE_RADIUS;
-
 // a = upper_bound
 // b = lower_bound
 // c = theta
@@ -101,7 +99,7 @@ impl<'de> de::Deserialize<'de> for Morphology {
             where
                 V: de::MapAccess<'de>,
             {
-                if let Some(_) = map.next_key::<String>()? {
+                if map.next_key::<String>()?.is_some() {
                     let v1: Vec<Patch> = map.next_value()?;
                     Ok(Morphology::new(v1))
                 } else {

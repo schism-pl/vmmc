@@ -60,7 +60,7 @@ impl SynthesisProtocol {
     }
 
     pub fn megastep_iter(&self) -> ProtocolMegastepIter {
-        ProtocolMegastepIter::new(&self)
+        ProtocolMegastepIter::new(self)
     }
 
     pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, end: usize) -> Self {
