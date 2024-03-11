@@ -3,7 +3,8 @@ use rand_distr::{Distribution, Normal};
 
 use xyzvec::XYVec;
 
-pub type DimVec = XYVec<f64>;
+pub type Num = f64;
+pub type DimVec = XYVec<Num>;
 pub type Orientation = DimVec;
 pub type PosDifference = DimVec;
 pub type Position = DimVec;

@@ -1,8 +1,7 @@
 use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLATE};
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
-use crate::position::DimVec;
-use crate::position::{random_unit_vec, Position};
+use crate::types::{random_unit_vec, Position, DimVec, Num};
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use anyhow::{anyhow, Result};
@@ -17,7 +16,7 @@ pub enum MoveDir {
     Backward,
 }
 
-impl From<MoveDir> for f64 {
+impl From<MoveDir> for Num {
     fn from(movedir: MoveDir) -> Self {
         match movedir {
             MoveDir::Forward => 1.0,
@@ -45,7 +44,7 @@ impl VirtualMoves {
 #[derive(Debug)]
 pub struct ProposedMove {
     seed_id: ParticleId,
-    step_size: f64,
+    step_size: Num,
     is_rotation: bool,
     cluster_cutoff: usize,
     vec: DimVec, // unit vec
@@ -54,7 +53,7 @@ pub struct ProposedMove {
 impl ProposedMove {
     pub fn new(
         seed_id: ParticleId,
-        step_size: f64,
+        step_size: Num,
         is_rotation: bool,
         cluster_cutoff: usize,
         vec: DimVec,
@@ -68,8 +67,8 @@ impl ProposedMove {
         }
     }
 
-    pub fn step_factor(&self, dir: MoveDir) -> f64 {
-        f64::from(dir) * self.step_size
+    pub fn step_factor(&self, dir: MoveDir) -> Num {
+        Num::from(dir) * self.step_size
     }
 
     pub fn is_rotation(&self) -> bool {
@@ -90,7 +89,7 @@ pub struct Vmmc {
     potential: PatchyDiscsPotential,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {
+    pub fn new(simbox: SimBox, interaction_energy: Num) -> Self {
         let potential = PatchyDiscsPotential::new(interaction_energy);
         Self { simbox, potential }
     }
@@ -137,7 +136,7 @@ impl Vmmc {
         particles_mem + tenancy_mem + shapes_mem
     }
 
-    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
+    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> Num {
         self.potential.compute_pair_energy(&self.simbox, p1, p2)
     }
 
@@ -146,7 +145,7 @@ impl Vmmc {
     }
 
     // get energy
-    pub fn get_particle_energy(&self, p: &Particle) -> f64 {
+    pub fn get_particle_energy(&self, p: &Particle) -> Num {
         let mut energy = 0.0;
         let interactions = self.determine_interactions(p);
         for &neighbor_id in interactions.iter() {
@@ -156,17 +155,17 @@ impl Vmmc {
         energy
     }
 
-    pub fn get_average_energy(&self) -> f64 {
+    pub fn get_average_energy(&self) -> Num {
         let mut total_energy = 0.0;
         for p in self.particles().iter() {
             total_energy += self.get_particle_energy(p);
         }
         // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles().num_particles() as f64 * 2.0)
+        total_energy / (self.particles().num_particles() as Num * 2.0)
     }
 
     // TODO: what is this?
-    fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> f64 {
+    fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> Num {
         let mut stokes_radius = 0.0;
 
         for (_, vp) in vmoves.inner.iter() {
@@ -180,7 +179,7 @@ impl Vmmc {
 
             stokes_radius += delta.cross_prod_sqd(mov.vec);
         }
-        stokes_radius /= vmoves.inner.len() as f64;
+        stokes_radius /= vmoves.inner.len() as Num;
         stokes_radius = stokes_radius.sqrt();
 
         let scale_factor = PARTICLE_RADIUS / (PARTICLE_RADIUS + stokes_radius);
@@ -198,7 +197,7 @@ impl Vmmc {
         for (_, vp) in vmoves.inner.iter() {
             com += vp.orig_pos(); //particle.pos();
         }
-        com.div_by(vmoves.inner.len() as f64)
+        com.div_by(vmoves.inner.len() as Num)
     }
 
     // returns difference in position between final and original
@@ -238,19 +237,19 @@ impl Vmmc {
         // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
         let rand_vec = random_unit_vec(rng);
         // 3. Choose a move type (translation or rotation)
-        let is_rotation = rng.gen::<f64>() >= PROB_TRANSLATE;
+        let is_rotation = rng.gen::<Num>() >= PROB_TRANSLATE;
         // 4. Pick a cluster size cutoff
         // I don't know why we use this distribution, but it has something to do with particle choice fairness
-        let cluster_cutoff = (1.0 / rng.gen::<f64>()).floor() as usize;
+        let cluster_cutoff = (1.0 / rng.gen::<Num>()).floor() as usize;
         // 5. Choose a size for the move
         let step_size = if is_rotation {
             // Rotation
-            let r: f64 = rng.gen();
+            let r: Num = rng.gen();
             MAX_ROTATION * r.powf(0.5)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
-            let r: f64 = rng.gen();
+            let r: Num = rng.gen();
             // random number between (-1.0 and 1.0) * max_translation
             MAX_TRANSLATION * (2.0 * r - 1.0)
         };
@@ -300,8 +299,8 @@ impl Vmmc {
                 let (link_weight, reverse_link_weight) =
                     self.compute_link_weights(particle, neighbor, &final_p, &reverse_p);
 
-                if rng.gen::<f64>() <= link_weight {
-                    if rng.gen::<f64>() <= reverse_link_weight / link_weight {
+                if rng.gen::<Num>() <= link_weight {
+                    if rng.gen::<Num>() <= reverse_link_weight / link_weight {
                         // The neighbor has been linked.
                         // Add it to the move and attempt to recruit its neighbors
                         if !seen.contains(&neighbor_id) {
@@ -329,7 +328,7 @@ impl Vmmc {
         interacting_p: &Particle,
         final_p: &VParticle,
         reverse_p: &VParticle,
-    ) -> (f64, f64) {
+    ) -> (Num, Num) {
         let init_energy = self.compute_pair_energy(particle, interacting_p);
         let final_energy = self.compute_pair_energy(final_p, interacting_p);
         let reverse_energy = self.compute_pair_energy(reverse_p, interacting_p);
@@ -404,7 +403,7 @@ impl Vmmc {
             1.0
         };
         // Stokes drag rejection
-        if rng.gen::<f64>() > scale_factor {
+        if rng.gen::<Num>() > scale_factor {
             return Err(anyhow!("Stokes drag rejection"));
         }
 
@@ -499,7 +498,7 @@ impl Vmmc {
         run_stats
     }
 
-    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
+    pub fn set_interaction_energy(&mut self, interaction_energy: Num) {
         self.potential.set_interaction_energy(interaction_energy)
     }
 }

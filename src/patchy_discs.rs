@@ -1,16 +1,16 @@
 use crate::consts::PARTICLE_DIAMETER;
 use crate::particle::{IsParticle, Particle, ParticleId};
-use crate::position::Orientation;
+use crate::types::{Orientation, Num};
 use crate::simbox::SimBox;
 use std::f64::consts::PI;
 
-// fn is_radian(theta: f64) -> bool {
+// fn is_radian(theta: Num) -> bool {
 //     (theta.is_normal() || theta.is_zero()) && theta.is_sign_positive() && theta <= (2.0*PI)
 // }
 
 // Note: Pairwise potentials are just a filter map
 
-fn calc_angle(or: Orientation, other: Orientation) -> f64 {
+fn calc_angle(or: Orientation, other: Orientation) -> Num {
     // This clamp seems to be necessary purely for numerical error reasons
     let dot = other.dot_prod(or).clamp(-1.0, 1.0); // clamp is here for numerical reasons. TODO: remove
     let cross = other.cross_prod(or);
@@ -23,19 +23,19 @@ fn calc_angle(or: Orientation, other: Orientation) -> f64 {
 }
 
 pub struct PatchyDiscsPotential {
-    interaction_energy: f64,
+    interaction_energy: Num,
 }
 
 impl PatchyDiscsPotential {
-    pub fn new(interaction_energy: f64) -> Self {
+    pub fn new(interaction_energy: Num) -> Self {
         Self { interaction_energy }
     }
 
-    pub fn interaction_energy(&self) -> f64 {
+    pub fn interaction_energy(&self) -> Num {
         self.interaction_energy
     }
 
-    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
+    pub fn set_interaction_energy(&mut self, interaction_energy: Num) {
         self.interaction_energy = interaction_energy
     }
 
@@ -44,7 +44,7 @@ impl PatchyDiscsPotential {
         simbox: &SimBox,
         particle0: &P1,
         particle1: &P2,
-    ) -> f64 {
+    ) -> Num {
         let m0 = simbox.morphology(particle0);
         let m1 = simbox.morphology(particle1);
 
@@ -59,7 +59,7 @@ impl PatchyDiscsPotential {
 
         // overlap!
         if dist < PARTICLE_DIAMETER {
-            return f64::INFINITY;
+            return Num::INFINITY;
         }
 
         if dist > PARTICLE_DIAMETER + m0.max_patch_radius().max(m1.max_patch_radius()) {

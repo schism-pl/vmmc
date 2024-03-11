@@ -1,7 +1,7 @@
 use rand::rngs::SmallRng;
 
 use crate::consts::MAX_PARTICLES;
-use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
+use crate::types::{random_dimvec, random_unit_vec, Orientation, Position, Num};
 use std::mem::{size_of, size_of_val};
 
 pub type ParticleId = u16;

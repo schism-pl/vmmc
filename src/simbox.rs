@@ -3,10 +3,9 @@ use rand::{rngs::SmallRng, Rng};
 use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
-use crate::position::random_unit_vec;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
-    position::{DimVec, Position},
+    types::{DimVec, Position, Num, random_unit_vec},
 };
 
 type CellId = usize;
@@ -15,7 +14,7 @@ type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
 // cells_per_axis * cells_per_axis
 type CellGrid = Vec<Cell>;
 
-fn map_into_range(p: f64, lower: f64, upper: f64) -> f64 {
+fn map_into_range(p: Num, lower: Num, upper: Num) -> Num {
     if p < lower {
         p + (upper - lower)
     } else if p >= upper {
@@ -97,7 +96,7 @@ impl SimBox {
     // uniform distribution of morphologies present in `shapes`
     pub fn new_with_randomized_particles(
         dimensions: DimVec,
-        max_interaction_range: f64,
+        max_interaction_range: Num,
         num_particles: usize,
         shapes: Vec<Morphology>,
         rng: &mut SmallRng,
@@ -159,7 +158,7 @@ impl SimBox {
         &self.shapes[p.shape_id() as usize]
     }
 
-    pub fn volume(&self) -> f64 {
+    pub fn volume(&self) -> Num {
         self.dimensions.x() * self.dimensions.y()
     }
 
@@ -261,7 +260,7 @@ impl SimBox {
         cell.iter().any(|c| c == &p.id())
     }
 
-    pub fn get_neighbor(&self, p: &Particle, x: f64, y: f64) -> &Cell {
+    pub fn get_neighbor(&self, p: &Particle, x: Num, y: Num) -> &Cell {
         let neighbor_pos = p.pos().translate_by(x, y);
         let neighbor_pos = self.map_pos_into_box(neighbor_pos);
         self.get_cell(neighbor_pos)
@@ -377,16 +376,16 @@ impl SimBox {
         result
     }
 
-    pub fn min_x(&self) -> f64 {
+    pub fn min_x(&self) -> Num {
         -0.5 * self.dimensions.x()
     }
-    pub fn max_x(&self) -> f64 {
+    pub fn max_x(&self) -> Num {
         0.5 * self.dimensions.x()
     }
-    pub fn min_y(&self) -> f64 {
+    pub fn min_y(&self) -> Num {
         -0.5 * self.dimensions.y()
     }
-    pub fn max_y(&self) -> f64 {
+    pub fn max_y(&self) -> Num {
         0.5 * self.dimensions.y()
     }
 

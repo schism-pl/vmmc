@@ -6,8 +6,8 @@ use std::{
 
 // use raqote::{PathBuilder, DrawTarget, Source, SolidSource, StrokeStyle, DrawOptions};
 use raqote::*;
-
-use crate::{cli::VmmcConfig, particle::IsParticle, position::DimVec, vmmc::Vmmc};
+use crate::types::Num;
+use crate::{cli::VmmcConfig, particle::IsParticle, types::DimVec, vmmc::Vmmc};
 
 pub struct XYZWriter {
     file: File,
@@ -35,10 +35,10 @@ pub fn read_xyz_snapshot(path: &str) -> (Vec<DimVec>, Vec<DimVec>) {
     for line in rdr.lines() {
         let line = line.unwrap();
         let parts: Vec<&str> = line.split_whitespace().collect();
-        let pos_x = parts[0].parse::<f64>().unwrap();
-        let pos_y = parts[1].parse::<f64>().unwrap();
-        let or_x = parts[2].parse::<f64>().unwrap();
-        let or_y = parts[3].parse::<f64>().unwrap();
+        let pos_x = parts[0].parse::<Num>().unwrap();
+        let pos_y = parts[1].parse::<Num>().unwrap();
+        let or_x = parts[2].parse::<Num>().unwrap();
+        let or_y = parts[3].parse::<Num>().unwrap();
         positions.push(DimVec::new([pos_x, pos_y]));
         orientations.push(DimVec::new([or_x, or_y]));
     }
@@ -96,7 +96,7 @@ pub fn write_tcl(vmmc: &Vmmc, p: &str) {
     .unwrap();
 }
 
-fn draw_white_background(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+fn draw_white_background(vmmc: &Vmmc, dt: &mut DrawTarget, scale: Num) {
     let x_dim = (vmmc.simbox().max_x() * 2.0 * scale) as f32;
     let y_dim = (vmmc.simbox().max_y() * 2.0 * scale) as f32;
 
@@ -117,7 +117,7 @@ fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
     Source::Solid(SolidSource { r, g, b, a })
 }
 
-// fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
+// fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: Num) {
 //     let x_off = vmmc.simbox().max_x() * scale;
 //     let y_off = vmmc.simbox().max_y() * scale;
 
@@ -150,13 +150,13 @@ fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
 //     dt.fill(&draw_path, &source, &DrawOptions::new());
 // }
 
-// fn color_polygons(vmmc: &Vmmc, polygons: &[Polygon], dt: &mut DrawTarget, scale: f64) {
+// fn color_polygons(vmmc: &Vmmc, polygons: &[Polygon], dt: &mut DrawTarget, scale: Num) {
 //     for polygon in polygons.iter() {
 //         color_polygon(vmmc, polygon, dt, scale);
 //     }
 // }
 
-fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: Num) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
     let source = rgba_solid(0, 0, 0, 0xff);
@@ -194,7 +194,7 @@ fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     }
 }
 
-fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: Num) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
     let source = rgba_solid(0, 0, 0, 0xff);

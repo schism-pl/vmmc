@@ -4,14 +4,14 @@ use std::{
 };
 
 use serde::{de, Deserialize, Serialize};
-
+use crate::types::Num;
 // a = upper_bound
 // b = lower_bound
 // c = theta
 
 // TODO: extensively test
 // Note: assumes theta, target_theta, and tolerance are all in [0, 2pi]
-fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
+fn in_modular_range(theta: Num, target_theta: Num, tolerance: Num) -> bool {
     let lower_bound = ((target_theta - tolerance) + TAU) % TAU;
     let upper_bound = (target_theta + tolerance) % TAU;
     if lower_bound <= upper_bound {
@@ -28,13 +28,13 @@ fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
-    radius: f64,  // radius of patch (in units of particle diameter)
-    theta: f64,   // angle in degrees
+    radius: Num,  // radius of patch (in units of particle diameter)
+    theta: Num,   // angle in degrees
     chemtype: u8, // patches must have same chemtype to be compatible
 }
 
 impl Patch {
-    pub fn new(radius: f64, theta: f64, chemtype: u8) -> Self {
+    pub fn new(radius: Num, theta: Num, chemtype: u8) -> Self {
         Self {
             radius,
             theta,
@@ -42,11 +42,11 @@ impl Patch {
         }
     }
 
-    pub fn radius(&self) -> f64 {
+    pub fn radius(&self) -> Num {
         self.radius
     }
 
-    pub fn theta(&self) -> f64 {
+    pub fn theta(&self) -> Num {
         self.theta
     }
 
@@ -57,7 +57,7 @@ impl Patch {
     /// TODO: add derivation here
     /// +- radians where it can still interact
     ///  = +- acos 1-(patch_radius^2/2)
-    pub fn angle_tolerance(&self) -> f64 {
+    pub fn angle_tolerance(&self) -> Num {
         let pr = self.radius;
         (1.0 - 0.5 * pr * pr).acos()
         //(1.0 - (r * r) / (2.0 * PARTICLE_RADIUS * PARTICLE_RADIUS)).acos()
@@ -68,17 +68,17 @@ impl Patch {
 pub struct Morphology {
     patches: Vec<Patch>,
     #[serde(skip_serializing)]
-    max_radius: f64,
+    max_radius: Num,
     // maps theta -> sin(theta) for each patch angle
     #[serde(skip_serializing)]
-    sin_theta: Vec<f64>,
+    sin_theta: Vec<Num>,
     // maps theta -> cos(theta) for each patch angle
     #[serde(skip_serializing)]
-    cos_theta: Vec<f64>,
+    cos_theta: Vec<Num>,
     // TODO: better docs
     // maps patch -> angle tolerance (+- radians where it can still interact)
     #[serde(skip_serializing)]
-    angle_tolerances: Vec<f64>,
+    angle_tolerances: Vec<Num>,
 }
 
 impl<'de> de::Deserialize<'de> for Morphology {
@@ -117,7 +117,7 @@ impl Morphology {
         let max_radius = patches
             .iter()
             .map(|p| p.radius)
-            .fold(f64::MIN, |a, b| a.max(b));
+            .fold(Num::MIN, |a, b| a.max(b));
 
         let mut sin_theta: Vec<_> = Vec::new();
         let mut cos_theta: Vec<_> = Vec::new();
@@ -143,22 +143,22 @@ impl Morphology {
         &self.patches
     }
 
-    pub fn max_patch_radius(&self) -> f64 {
+    pub fn max_patch_radius(&self) -> Num {
         self.max_radius
     }
 
-    pub fn sin_theta(&self, patch_idx: usize) -> f64 {
+    pub fn sin_theta(&self, patch_idx: usize) -> Num {
         self.sin_theta[patch_idx]
     }
 
-    pub fn cos_theta(&self, patch_idx: usize) -> f64 {
+    pub fn cos_theta(&self, patch_idx: usize) -> Num {
         self.cos_theta[patch_idx]
     }
 
     // TODO: can probably be optimized
     /// given an angle, the patch that contains the angle
     /// if there is no such patch, returns None
-    pub fn closest_patch(&self, theta: f64) -> Option<&Patch> {
+    pub fn closest_patch(&self, theta: Num) -> Option<&Patch> {
         // println!("Finding closest patch to {theta}");
         for (p_idx, patch) in self.patches.iter().enumerate() {
             let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
@@ -180,14 +180,14 @@ impl Morphology {
         None
     }
 
-    pub fn regular_3patch(radius: f64) -> Self {
+    pub fn regular_3patch(radius: Num) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 120.0, 0);
         let p2 = Patch::new(radius, 240.0, 0);
         Self::new(vec![p0, p1, p2])
     }
 
-    pub fn regular_4patch(radius: f64) -> Self {
+    pub fn regular_4patch(radius: Num) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 90.0, 0);
         let p2 = Patch::new(radius, 180.0, 0);
@@ -195,7 +195,7 @@ impl Morphology {
         Self::new(vec![p0, p1, p2, p3])
     }
 
-    pub fn regular_6patch(radius: f64) -> Self {
+    pub fn regular_6patch(radius: Num) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 60.0, 0);
         let p2 = Patch::new(radius, 120.0, 0);

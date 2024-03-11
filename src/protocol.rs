@@ -1,26 +1,27 @@
 use equationx::Expr;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use crate::types::Num;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolStep {
-    chemical_potential: f64, // mu / KbT
-    interaction_energy: f64, // epsilon / KbT
+    chemical_potential: Num, // mu / KbT
+    interaction_energy: Num, // epsilon / KbT
 }
 
 impl ProtocolStep {
-    pub fn new(chemical_potential: f64, interaction_energy: f64) -> Self {
+    pub fn new(chemical_potential: Num, interaction_energy: Num) -> Self {
         Self {
             chemical_potential,
             interaction_energy,
         }
     }
 
-    pub fn chemical_potential(&self) -> f64 {
+    pub fn chemical_potential(&self) -> Num {
         self.chemical_potential
     }
 
-    pub fn interaction_energy(&self) -> f64 {
+    pub fn interaction_energy(&self) -> Num {
         self.interaction_energy
     }
 }
@@ -51,11 +52,11 @@ impl SynthesisProtocol {
         }
     }
 
-    pub fn initial_interaction_energy(&self) -> f64 {
+    pub fn initial_interaction_energy(&self) -> Num {
         self.interaction_energy_eq.eval(0.0)
     }
 
-    pub fn initial_chemical_potential(&self) -> f64 {
+    pub fn initial_chemical_potential(&self) -> Num {
         self.chemical_potential_eq.eval(0.0)
     }
 
@@ -63,7 +64,7 @@ impl SynthesisProtocol {
         ProtocolMegastepIter::new(self)
     }
 
-    pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, end: usize) -> Self {
+    pub fn flat_protocol(chemical_potential: Num, interaction_energy: Num, end: usize) -> Self {
         let chemical_potential_s = format!("{}", chemical_potential);
         let interaction_energy_s = format!("{}", interaction_energy);
         Self::new(&chemical_potential_s, &interaction_energy_s, end)
@@ -73,7 +74,7 @@ impl SynthesisProtocol {
 // gets a new protocol step every 1000 steps of the simulation
 pub struct ProtocolMegastepIter<'a> {
     protocol: &'a SynthesisProtocol,
-    t: f64,
+    t: Num,
 }
 
 impl<'a> ProtocolMegastepIter<'a> {
@@ -87,7 +88,7 @@ impl<'a> Iterator for ProtocolMegastepIter<'a> {
     type Item = ProtocolStep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.t >= self.protocol.num_megasteps as f64 {
+        if self.t >= self.protocol.num_megasteps as Num {
             return None;
         }
 

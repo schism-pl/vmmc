@@ -4,7 +4,7 @@ use rand_distr::num_traits::Zero;
 use vmmc::{
     morphology::Morphology,
     particle::Particle,
-    position::{Orientation, Position},
+    types::{Orientation, Position, Num},
     protocol::SynthesisProtocol,
     simbox::SimBox,
     vmmc::Vmmc,
