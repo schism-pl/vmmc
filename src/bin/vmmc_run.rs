@@ -8,7 +8,7 @@ use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
 use vmmc::io::{clear_out_files, write_geometry_png};
-use vmmc::polygons::{calc_bond_distribution, calc_polygon_count};
+use vmmc::polygons::{calc_bond_distribution, calc_polygon_count, calc_polygon_distribution};
 use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
 use vmmc::{
@@ -48,7 +48,9 @@ impl VmmcCallback for StdCallback {
             "Packing fraction: {:?}",
             packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
         );
-        println!("# of polygons: {:?}", calc_polygon_count(vmmc, 6));
+        let polygon_dist = calc_polygon_distribution(vmmc, 6);
+        println!("Polygon distribution: {:?}", polygon_dist);
+        println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
         println!(
             "Interaction Energy (epsilon): {:.4}",
             step.interaction_energy()

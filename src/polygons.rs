@@ -90,6 +90,7 @@ pub fn tightest_neighbor(vmmc: &Vmmc, p0: &Particle, p1: &Particle) -> Option<Pa
 }
 
 pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
+    let max_vertices = max_vertices + 1; // TODO: why?
     let mut next_p = HashMap::new(); // { (p_id, p_id) -> p_id}
     for p in vmmc.particles().iter() {
         for &neighbor_id in vmmc.determine_interactions(p).iter() {
@@ -141,7 +142,16 @@ pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
 
 pub fn calc_polygon_count(vmmc: &Vmmc, max_vertices: usize) -> usize {
     // TODO: why does this +1 need to be here?
-    calc_polygons(vmmc, max_vertices + 1).len()
+    calc_polygons(vmmc, max_vertices).len()
+}
+
+pub fn calc_polygon_distribution(vmmc: &Vmmc, max_vertices: usize) -> Vec<usize> {
+    let mut polygon_dist = vec![0; max_vertices];
+    let polygons = calc_polygons(vmmc, max_vertices);
+    for poly in polygons.iter() {
+        polygon_dist[poly.vertices().len() - 1] += 1;
+    }
+    polygon_dist
 }
 
 pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology, shape_id: u16) -> Vec<usize> {
