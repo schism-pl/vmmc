@@ -1,6 +1,7 @@
 use std::f64::consts::PI;
 use std::fs::{self, create_dir_all};
 use std::process::exit;
+use std::time::Instant;
 
 use clap::Parser;
 use rand::rngs::SmallRng;
@@ -8,7 +9,7 @@ use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
 use vmmc::io::{clear_out_files, write_geometry_png};
-use vmmc::polygons::{calc_bond_distribution, calc_polygon_count, calc_polygon_distribution};
+use vmmc::polygons::{calc_bond_distribution, calc_polygon_distribution};
 use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
 use vmmc::{
@@ -29,6 +30,8 @@ fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
 
 struct StdCallback {
     writer: Box<XYZWriter>,
+    start_time: Instant,
+    timestamp: Instant,
 }
 impl VmmcCallback for StdCallback {
     type CbResult = ();
@@ -48,7 +51,7 @@ impl VmmcCallback for StdCallback {
             "Packing fraction: {:?}",
             packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
         );
-        let polygon_dist = calc_polygon_distribution(vmmc, 6);
+        let polygon_dist = calc_polygon_distribution(vmmc, 12);
         println!("Polygon distribution: {:?}", polygon_dist);
         println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
         println!(
@@ -69,6 +72,10 @@ impl VmmcCallback for StdCallback {
                 weighted_sum as f64 / vmmc.particles().num_particles() as f64
             );
         }
+        let t = Instant::now();
+        println!("Execution time: {:?}", t - self.timestamp);
+        println!("Total execution time: {:?}", t - self.start_time);
+        self.timestamp = t;
     }
 
     fn state(&self) {}
@@ -129,7 +136,11 @@ fn main() -> anyhow::Result<()> {
     writer.write_xyz_frame(&vmmc);
 
     // Run the simulation
-    let cb = Box::new(StdCallback { writer });
+    let cb = Box::new(StdCallback {
+        writer,
+        start_time: Instant::now(),
+        timestamp: Instant::now(),
+    });
     run_vmmc(&mut vmmc, ip.protocol, cb, &mut rng)?;
 
     // Write visualizations to disc
