@@ -1,8 +1,8 @@
 use crate::consts::PARTICLE_DIAMETER;
+use crate::num;
 use crate::particle::{IsParticle, Particle, ParticleId};
-use crate::types::{Orientation, Num};
 use crate::simbox::SimBox;
-use std::f64::consts::PI;
+use crate::types::{Num, Orientation};
 
 // fn is_radian(theta: Num) -> bool {
 //     (theta.is_normal() || theta.is_zero()) && theta.is_sign_positive() && theta <= (2.0*PI)
@@ -12,13 +12,13 @@ use std::f64::consts::PI;
 
 fn calc_angle(or: Orientation, other: Orientation) -> Num {
     // This clamp seems to be necessary purely for numerical error reasons
-    let dot = other.dot_prod(or).clamp(-1.0, 1.0); // clamp is here for numerical reasons. TODO: remove
+    let dot = other.dot_prod(or).clamp(num!(-1.0), num!(1.0)); // clamp is here for numerical reasons. TODO: remove
     let cross = other.cross_prod(or);
 
     if cross >= 0.0 {
-        dot.acos()
+        cordic::acos(dot)
     } else {
-        2.0 * PI - dot.acos()
+        Num::TAU - cordic::acos(dot)
     }
 }
 
@@ -59,11 +59,11 @@ impl PatchyDiscsPotential {
 
         // overlap!
         if dist < PARTICLE_DIAMETER {
-            return Num::INFINITY;
+            return Num::MAX; // TODO: why does this return infinity?
         }
 
         if dist > PARTICLE_DIAMETER + m0.max_patch_radius().max(m1.max_patch_radius()) {
-            return 0.0;
+            return Num::ZERO;
         }
 
         let or0 = particle0.or();
@@ -88,7 +88,7 @@ impl PatchyDiscsPotential {
                 }
             }
         }
-        0.0
+        Num::ZERO
     }
 
     pub fn determine_interactions(&self, simbox: &SimBox, p: &Particle) -> Vec<ParticleId> {

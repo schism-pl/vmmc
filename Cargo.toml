@@ -14,9 +14,12 @@ path = "src/bin/vmmc_run.rs"
 [dependencies]
 anyhow = "1.0.75" # better errors
 clap = { version = "4.4.6", features = ["derive"] } # commandline parsing
+cordic = "0.1.5"
 env_logger = "0.10.0"
 equationx = "0.1.0"
+fixed = { version = "1.26.0", features = ["serde", "std", "arbitrary"] }
 log = "0.4.20"
+num-traits = "0.2.18"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
@@ -24,7 +27,7 @@ rand_distr = "0.4.3"
 raqote = "0.8.3"
 serde = { version = "1.0.193", features = ["derive"] }
 toml = "0.8.8"
-xyzvec = "0.1.5"
+xyzvec = { version = "0.1.6", features = ["cordic"] }
 
 
 

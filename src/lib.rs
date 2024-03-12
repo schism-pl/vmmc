@@ -4,7 +4,6 @@ use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
 use consts::PARTICLE_DIAMETER;
 use morphology::{Morphology, Patch};
-use types::{DimVec, Num};
 use protocol::{ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -12,6 +11,7 @@ use rand_distr::num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 use stats::RunStats;
+use types::{DimVec, Num};
 use vmmc::Vmmc;
 
 pub mod chemical_potential;
@@ -22,10 +22,10 @@ pub mod morphology;
 pub mod particle;
 pub mod patchy_discs;
 pub mod polygons;
-pub mod types;
 pub mod protocol;
 pub mod simbox;
 pub mod stats;
+pub mod types;
 pub mod vmmc;
 
 // TODO: use approx crate for floating point equality
@@ -40,8 +40,8 @@ pub struct InputParams {
     pub protocol: SynthesisProtocol,
     pub shapes: Vec<Morphology>,
 
-    pub box_width: f64,
-    pub box_height: f64,
+    pub box_width: Num,
+    pub box_height: Num,
 }
 
 impl Default for InputParams {
@@ -49,12 +49,12 @@ impl Default for InputParams {
         let seed = SmallRng::from_entropy().gen::<i64>();
 
         let initial_particles = 400;
-        let box_width = 30.0;
-        let box_height = 30.0;
+        let box_width = num!(30.0);
+        let box_height = num!(30.0);
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 1000);
+        let protocol = SynthesisProtocol::flat_protocol(num!(0.0), num!(8.0), 1000);
 
-        let shapes = vec![Morphology::regular_4patch(0.05)];
+        let shapes = vec![Morphology::regular_4patch(num!(0.05))];
 
         Self {
             seed,
@@ -68,11 +68,11 @@ impl Default for InputParams {
 }
 
 impl InputParams {
-    pub fn max_patch_radius(&self) -> f64 {
+    pub fn max_patch_radius(&self) -> Num {
         self.shapes
             .iter()
             .map(|m| m.max_patch_radius())
-            .fold(f64::MIN, |a, b| a.max(b))
+            .fold(Num::MIN, |a, b| a.max(b))
     }
 
     // assert well-formedness predicate for InputParams
@@ -131,76 +131,76 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // we need num_cells >= 2*initial_particles
 
 // for testing
-impl Arbitrary for InputParams {
-    fn arbitrary(g: &mut Gen) -> Self {
-        let seed = SmallRng::from_entropy().gen::<i64>();
+// impl Arbitrary for InputParams {
+//     fn arbitrary(g: &mut Gen) -> Self {
+//         let seed = SmallRng::from_entropy().gen::<i64>();
 
-        let initial_particles = usize_in_range(g, 0, 2500);
-        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
-        let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
+//         let initial_particles = usize_in_range(g, 0, 2500);
+//         let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
+//         let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
 
-        let mut box_width = 0.0;
-        let mut box_height = 0.0;
+//         let mut box_width = 0.0;
+//         let mut box_height = 0.0;
 
-        // while less than 1.5 cell per particle, pick a new box radius
-        while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
-            <= 1.5 * initial_particles as f64
-        {
-            box_width = f64_in_range(g, 10.0, 200.0);
-            box_height = f64_in_range(g, 10.0, 200.0);
-        }
+//         // while less than 1.5 cell per particle, pick a new box radius
+//         while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
+//             <= 1.5 * initial_particles as f64
+//         {
+//             box_width = f64_in_range(g, 10.0, 200.0);
+//             box_height = f64_in_range(g, 10.0, 200.0);
+//         }
 
-        let num_megasteps = 10;
+//         let num_megasteps = 10;
 
-        // TODO: make this more varied
-        let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
+//         // TODO: make this more varied
+//         let protocol = SynthesisProtocol::flat_protocol(num!(0.0), interaction_energy, num_megasteps);
 
-        let mut shapes = Vec::new();
-        let num_shapes = usize_in_range(g, 1, 3);
-        for _ in 0..num_shapes {
-            let mut patches = Vec::new();
-            let num_patches = usize_in_range(g, 3, 6);
-            let num_colors = usize_in_range(g, 1, num_patches);
-            for _ in 0..num_patches {
-                let color = usize_in_range(g, 0, num_colors - 1);
-                let theta = f64_in_range(g, 0.0, 360.0);
-                let radius = f64_in_range(g, 0.01, 0.25);
-                let patch = Patch::new(radius, theta, color as u8);
-                // TODO: check that the morphology makes sense, i.e., patches don't overlap
-                patches.push(patch);
-            }
-            shapes.push(Morphology::new(patches));
-        }
+//         let mut shapes = Vec::new();
+//         let num_shapes = usize_in_range(g, 1, 3);
+//         for _ in 0..num_shapes {
+//             let mut patches = Vec::new();
+//             let num_patches = usize_in_range(g, 3, 6);
+//             let num_colors = usize_in_range(g, 1, num_patches);
+//             for _ in 0..num_patches {
+//                 let color = usize_in_range(g, 0, num_colors - 1);
+//                 let theta = f64_in_range(g, 0.0, 360.0);
+//                 let radius = f64_in_range(g, 0.01, 0.25);
+//                 let patch = Patch::new(radius, theta, color as u8);
+//                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
+//                 patches.push(patch);
+//             }
+//             shapes.push(Morphology::new(patches));
+//         }
 
-        Self {
-            seed,
-            initial_particles,
-            protocol,
-            shapes,
-            box_width,
-            box_height,
-        }
-    }
-}
+//         Self {
+//             seed,
+//             initial_particles,
+//             protocol,
+//             shapes,
+//             box_width,
+//             box_height,
+//         }
+//     }
+// }
 
 // angle coverage of patch = +- acos 1-(patch_radius^2/2)
-impl Arbitrary for SimBox {
-    fn arbitrary(g: &mut Gen) -> Self {
-        let ip = InputParams::arbitrary(g);
-        let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
-        let patch_radius = 0.05; // TODO: remove this
-        let max_interaction_range = PARTICLE_DIAMETER + patch_radius + patch_radius;
+// impl Arbitrary for SimBox {
+//     fn arbitrary(g: &mut Gen) -> Self {
+//         let ip = InputParams::arbitrary(g);
+//         let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);
+//         let patch_radius = 0.05; // TODO: remove this
+//         let max_interaction_range = PARTICLE_DIAMETER + patch_radius + patch_radius;
 
-        let mut rng = SmallRng::from_entropy();
-        SimBox::new_with_randomized_particles(
-            box_dimensions,
-            max_interaction_range,
-            ip.initial_particles,
-            ip.shapes,
-            &mut rng,
-        )
-    }
-}
+//         let mut rng = SmallRng::from_entropy();
+//         SimBox::new_with_randomized_particles(
+//             box_dimensions,
+//             max_interaction_range,
+//             ip.initial_particles,
+//             ip.shapes,
+//             &mut rng,
+//         )
+//     }
+// }
 
 pub fn vmmc_from_config(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let box_dimensions = DimVec::new([ip.box_width, ip.box_height]);

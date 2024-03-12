@@ -1,7 +1,8 @@
+use crate::num;
+use crate::types::Num;
 use equationx::Expr;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use crate::types::Num;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolStep {
@@ -53,11 +54,11 @@ impl SynthesisProtocol {
     }
 
     pub fn initial_interaction_energy(&self) -> Num {
-        self.interaction_energy_eq.eval(0.0)
+        num!(self.interaction_energy_eq.eval(0.0))
     }
 
     pub fn initial_chemical_potential(&self) -> Num {
-        self.chemical_potential_eq.eval(0.0)
+        num!(self.chemical_potential_eq.eval(0.0))
     }
 
     pub fn megastep_iter(&self) -> ProtocolMegastepIter {
@@ -74,7 +75,7 @@ impl SynthesisProtocol {
 // gets a new protocol step every 1000 steps of the simulation
 pub struct ProtocolMegastepIter<'a> {
     protocol: &'a SynthesisProtocol,
-    t: Num,
+    t: f64,
 }
 
 impl<'a> ProtocolMegastepIter<'a> {
@@ -88,13 +89,13 @@ impl<'a> Iterator for ProtocolMegastepIter<'a> {
     type Item = ProtocolStep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.t >= self.protocol.num_megasteps as Num {
+        if self.t >= self.protocol.num_megasteps as f64 {
             return None;
         }
 
         let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
         let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
-        let step = ProtocolStep::new(chemical_potential, interaction_energy);
+        let step = ProtocolStep::new(num!(chemical_potential), num!(interaction_energy));
         self.t += 1.0; // t is counted in megasteps
         Some(step)
     }

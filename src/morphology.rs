@@ -1,10 +1,10 @@
-use std::{
-    f64::consts::{PI, TAU},
-    fmt,
-};
+use crate::num;
+use fixed::consts::{PI, TAU};
+use fixed::types::I32F32;
+use std::fmt;
 
-use serde::{de, Deserialize, Serialize};
 use crate::types::Num;
+use serde::{de, Deserialize, Serialize};
 // a = upper_bound
 // b = lower_bound
 // c = theta
@@ -12,8 +12,8 @@ use crate::types::Num;
 // TODO: extensively test
 // Note: assumes theta, target_theta, and tolerance are all in [0, 2pi]
 fn in_modular_range(theta: Num, target_theta: Num, tolerance: Num) -> bool {
-    let lower_bound = ((target_theta - tolerance) + TAU) % TAU;
-    let upper_bound = (target_theta + tolerance) % TAU;
+    let lower_bound = ((target_theta - tolerance) + I32F32::TAU) % I32F32::TAU;
+    let upper_bound = (target_theta + tolerance) % I32F32::TAU;
     if lower_bound <= upper_bound {
         theta >= lower_bound && theta <= upper_bound
     } else {
@@ -59,7 +59,7 @@ impl Patch {
     ///  = +- acos 1-(patch_radius^2/2)
     pub fn angle_tolerance(&self) -> Num {
         let pr = self.radius;
-        (1.0 - 0.5 * pr * pr).acos()
+        cordic::acos(num!(1.0) - num!(0.5) * pr * pr)
         //(1.0 - (r * r) / (2.0 * PARTICLE_RADIUS * PARTICLE_RADIUS)).acos()
     }
 }
@@ -123,9 +123,9 @@ impl Morphology {
         let mut cos_theta: Vec<_> = Vec::new();
         let mut angle_tolerances: Vec<_> = Vec::new();
         for patch in &patches {
-            let theta = patch.theta() * PI / 180.0; // convert degrees to radians
-            sin_theta.push(theta.sin());
-            cos_theta.push(theta.cos());
+            let theta = patch.theta() * I32F32::PI / num!(180.0); // convert degrees to radians
+            sin_theta.push(cordic::sin(theta));
+            cos_theta.push(cordic::cos(theta));
             angle_tolerances.push(patch.angle_tolerance());
         }
 
@@ -161,47 +161,38 @@ impl Morphology {
     pub fn closest_patch(&self, theta: Num) -> Option<&Patch> {
         // println!("Finding closest patch to {theta}");
         for (p_idx, patch) in self.patches.iter().enumerate() {
-            let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
-                                                          // println!("Finding patch theta = {patch_theta}");
+            let patch_theta = patch.theta() * I32F32::PI / num!(180.0); // convert degrees to radians
             let angle_tolerance = self.angle_tolerances[p_idx];
 
-            // println!("Lower bound = {}", (((patch_theta - angle_tolerance) + TAU) % TAU));
-            // println!("Upper bound = {}", ((patch_theta + angle_tolerance) % TAU));
             if in_modular_range(theta, patch_theta, angle_tolerance) {
                 return Some(patch);
             }
-            // // TODO: less janky
-            // if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
-            //     && theta <= ((patch_theta + angle_tolerance) % TAU)
-            // {
-            //     return Some(patch);
-            // }
         }
         None
     }
 
     pub fn regular_3patch(radius: Num) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 120.0, 0);
-        let p2 = Patch::new(radius, 240.0, 0);
+        let p0 = Patch::new(radius, num!(0.0), 0);
+        let p1 = Patch::new(radius, num!(120.0), 0);
+        let p2 = Patch::new(radius, num!(240.0), 0);
         Self::new(vec![p0, p1, p2])
     }
 
     pub fn regular_4patch(radius: Num) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 90.0, 0);
-        let p2 = Patch::new(radius, 180.0, 0);
-        let p3 = Patch::new(radius, 270.0, 0);
+        let p0 = Patch::new(radius, num!(0.0), 0);
+        let p1 = Patch::new(radius, num!(90.0), 0);
+        let p2 = Patch::new(radius, num!(180.0), 0);
+        let p3 = Patch::new(radius, num!(270.0), 0);
         Self::new(vec![p0, p1, p2, p3])
     }
 
     pub fn regular_6patch(radius: Num) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 60.0, 0);
-        let p2 = Patch::new(radius, 120.0, 0);
-        let p3 = Patch::new(radius, 180.0, 0);
-        let p4 = Patch::new(radius, 240.0, 0);
-        let p5 = Patch::new(radius, 300.0, 0);
+        let p0 = Patch::new(radius, num!(0.0), 0);
+        let p1 = Patch::new(radius, num!(60.0), 0);
+        let p2 = Patch::new(radius, num!(120.0), 0);
+        let p3 = Patch::new(radius, num!(180.0), 0);
+        let p4 = Patch::new(radius, num!(240.0), 0);
+        let p5 = Patch::new(radius, num!(300.0), 0);
         Self::new(vec![p0, p1, p2, p3, p4, p5])
     }
 }

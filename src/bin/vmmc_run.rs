@@ -3,6 +3,7 @@ use std::fs::{self, create_dir_all};
 use std::process::exit;
 
 use clap::Parser;
+use fixed::FixedI64;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
@@ -15,15 +16,16 @@ use vmmc::{
     io::{write_tcl, XYZWriter},
     vmmc::Vmmc,
 };
-use vmmc::{run_vmmc, vmmc_from_config, InputParams, VmmcCallback};
+use vmmc::{run_vmmc, types::Num, vmmc_from_config, InputParams, VmmcCallback};
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
 
-fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
-    let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
+fn packing_fraction(num_particles: usize, volume: Num) -> Num {
+    let particle_volume =
+        Num::from_num(num_particles) * (Num::PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
     particle_volume / volume
 }
 

@@ -1,11 +1,13 @@
+use crate::num;
 use rand::{rngs::SmallRng, Rng};
-
+// use fixed::num_traits::cast::ToPrimitive;
 use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
+use crate::types::rand_num_range;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
-    types::{DimVec, Position, Num, random_unit_vec},
+    types::{random_unit_vec, DimVec, Num, Position},
 };
 
 type CellId = usize;
@@ -110,7 +112,7 @@ impl SimBox {
         assert!(cell_width >= max_interaction_range);
         assert!(cell_height >= max_interaction_range);
 
-        let cells_per_axis = [cells_x_axis as usize, cells_y_axis as usize];
+        let cells_per_axis = [cells_x_axis.to_num(), cells_y_axis.to_num()];
 
         let cell_dimensions = DimVec::new([cell_width, cell_height]);
 
@@ -235,13 +237,13 @@ impl SimBox {
     pub fn get_cell_id(&self, pos: Position) -> CellId {
         // adjust so all indexes are positive
         // indexes start at bottom left and scan bottom to top
-        let x = pos.x() + (self.dimensions.x() / 2.0);
-        let y = pos.y() + (self.dimensions.y() / 2.0);
+        let x = pos.x() + (self.dimensions.x() / num!(2.0));
+        let y = pos.y() + (self.dimensions.y() / num!(2.0));
         assert!(x != self.dimensions.x());
         assert!(y != self.dimensions.y());
 
-        let x_idx = (x / self.cell_dimensions.x()).floor() as usize;
-        let y_idx = (y / self.cell_dimensions.y()).floor() as usize;
+        let x_idx: CellId = (x / self.cell_dimensions.x()).to_num();
+        let y_idx: CellId = (y / self.cell_dimensions.y()).to_num();
         x_idx * self.cells_per_axis[1] + y_idx
     }
 
@@ -377,16 +379,16 @@ impl SimBox {
     }
 
     pub fn min_x(&self) -> Num {
-        -0.5 * self.dimensions.x()
+        num!(-0.5) * self.dimensions.x()
     }
     pub fn max_x(&self) -> Num {
-        0.5 * self.dimensions.x()
+        num!(0.5) * self.dimensions.x()
     }
     pub fn min_y(&self) -> Num {
-        -0.5 * self.dimensions.y()
+        num!(-0.5) * self.dimensions.y()
     }
     pub fn max_y(&self) -> Num {
-        0.5 * self.dimensions.y()
+        num!(0.5) * self.dimensions.y()
     }
 
     pub fn cell_dimensions(&self) -> DimVec {
@@ -425,8 +427,8 @@ impl SimBox {
     }
 
     pub fn random_pos(&self, rng: &mut SmallRng) -> Position {
-        let x = rng.gen_range(self.min_x()..self.max_x());
-        let y = rng.gen_range(self.min_y()..self.max_y());
+        let x = rand_num_range(rng, self.min_x().to_num(), self.max_x().to_num());
+        let y = rand_num_range(rng, self.min_y().to_num(), self.max_y().to_num());
         Position::new([x, y])
     }
 }

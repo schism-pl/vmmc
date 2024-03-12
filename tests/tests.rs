@@ -4,9 +4,9 @@ use rand_distr::num_traits::Zero;
 use vmmc::{
     morphology::Morphology,
     particle::Particle,
-    types::{Orientation, Position, Num},
     protocol::SynthesisProtocol,
     simbox::SimBox,
+    types::{Num, Orientation, Position},
     vmmc::Vmmc,
     vmmc_from_config, InputParams,
 };

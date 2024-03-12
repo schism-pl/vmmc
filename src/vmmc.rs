@@ -1,9 +1,10 @@
 use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLATE};
+use crate::num;
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::patchy_discs::PatchyDiscsPotential;
-use crate::types::{random_unit_vec, Position, DimVec, Num};
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
+use crate::types::{rand_num, random_unit_vec, DimVec, Num, Position};
 use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
@@ -19,8 +20,8 @@ pub enum MoveDir {
 impl From<MoveDir> for Num {
     fn from(movedir: MoveDir) -> Self {
         match movedir {
-            MoveDir::Forward => 1.0,
-            MoveDir::Backward => -1.0,
+            MoveDir::Forward => num!(1.0),
+            MoveDir::Backward => num!(-1.0),
         }
     }
 }
@@ -146,7 +147,7 @@ impl Vmmc {
 
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> Num {
-        let mut energy = 0.0;
+        let mut energy = num!(0.0);
         let interactions = self.determine_interactions(p);
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
@@ -156,17 +157,17 @@ impl Vmmc {
     }
 
     pub fn get_average_energy(&self) -> Num {
-        let mut total_energy = 0.0;
+        let mut total_energy = num!(0.0);
         for p in self.particles().iter() {
             total_energy += self.get_particle_energy(p);
         }
         // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles().num_particles() as Num * 2.0)
+        total_energy / num!(self.particles().num_particles() * 2)
     }
 
     // TODO: what is this?
     fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> Num {
-        let mut stokes_radius = 0.0;
+        let mut stokes_radius = num!(0.0);
 
         for (_, vp) in vmoves.inner.iter() {
             let delta = if !mov.is_rotation {
@@ -179,7 +180,7 @@ impl Vmmc {
 
             stokes_radius += delta.cross_prod_sqd(mov.vec);
         }
-        stokes_radius /= vmoves.inner.len() as Num;
+        stokes_radius /= num!(vmoves.inner.len());
         stokes_radius = stokes_radius.sqrt();
 
         let scale_factor = PARTICLE_RADIUS / (PARTICLE_RADIUS + stokes_radius);
@@ -197,7 +198,7 @@ impl Vmmc {
         for (_, vp) in vmoves.inner.iter() {
             com += vp.orig_pos(); //particle.pos();
         }
-        com.div_by(vmoves.inner.len() as Num)
+        com.div_by(num!(vmoves.inner.len() as f64))
     }
 
     // returns difference in position between final and original
@@ -237,21 +238,21 @@ impl Vmmc {
         // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
         let rand_vec = random_unit_vec(rng);
         // 3. Choose a move type (translation or rotation)
-        let is_rotation = rng.gen::<Num>() >= PROB_TRANSLATE;
+        let is_rotation = rand_num(rng) >= PROB_TRANSLATE;
         // 4. Pick a cluster size cutoff
         // I don't know why we use this distribution, but it has something to do with particle choice fairness
-        let cluster_cutoff = (1.0 / rng.gen::<Num>()).floor() as usize;
+        let cluster_cutoff = (num!(1.0) / rand_num(rng)).to_num();
         // 5. Choose a size for the move
         let step_size = if is_rotation {
             // Rotation
-            let r: Num = rng.gen();
-            MAX_ROTATION * r.powf(0.5)
+            let r = rand_num(rng);
+            MAX_ROTATION * cordic::sqrt(r)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
-            let r: Num = rng.gen();
+            let r = rand_num(rng);
             // random number between (-1.0 and 1.0) * max_translation
-            MAX_TRANSLATION * (2.0 * r - 1.0)
+            MAX_TRANSLATION * (num!(2.0) * r - num!(1.0))
         };
 
         ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)
@@ -299,8 +300,8 @@ impl Vmmc {
                 let (link_weight, reverse_link_weight) =
                     self.compute_link_weights(particle, neighbor, &final_p, &reverse_p);
 
-                if rng.gen::<Num>() <= link_weight {
-                    if rng.gen::<Num>() <= reverse_link_weight / link_weight {
+                if rand_num(rng) <= link_weight {
+                    if rand_num(rng) <= reverse_link_weight / link_weight {
                         // The neighbor has been linked.
                         // Add it to the move and attempt to recruit its neighbors
                         if !seen.contains(&neighbor_id) {
@@ -329,12 +330,22 @@ impl Vmmc {
         final_p: &VParticle,
         reverse_p: &VParticle,
     ) -> (Num, Num) {
+        // TODO: fix this
+        fn basically_exponent(v: Num) -> Num {
+            if v >= 0 {
+                Num::from(1)
+            } else {
+                Num::from(0)
+            }
+        }
+
         let init_energy = self.compute_pair_energy(particle, interacting_p);
         let final_energy = self.compute_pair_energy(final_p, interacting_p);
         let reverse_energy = self.compute_pair_energy(reverse_p, interacting_p);
 
-        let link_weight = 0.0_f64.max(1.0 - (init_energy - final_energy).exp());
-        let reverse_link_weight = 0.0_f64.max(1.0 - (init_energy - reverse_energy).exp());
+        let link_weight: Num = Num::from(1) - basically_exponent(init_energy - final_energy);
+        let reverse_link_weight: Num =
+            Num::from(1) - basically_exponent(init_energy - reverse_energy);
 
         (link_weight, reverse_link_weight)
     }
@@ -400,10 +411,10 @@ impl Vmmc {
         let scale_factor = if vmoves.inner.len() > 1 {
             self.compute_stokes_radius(vmoves, mov)
         } else {
-            1.0
+            num!(1.0)
         };
         // Stokes drag rejection
-        if rng.gen::<Num>() > scale_factor {
+        if rand_num(rng) > scale_factor {
             return Err(anyhow!("Stokes drag rejection"));
         }
 
@@ -433,7 +444,7 @@ impl Vmmc {
             // check that magnitude of orientation is about 1.0
             // this is because it should be a unit vector
             // allow for a bit of deviation due to rounding errors
-            if (p.or().l2_norm() - 1.0).abs() >= 0.0001 {
+            if (p.or().l2_norm() - num!(1.0)).abs() >= 0.0001 {
                 panic!("Orientation not normalized!: {:?} off by ", p);
             }
         }
@@ -478,7 +489,7 @@ impl Vmmc {
         debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);
-        debug_assert!((mov.vec().l2_norm() - 1.0).abs() < 0.00001);
+        debug_assert!((mov.vec().l2_norm() - num!(1.0)).abs() < 0.00001);
         log::debug!("Chose a random move: {:?}", mov);
         let virtual_moves = self.recruit_cluster(rng, &mov)?;
         log::debug!("Found a promising set of moves: {:?}", virtual_moves);

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     morphology::Morphology,
+    num,
     particle::{IsParticle, Particle, ParticleId},
     vmmc::Vmmc,
 };
@@ -60,7 +61,7 @@ impl<'a> Iterator for PolygonEdgeIterator<'a> {
 
 // Note: counter-clockwise-edges uniquely map to polygons
 pub fn tightest_neighbor(vmmc: &Vmmc, p0: &Particle, p1: &Particle) -> Option<ParticleId> {
-    let mut lowest_cos = 1.0; // we only want tightest_angle that goes clockwise
+    let mut lowest_cos = num!(1.0); // we only want tightest_angle that goes clockwise
     let mut tightest = ParticleId::MAX;
     // vector form p0 to p1
     let dist0 = vmmc.simbox().sep_in_box(p1.pos(), p0.pos());
