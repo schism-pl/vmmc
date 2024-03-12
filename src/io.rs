@@ -55,7 +55,14 @@ impl XYZWriter {
     pub fn write_xyz_frame(&mut self, vmmc: &Vmmc) {
         writeln!(self.file, "{:?}\n", vmmc.particles().num_particles()).unwrap();
         for p in vmmc.particles().iter() {
-            writeln!(self.file, "0 {:?} {:?} 0", p.pos().x(), p.pos().y()).unwrap();
+            writeln!(
+                self.file,
+                "p{} {:?} {:?} 0",
+                p.id(),
+                p.pos().x(),
+                p.pos().y()
+            )
+            .unwrap();
         }
     }
 }
@@ -100,8 +107,7 @@ fn draw_white_background(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_dim = (vmmc.simbox().max_x() * 2.0 * scale) as f32;
     let y_dim = (vmmc.simbox().max_y() * 2.0 * scale) as f32;
 
-    // get white color
-    let source = rgba_solid(0xff, 0xff, 0xff, 0xff);
+    let source = rgba_white();
 
     let mut pb = PathBuilder::new();
     pb.move_to(0.0, 0.0);
@@ -115,6 +121,18 @@ fn draw_white_background(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
 
 fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
     Source::Solid(SolidSource { r, g, b, a })
+}
+
+fn rgba_white() -> Source<'static> {
+    rgba_solid(0xff, 0xff, 0xff, 0xff)
+}
+
+fn rgba_black() -> Source<'static> {
+    rgba_solid(0, 0, 0, 0xff)
+}
+
+fn rgba_orange() -> Source<'static> {
+    rgba_solid(0xf3, 0x70, 0x21, 0xff)
 }
 
 // fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
@@ -159,7 +177,7 @@ fn rgba_solid(r: u8, g: u8, b: u8, a: u8) -> Source<'static> {
 fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
-    let source = rgba_solid(0, 0, 0, 0xff);
+    let source = rgba_black();
 
     let style = StrokeStyle::default();
     let draw_options = DrawOptions::new();
@@ -197,9 +215,11 @@ fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
 fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
-    let source = rgba_solid(0, 0, 0, 0xff);
+    let source = rgba_orange();
 
-    let style = StrokeStyle::default();
+    let mut style = StrokeStyle::default();
+    style.width = 5.0;
+
     let draw_options = DrawOptions::new();
 
     for p0 in vmmc.particles().iter() {
