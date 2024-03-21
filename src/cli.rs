@@ -33,6 +33,10 @@ impl VmmcConfig {
         format!("{}/geometry.png", self.output_dir())
     }
 
+    pub fn protocols(&self) -> String {
+        format!("{}/protocols.png", self.output_dir())
+    }
+
     pub fn trajectory(&self) -> String {
         format!("{}/trajectory.xyz", self.output_dir())
     }

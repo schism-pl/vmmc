@@ -51,6 +51,18 @@ impl SynthesisProtocol {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.num_megasteps
+    }
+
+    pub fn interaction_energy(&self, t: usize) -> f64 {
+        self.interaction_energy_eq.eval(t as f64)
+    }
+
+    pub fn chemical_potential(&self, t: usize) -> f64 {
+        self.interaction_energy_eq.eval(t as f64)
+    }
+
     pub fn initial_interaction_energy(&self) -> f64 {
         self.interaction_energy_eq.eval(0.0)
     }

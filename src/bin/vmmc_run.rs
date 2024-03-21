@@ -8,7 +8,7 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
-use vmmc::io::{clear_out_files, write_geometry_png};
+use vmmc::io::{clear_out_files, write_geometry_png, write_protocols_png};
 use vmmc::polygons::{calc_bond_distribution, calc_polygon_distribution};
 use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
@@ -141,11 +141,12 @@ fn main() -> anyhow::Result<()> {
         start_time: Instant::now(),
         timestamp: Instant::now(),
     });
-    run_vmmc(&mut vmmc, ip.protocol, cb, &mut rng)?;
+    run_vmmc(&mut vmmc, &ip.protocol, cb, &mut rng)?;
 
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
     write_geometry_png(&vmmc, &config.geometry());
+    write_protocols_png(&ip, &config.protocols());
 
     println!("Done!");
 

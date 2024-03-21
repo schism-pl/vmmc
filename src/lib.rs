@@ -88,7 +88,7 @@ impl InputParams {
         for step in self.protocol.megastep_iter() {
             let mu = step.chemical_potential();
             let epsilon = step.interaction_energy();
-            assert!((-20.0..=20.0).contains(&mu));
+            assert!((-10.0..=10.0).contains(&mu));
             assert!((0.01..=20.0).contains(&epsilon));
         }
 
@@ -242,7 +242,7 @@ pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
 // attempts particle exchange every step
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
-    protocol: SynthesisProtocol,
+    protocol: &SynthesisProtocol,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
 ) -> Result<Cbr> {
