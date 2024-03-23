@@ -59,6 +59,10 @@ impl SynthesisProtocol {
         self.chemical_potential_eq.eval(0.0)
     }
 
+    pub fn num_megasteps(&self) -> usize {
+        self.num_megasteps
+    }
+
     pub fn megastep_iter(&self) -> ProtocolMegastepIter {
         ProtocolMegastepIter::new(self)
     }
