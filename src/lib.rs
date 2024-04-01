@@ -5,7 +5,7 @@ use chemical_potential::maybe_particle_exchange;
 use consts::PARTICLE_DIAMETER;
 use morphology::{Morphology, Patch};
 use position::DimVec;
-use protocol::{ProtocolMegastepIter, ProtocolStep, SynthesisProtocol};
+use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rand_distr::num_traits::Zero;
@@ -242,7 +242,7 @@ pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
 // attempts particle exchange every step
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
-    protocol_iter: impl Iterator<Item = ProtocolStep>,
+    protocol_iter: impl ProtocolIter,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
 ) -> Result<Cbr> {

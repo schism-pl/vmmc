@@ -146,7 +146,7 @@ fn main() -> anyhow::Result<()> {
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
     write_geometry_png(&vmmc, &config.geometry());
-    write_protocols_png(&ip, &config.protocols());
+    write_protocols_png(ip.protocol.megastep_iter(), &config.protocols());
 
     println!("Done!");
 

@@ -4,26 +4,15 @@ use std::{
     io::{BufRead, BufReader, Write},
 };
 
-// use raqote::{PathBuilder, DrawTarget, Source, SolidSource, StrokeStyle, DrawOptions};
 use raqote::*;
 
-use crate::{cli::VmmcConfig, particle::IsParticle, position::DimVec, vmmc::Vmmc, InputParams};
+use crate::{
+    cli::VmmcConfig, particle::IsParticle, position::DimVec, protocol::ProtocolIter, vmmc::Vmmc,
+};
 
 pub struct XYZWriter {
     file: File,
 }
-
-// pub struct XYZReader {
-//     rdr: BufReader<File>,
-// }
-
-// impl XYZReader {
-//     pub fn new(p: &str) -> Self {
-//         let file = File::open(p).unwrap();
-//         let rdr = BufReader::new(file);
-//         Self { rdr }
-//     }
-// }
 
 pub fn read_xyz_snapshot(path: &str) -> (Vec<DimVec>, Vec<DimVec>) {
     let mut positions = Vec::new();
@@ -282,10 +271,10 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
 // chemical potential goes from -20 to 20
 // interaction energy goes from 0 to 10
 // timescale =
-pub fn write_protocols_png(ip: &InputParams, pathname: &str) {
+pub fn write_protocols_png(protocol_iter: impl ProtocolIter, pathname: &str) {
     use plotters::prelude::*;
 
-    let num_megasteps = ip.protocol.len() as i32;
+    let num_megasteps = protocol_iter.len() as i32;
 
     let root_area = BitMapBackend::new(pathname, (1000, 800)).into_drawing_area();
     root_area.fill(&WHITE).unwrap();
@@ -307,20 +296,39 @@ pub fn write_protocols_png(ip: &InputParams, pathname: &str) {
 
     top_ctx.configure_mesh().draw().unwrap();
     bot_ctx.configure_mesh().draw().unwrap();
+    // let x =  (0..num_megasteps).map(|t| (t, protocol_iter.interaction_energy(t as usize)));
 
+    let protocol_style = RGBColor(0xf3, 0x70, 0x21).stroke_width(2);
+    let mut interaction_energy_line = Vec::new();
+    let mut chemical_potential_line = Vec::new();
+    for (t, step) in protocol_iter.enumerate() {
+        interaction_energy_line.push((t as i32, step.interaction_energy()));
+        chemical_potential_line.push((t as i32, step.chemical_potential()));
+    }
+
+    // let x = protocol_iter.clone().enumerate().map(|(t, step)| (t as i32,step.interaction_energy()));
+    // let line_series = LineSeries::new(x, protocol_style);
     top_ctx
-        .draw_series(LineSeries::new(
-            (0..num_megasteps).map(|t| (t, ip.protocol.interaction_energy(t as usize))),
-            RGBColor(0xf3, 0x70, 0x21).stroke_width(2),
-        ))
+        .draw_series(LineSeries::new(interaction_energy_line, protocol_style))
+        .unwrap();
+    bot_ctx
+        .draw_series(LineSeries::new(chemical_potential_line, protocol_style))
         .unwrap();
 
-    bot_ctx
-        .draw_series(LineSeries::new(
-            (0..num_megasteps).map(|t| (t, ip.protocol.chemical_potential(t as usize))),
-            RGBColor(0xf3, 0x70, 0x21).stroke_width(2),
-        ))
-        .unwrap();
+    // top_ctx
+    //     .draw_series(LineSeries::new(
+    //         x,
+    //         // (0..num_megasteps).map(|t| (t, protocol.interaction_energy(t as usize))),
+    //         RGBColor(0xf3, 0x70, 0x21).stroke_width(2),
+    //     ))
+    //     .unwrap();
+
+    // bot_ctx
+    //     .draw_series(LineSeries::new(
+    //         protocol_iter.enumerate().map(|(t, step)| (t as i32,step.chemical_potential())),
+    //         protocol_style,
+    //     ))
+    //     .unwrap();
 }
 
 fn try_delete(p: String) {

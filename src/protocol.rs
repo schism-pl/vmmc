@@ -114,3 +114,15 @@ impl<'a> Iterator for ProtocolMegastepIter<'a> {
         Some(step)
     }
 }
+
+impl<'a> ExactSizeIterator for ProtocolMegastepIter<'a> {
+    // We can easily calculate the remaining number of iterations.
+    fn len(&self) -> usize {
+        self.protocol.num_megasteps() - self.t as usize
+    }
+}
+
+pub trait ProtocolIter: Iterator<Item = ProtocolStep> + ExactSizeIterator {}
+
+impl<T: Iterator<Item = ProtocolStep> + ExactSizeIterator> ProtocolIter for T {}
+// pub trait Iterator<Item = ProtocolStep>
