@@ -41,8 +41,7 @@ impl VmmcConfig {
         format!("{}/trajectory.xyz", self.output_dir())
     }
 
-    // TODO: save stats for base vmmc, not just l2g
     pub fn stats(&self) -> String {
-        format!("{}/stats.toml", self.output_dir())
+        format!("{}/stats.txt", self.output_dir())
     }
 }

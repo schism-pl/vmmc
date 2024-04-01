@@ -7,7 +7,8 @@ use std::{
 use raqote::*;
 
 use crate::{
-    cli::VmmcConfig, particle::IsParticle, position::DimVec, protocol::ProtocolIter, vmmc::Vmmc,
+    cli::VmmcConfig, particle::IsParticle, polygons::calc_polygon_distribution, position::DimVec,
+    protocol::ProtocolIter, vmmc::Vmmc,
 };
 
 pub struct XYZWriter {
@@ -234,6 +235,14 @@ fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
             dt.stroke(&draw_path, &source, &style, &draw_options);
         }
     }
+}
+
+pub fn write_stats(vmmc: &Vmmc, pathname: &str) {
+    let polygon_dist = calc_polygon_distribution(vmmc, 12);
+    let total_polygons = polygon_dist.iter().sum::<usize>();
+    let mut w = File::create(pathname).unwrap();
+    writeln!(&mut w, "Polygon distribution: {:?}", polygon_dist).unwrap();
+    writeln!(&mut w, "Total polygon count: {:?}", total_polygons).unwrap();
 }
 
 pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
