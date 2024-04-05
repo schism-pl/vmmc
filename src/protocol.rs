@@ -1,5 +1,6 @@
 use equationx::Expr;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +84,16 @@ impl SynthesisProtocol {
         let chemical_potential_s = format!("{}", chemical_potential);
         let interaction_energy_s = format!("{}", interaction_energy);
         Self::new(&chemical_potential_s, &interaction_energy_s, end)
+    }
+}
+
+impl fmt::Display for SynthesisProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "chemical_potential: {} interaction_energy: {} t={}",
+            self.chemical_potential_eq, self.interaction_energy_eq, self.num_megasteps
+        )
     }
 }
 
