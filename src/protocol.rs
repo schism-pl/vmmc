@@ -60,7 +60,7 @@ impl SynthesisProtocol {
     }
 
     pub fn chemical_potential(&self, t: usize) -> f64 {
-        self.interaction_energy_eq.eval(t as f64)
+        self.chemical_potential_eq.eval(t as f64)
     }
 
     pub fn initial_interaction_energy(&self) -> f64 {
