@@ -5,11 +5,20 @@ use std::{
 
 use serde::{de, Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CoreShape {
     Circle,
     Square,
 }
+
+// impl CoreShape {
+//     pub fn area(&self) {
+//         match self {
+//             Self::Circle => ,
+//             Self::Square => ,
+//         }
+//     }
+// }
 
 // a = upper_bound
 // b = lower_bound
@@ -101,15 +110,22 @@ impl<'de> de::Deserialize<'de> for Morphology {
             where
                 V: de::MapAccess<'de>,
             {
+                let shape = if map.next_key::<String>()?.is_some() {
+                    let shape: CoreShape = map.next_value()?;
+                    Ok(shape)
+                } else {
+                    Err(de::Error::missing_field("shapes"))
+                };
+
                 if map.next_key::<String>()?.is_some() {
                     let v1: Vec<Patch> = map.next_value()?;
-                    Ok(Morphology::new(CoreShape::Circle, v1))
+                    Ok(Morphology::new(shape?, v1))
                 } else {
                     Err(de::Error::missing_field("shapes"))
                 }
             }
         }
-
+        // let shape = CoreShape::deserialize(deserializer)?;
         deserializer.deserialize_map(MorphologyVisitor {})
     }
 }
