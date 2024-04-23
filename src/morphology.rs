@@ -82,6 +82,7 @@ pub struct Morphology {
     angle_tolerances: Vec<f64>,
 }
 
+// TODO: deserialize needs to read nanocubes
 impl<'de> de::Deserialize<'de> for Morphology {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -139,6 +140,10 @@ impl Morphology {
             cos_theta,
             angle_tolerances,
         }
+    }
+
+    pub fn shape(&self) -> &CoreShape {
+        &self.shape
     }
 
     pub fn patches(&self) -> &[Patch] {
