@@ -21,11 +21,6 @@ fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
     }
 }
 
-// #[test]
-// fn in_modular_range_test(){
-
-// }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
     radius: f64,  // radius of patch (in units of particle diameter)
