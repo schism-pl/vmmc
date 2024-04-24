@@ -6,7 +6,7 @@ use vmmc::{
     position::{Orientation, Position},
     protocol::SynthesisProtocol,
     vmmc::Vmmc,
-    vmmc_from_ip, InputParams,
+    vmmc_from_inputparams, InputParams,
 };
 
 fn empty_vmmc(shape: Morphology) -> Vmmc {
@@ -19,7 +19,7 @@ fn empty_vmmc(shape: Morphology) -> Vmmc {
     let mut rng = SmallRng::seed_from_u64(ip.seed as u64);
 
     // Generate the simulator
-    vmmc_from_ip(&ip, &mut rng)
+    vmmc_from_inputparams(&ip, &mut rng)
 }
 
 fn two_particle_vmmc(

@@ -16,7 +16,7 @@ use vmmc::{
     io::{write_tcl, XYZWriter},
     vmmc::Vmmc,
 };
-use vmmc::{run_vmmc, vmmc_from_ip, InputParams, VmmcCallback};
+use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
@@ -111,7 +111,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Generate the simulator
-    let mut vmmc = vmmc_from_ip(&ip, &mut rng);
+    let mut vmmc = vmmc_from_inputparams(&ip, &mut rng);
 
     println!("Using {} Mb", vmmc.needed_mem() as f64 / (1024.0 * 1024.0));
     println!(

@@ -236,7 +236,7 @@ impl Arbitrary for SimBox {
     }
 }
 
-pub fn vmmc_from_config(
+pub fn vmmc_from_simparams(
     sim_params: &SimParams,
     initial_interaction_energy: f64,
     rng: &mut SmallRng,
@@ -246,7 +246,7 @@ pub fn vmmc_from_config(
     vmmc::Vmmc::new(simbox, initial_interaction_energy)
 }
 
-pub fn vmmc_from_ip(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
+pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(&ip.sim_params, rng);
 
     vmmc::Vmmc::new(simbox, ip.protocol.initial_interaction_energy())
