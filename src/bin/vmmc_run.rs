@@ -16,7 +16,7 @@ use vmmc::{
     io::{write_tcl, XYZWriter},
     vmmc::Vmmc,
 };
-use vmmc::{run_vmmc, vmmc_from_config, InputParams, VmmcCallback};
+use vmmc::{run_vmmc, vmmc_from_ip, InputParams, VmmcCallback};
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
@@ -99,7 +99,10 @@ fn main() -> anyhow::Result<()> {
     println!("Using seed = {:x?}", seed);
     let mut rng = SmallRng::seed_from_u64(seed as u64);
 
-    let packing_fraction = packing_fraction(ip.initial_particles, ip.box_height * ip.box_width);
+    let packing_fraction = packing_fraction(
+        ip.sim_params.initial_particles,
+        ip.sim_params.box_height * ip.sim_params.box_width,
+    );
     println!("Requested initial packing fraction: {packing_fraction}");
     if packing_fraction >= MAX_INITIAL_PACKING_FRACTION {
         println!("Initial packing fraction > {MAX_INITIAL_PACKING_FRACTION}");
@@ -108,7 +111,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Generate the simulator
-    let mut vmmc = vmmc_from_config(&ip, &mut rng);
+    let mut vmmc = vmmc_from_ip(&ip, &mut rng);
 
     println!("Using {} Mb", vmmc.needed_mem() as f64 / (1024.0 * 1024.0));
     println!(

@@ -1,4 +1,3 @@
-use quickcheck_macros::quickcheck;
 use rand::{rngs::SmallRng, SeedableRng};
 use rand_distr::num_traits::Zero;
 use vmmc::{
@@ -6,22 +5,21 @@ use vmmc::{
     particle::Particle,
     position::{Orientation, Position},
     protocol::SynthesisProtocol,
-    simbox::SimBox,
     vmmc::Vmmc,
-    vmmc_from_config, InputParams,
+    vmmc_from_ip, InputParams,
 };
 
 fn empty_vmmc(shape: Morphology) -> Vmmc {
     let mut ip = InputParams::default();
     ip.seed = 1337;
-    ip.initial_particles = 0;
-    ip.shapes = vec![shape];
+    ip.sim_params.initial_particles = 0;
+    ip.sim_params.shapes = vec![shape];
     ip.protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 20);
 
     let mut rng = SmallRng::seed_from_u64(ip.seed as u64);
 
     // Generate the simulator
-    vmmc_from_config(&ip, &mut rng)
+    vmmc_from_ip(&ip, &mut rng)
 }
 
 fn two_particle_vmmc(

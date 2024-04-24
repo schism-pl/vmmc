@@ -4,6 +4,7 @@ use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::random_unit_vec;
+use crate::SimParams;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -95,13 +96,10 @@ impl SimBox {
     }
 
     // uniform distribution of morphologies present in `shapes`
-    pub fn new_with_randomized_particles(
-        dimensions: DimVec,
-        max_interaction_range: f64,
-        num_particles: usize,
-        shapes: Vec<Morphology>,
-        rng: &mut SmallRng,
-    ) -> Self {
+    pub fn new_with_randomized_particles(sim_params: &SimParams, rng: &mut SmallRng) -> Self {
+        let dimensions = sim_params.box_dimensions();
+        let max_interaction_range = sim_params.max_interaction_range();
+
         let cells_x_axis = (dimensions.x() / max_interaction_range).floor();
         let cells_y_axis = (dimensions.y() / max_interaction_range).floor();
 
@@ -115,6 +113,8 @@ impl SimBox {
 
         let cell_dimensions = DimVec::new([cell_width, cell_height]);
 
+        let shapes = sim_params.shapes.clone();
+
         // We initilize dummy simbox with no particles
         let mut simbox = Self::new(
             dimensions,
@@ -124,7 +124,7 @@ impl SimBox {
             shapes,
         );
 
-        for _ in 0..num_particles {
+        for _ in 0..sim_params.initial_particles {
             let p = simbox.new_random_particle(rng).unwrap(); // TODO: better error message
             simbox.insert_particle(p);
         }
@@ -179,24 +179,6 @@ impl SimBox {
     // TODO: clean up this accursed function
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
-        // // check if a position overlaps any existing
-        // fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
-        //     for other in simbox.particles.iter() {
-        //         if simbox.sep_in_box(*pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
-        //             return true;
-        //         }
-        //     }
-        //     false
-        // }
-
-        // let p_id = self.particles.get_unused_p_id();
-        // let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
-        // let mut pos = self.random_pos(rng);
-        // while pos_has_overlap(self, &pos) {
-        //     pos = self.random_pos(rng);
-        // }
-        // let or = random_unit_vec(rng);
-        // Particle::new(p_id, pos, or, shape_id)
         let mut attempts = 0;
         while attempts < 10000 {
             // arbitrary # of reaatempts
