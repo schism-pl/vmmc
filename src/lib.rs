@@ -33,8 +33,7 @@ pub mod vmmc;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InputParams {
-    // TODO: change this to u64
-    pub seed: i64, // toml crashes when I try to store as u64?
+    pub seed: u32,
 
     pub initial_particles: usize,
     pub protocol: SynthesisProtocol,
@@ -46,7 +45,7 @@ pub struct InputParams {
 
 impl Default for InputParams {
     fn default() -> Self {
-        let seed = SmallRng::from_entropy().gen::<i64>();
+        let seed = SmallRng::from_entropy().gen::<u32>();
 
         let initial_particles = 400;
         let box_width = 30.0;
@@ -133,10 +132,10 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // for testing
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
-        let seed = SmallRng::from_entropy().gen::<i64>();
+        let seed = SmallRng::from_entropy().gen::<u32>();
 
         let initial_particles = usize_in_range(g, 0, 2500);
-        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
+
         let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
 
         let mut box_width = 0.0;
@@ -152,8 +151,10 @@ impl Arbitrary for InputParams {
 
         let num_megasteps = 10;
 
-        // TODO: make this more varied
-        let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
+        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
+        let chemical_potential = f64_in_range(g, -10.0, 10.0); // kBT
+        let protocol =
+            SynthesisProtocol::flat_protocol(chemical_potential, interaction_energy, num_megasteps);
 
         let mut shapes = Vec::new();
         let num_shapes = usize_in_range(g, 1, 3);
