@@ -1,8 +1,8 @@
 use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLATE};
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
-use crate::patchy_discs::PatchyDiscsPotential;
 use crate::position::DimVec;
 use crate::position::{random_unit_vec, Position};
+use crate::potentials::patchy_discs::PatchyDiscsPotential;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use anyhow::{anyhow, Result};
