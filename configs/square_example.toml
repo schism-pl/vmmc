@@ -1,33 +1,33 @@
-seed = 168235197561895567
-initial_particles = 500
+seed = 1535420837
+
+[protocol]
+chemical_potential_eq = "0"
+interaction_energy_eq = "8"
+num_megasteps = 1000
+
+[sim_params]
+initial_particles = 400
 box_width = 30.0
 box_height = 30.0
 
-[protocol]
-chemical_potential_eq = "0.0"
-interaction_energy_eq = "8.0"
-num_megasteps = 100
+[[sim_params.shapes]]
 
-[[shapes]]
-
-[[shapes.patches]]
+[[sim_params.shapes.patches]]
 radius = 0.05
 theta = 0.0
 chemtype = 0
 
-[[shapes.patches]]
+[[sim_params.shapes.patches]]
 radius = 0.05
 theta = 90.0
 chemtype = 0
 
-[[shapes.patches]]
+[[sim_params.shapes.patches]]
 radius = 0.05
 theta = 180.0
 chemtype = 0
 
-[[shapes.patches]]
+[[sim_params.shapes.patches]]
 radius = 0.05
 theta = 270.0
 chemtype = 0
-
-
