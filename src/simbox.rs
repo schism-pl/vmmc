@@ -125,7 +125,7 @@ impl SimBox {
         );
 
         for _ in 0..sim_params.initial_particles {
-            let p = simbox.new_random_particle(rng).unwrap(); // TODO: better error message
+            let p = simbox.new_random_particle(rng).unwrap();
             simbox.insert_particle(p);
         }
         simbox
@@ -191,7 +191,6 @@ impl SimBox {
         None
     }
 
-    // TODO: clean up this accursed function
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn try_new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
         // check if a position overlaps any existing
@@ -285,8 +284,8 @@ impl SimBox {
         self.insert_p_into_cell(p_id, cell_id);
     }
 
-    // TODO: make pretty
     // TODO: optimize since we know x_off and y_off will only ever be 1 or -1?
+    #[inline]
     pub fn get_neighbor_id(&self, id: CellId, x_off: i32, y_off: i32) -> CellId {
         let x = id / self.cells_per_axis[1];
         let y = id - x * self.cells_per_axis[1];
@@ -304,6 +303,21 @@ impl SimBox {
         new_x * self.cells_per_axis[1] + new_y
     }
 
+    #[inline]
+    pub fn write_tenants_to(&self, cell_id: CellId, tenants: &mut Vec<ParticleId>) {
+        let mut remaining_tenants = self.tenants[cell_id];
+        let mut idx = 0;
+        let cell = &self.cells[cell_id];
+        while remaining_tenants > 0 && idx < MAX_PARTICLES_PER_CELL {
+            let p = cell[idx];
+            if p != ParticleId::MAX {
+                tenants.push(p);
+                remaining_tenants -= 1;
+            }
+            idx += 1;
+        }
+    }
+
     // ugly function, but surprisingly effective
     pub fn get_neighbors(&self, pos: Position) -> Vec<ParticleId> {
         let mut r: Vec<ParticleId> = Vec::new();
@@ -319,44 +333,19 @@ impl SimBox {
         let bottom_id = self.get_neighbor_id(center_id, 0, -1);
         let bottom_right_id = self.get_neighbor_id(center_id, 1, -1);
 
-        if self.tenants[up_left_id] != 0 {
-            r.extend(self.cells[up_left_id]);
-        }
-        if self.tenants[up_id] != 0 {
-            r.extend(self.cells[up_id]);
-        }
-        if self.tenants[up_right_id] != 0 {
-            r.extend(self.cells[up_right_id]);
-        }
+        self.write_tenants_to(up_left_id, &mut r);
+        self.write_tenants_to(up_id, &mut r);
+        self.write_tenants_to(up_right_id, &mut r);
 
-        if self.tenants[left_id] != 0 {
-            r.extend(self.cells[left_id]);
-        }
-        if self.tenants[center_id] != 0 {
-            r.extend(self.cells[center_id]);
-        }
-        if self.tenants[right_id] != 0 {
-            r.extend(self.cells[right_id]);
-        }
+        self.write_tenants_to(left_id, &mut r);
+        self.write_tenants_to(center_id, &mut r);
+        self.write_tenants_to(right_id, &mut r);
 
-        if self.tenants[bottom_left_id] != 0 {
-            r.extend(self.cells[bottom_left_id]);
-        }
-        if self.tenants[bottom_id] != 0 {
-            r.extend(self.cells[bottom_id]);
-        }
-        if self.tenants[bottom_right_id] != 0 {
-            r.extend(self.cells[bottom_right_id]);
-        }
+        self.write_tenants_to(bottom_left_id, &mut r);
+        self.write_tenants_to(bottom_id, &mut r);
+        self.write_tenants_to(bottom_right_id, &mut r);
 
-        // TODO: remove this iter cloned thing
-        let result = r
-            .iter()
-            .filter(|&&p_id| p_id != ParticleId::MAX)
-            .cloned()
-            .collect();
-
-        result
+        r
     }
 
     pub fn min_x(&self) -> f64 {
