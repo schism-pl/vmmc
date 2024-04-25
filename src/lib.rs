@@ -243,13 +243,13 @@ pub fn vmmc_from_simparams(
 ) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(sim_params, rng);
 
-    vmmc::Vmmc::new(simbox, initial_interaction_energy)
+    vmmc::Vmmc::new(simbox, initial_interaction_energy, false)
 }
 
 pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(&ip.sim_params, rng);
 
-    vmmc::Vmmc::new(simbox, ip.protocol.initial_interaction_energy())
+    vmmc::Vmmc::new(simbox, ip.protocol.initial_interaction_energy(), false)
 }
 
 pub trait VmmcCallback {

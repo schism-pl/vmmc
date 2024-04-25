@@ -24,11 +24,12 @@ fn calc_angle(or: Orientation, other: Orientation) -> f64 {
 
 pub struct PatchyDiscsPotential {
     interaction_energy: f64,
+    weak: bool,
 }
 
 impl PatchyDiscsPotential {
-    pub fn new(interaction_energy: f64) -> Self {
-        Self { interaction_energy }
+    pub fn new(interaction_energy: f64, weak: bool) -> Self {
+        Self { interaction_energy, weak }
     }
 
     pub fn interaction_energy(&self) -> f64 {
@@ -71,20 +72,17 @@ impl PatchyDiscsPotential {
 
         // calculate angle between difference vector and particle orientation to find closest patch
         let normalized_diff = diff.div_by(dist);
-        let angle0 = calc_angle(normalized_diff, -or0); // TODO: why is this negative?
+        let angle0 = calc_angle(normalized_diff, -or0); 
         let angle1 = calc_angle(normalized_diff, or1);
-        // if !(angle0.is_normal() || angle0.is_zero()) || !(angle1.is_normal() || angle1.is_zero()) {
-        //     println!("angle0 = {angle0}, angle1 = {angle1}, normalized_diff = {normalized_diff} or0 = {or0} or1 = {or1}");
-        //     assert!(angle0.is_normal() || angle0.is_zero());
-        //     assert!(angle1.is_normal() || angle1.is_zero());
-        // }
-
-        // println!("p0 angle = {angle0} p1 angle = {angle1}");
 
         if let Some(patch0) = m0.closest_patch(angle0) {
             if let Some(patch1) = m1.closest_patch(angle1) {
                 if dist <= PARTICLE_DIAMETER + patch0.radius().max(patch1.radius()) {
+                    if self.weak {
+                        return -(self.interaction_energy * 0.5)
+                    } else {
                     return -self.interaction_energy;
+                    }
                 }
             }
         }
@@ -94,7 +92,7 @@ impl PatchyDiscsPotential {
     pub fn determine_interactions(&self, simbox: &SimBox, p: &Particle) -> Vec<ParticleId> {
         let mut interactions = Vec::new();
         for neighbor_id in simbox.get_neighbors(p.pos()) {
-            let neighbor = simbox.particle(neighbor_id); //&simbox.particles()[neighbor_id as usize];
+            let neighbor = simbox.particle(neighbor_id); 
             if neighbor == p {
                 continue;
             }
@@ -103,14 +101,6 @@ impl PatchyDiscsPotential {
             // particles interact!
             if energy < 0.0 {
                 let m = simbox.morphology(p);
-                // if interactions.len() == m.patches().len(){
-                //     println!("{:?}", p);
-
-                //     for interacting_p in interactions.iter() {
-                //         println!("{:?}", simbox.particle(*interacting_p));
-                //     }
-                //     println!("{:?}", simbox.particle(neighbor_id));
-                // }
                 assert_ne!(interactions.len(), m.patches().len());
                 interactions.push(neighbor_id);
             }

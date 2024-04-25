@@ -90,8 +90,8 @@ pub struct Vmmc {
     potential: PatchyDiscsPotential,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {
-        let potential = PatchyDiscsPotential::new(interaction_energy);
+    pub fn new(simbox: SimBox, interaction_energy: f64, weak: bool) -> Self {
+        let potential = PatchyDiscsPotential::new(interaction_energy, weak);
         Self { simbox, potential }
     }
 
