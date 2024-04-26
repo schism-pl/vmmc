@@ -5,6 +5,21 @@ use std::{
 
 use serde::{de, Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CoreShape {
+    Circle,
+    Square,
+}
+
+// impl CoreShape {
+//     pub fn area(&self) {
+//         match self {
+//             Self::Circle => ,
+//             Self::Square => ,
+//         }
+//     }
+// }
+
 // a = upper_bound
 // b = lower_bound
 // c = theta
@@ -55,12 +70,12 @@ impl Patch {
     pub fn angle_tolerance(&self) -> f64 {
         let pr = self.radius;
         (1.0 - 0.5 * pr * pr).acos()
-        //(1.0 - (r * r) / (2.0 * PARTICLE_RADIUS * PARTICLE_RADIUS)).acos()
     }
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Morphology {
+    shape: CoreShape,
     patches: Vec<Patch>,
     #[serde(skip_serializing)]
     max_radius: f64,
@@ -76,6 +91,7 @@ pub struct Morphology {
     angle_tolerances: Vec<f64>,
 }
 
+// TODO: deserialize needs to read nanocubes
 impl<'de> de::Deserialize<'de> for Morphology {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -94,21 +110,28 @@ impl<'de> de::Deserialize<'de> for Morphology {
             where
                 V: de::MapAccess<'de>,
             {
+                let shape = if map.next_key::<String>()?.is_some() {
+                    let shape: CoreShape = map.next_value()?;
+                    Ok(shape)
+                } else {
+                    Err(de::Error::missing_field("shapes"))
+                };
+
                 if map.next_key::<String>()?.is_some() {
                     let v1: Vec<Patch> = map.next_value()?;
-                    Ok(Morphology::new(v1))
+                    Ok(Morphology::new(shape?, v1))
                 } else {
                     Err(de::Error::missing_field("shapes"))
                 }
             }
         }
-
+        // let shape = CoreShape::deserialize(deserializer)?;
         deserializer.deserialize_map(MorphologyVisitor {})
     }
 }
 
 impl Morphology {
-    pub fn new(patches: Vec<Patch>) -> Self {
+    pub fn new(shape: CoreShape, patches: Vec<Patch>) -> Self {
         let max_radius = patches
             .iter()
             .map(|p| p.radius)
@@ -126,12 +149,17 @@ impl Morphology {
 
         // println!("tolerances = {:?}", angle_tolerances);
         Self {
+            shape,
             patches,
             max_radius,
             sin_theta,
             cos_theta,
             angle_tolerances,
         }
+    }
+
+    pub fn shape(&self) -> &CoreShape {
+        &self.shape
     }
 
     pub fn patches(&self) -> &[Patch] {
@@ -179,7 +207,7 @@ impl Morphology {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 120.0, 0);
         let p2 = Patch::new(radius, 240.0, 0);
-        Self::new(vec![p0, p1, p2])
+        Self::new(CoreShape::Circle, vec![p0, p1, p2])
     }
 
     pub fn regular_4patch(radius: f64) -> Self {
@@ -187,7 +215,7 @@ impl Morphology {
         let p1 = Patch::new(radius, 90.0, 0);
         let p2 = Patch::new(radius, 180.0, 0);
         let p3 = Patch::new(radius, 270.0, 0);
-        Self::new(vec![p0, p1, p2, p3])
+        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3])
     }
 
     pub fn regular_6patch(radius: f64) -> Self {
@@ -197,6 +225,6 @@ impl Morphology {
         let p3 = Patch::new(radius, 180.0, 0);
         let p4 = Patch::new(radius, 240.0, 0);
         let p5 = Patch::new(radius, 300.0, 0);
-        Self::new(vec![p0, p1, p2, p3, p4, p5])
+        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3, p4, p5])
     }
 }

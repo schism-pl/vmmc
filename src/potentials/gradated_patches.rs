@@ -2,26 +2,27 @@ use crate::consts::PARTICLE_DIAMETER;
 use crate::particle::IsParticle;
 use crate::simbox::SimBox;
 
+use super::Potential;
+
 // Note: Pairwise potentials are just a filter map
 
 pub struct GcPotential {
     interaction_energy: f64,
+    repulsed: bool,
 }
 
 impl GcPotential {
     pub fn new(interaction_energy: f64) -> Self {
-        Self { interaction_energy }
+        Self { interaction_energy, repulsed: true }
+    }
+}
+
+impl Potential for GcPotential {
+    fn interaction_energy(&mut self) -> &mut f64 {
+        &mut self.interaction_energy
     }
 
-    pub fn interaction_energy(&self) -> f64 {
-        self.interaction_energy
-    }
-
-    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
-        self.interaction_energy = interaction_energy
-    }
-
-    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(
+    fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(
         &self,
         simbox: &SimBox,
         particle0: &P1,
@@ -32,16 +33,20 @@ impl GcPotential {
         let p0 = particle0.pos();
         let p1 = particle1.pos();
 
+        let diff = simbox.sep_in_box(p0, p1);
+
         // norm_sqd < 1.0 => norm < 1.0
-        let dist_sqd = simbox.sep_in_box(p0, p1).l2_norm_sqd();
+        let dist = diff.l2_norm_sqd().sqrt();
 
         // overlap!
-        if dist_sqd < PARTICLE_DIAMETER {
+        if dist < PARTICLE_DIAMETER {
             return f64::INFINITY;
         }
 
+        let max_interaction_dist = m0.max_patch_radius() + m1.max_patch_radius();
+
         // can't possibly interact!
-        if dist_sqd.sqrt() > PARTICLE_DIAMETER + m0.max_patch_radius() + m1.max_patch_radius() {
+        if dist > PARTICLE_DIAMETER + max_interaction_dist {
             return 0.0;
         }
 
@@ -62,7 +67,13 @@ impl GcPotential {
                     // theres no way for more than 2 patches to interact between 2 particles
                     // TODO: write out exact conditions for this and assert it
                     // appendix E of https://journals.aps.org/prx/pdf/10.1103/PhysRevX.4.011044
-                    return -self.interaction_energy;
+                    if self.repulsed {
+                        let scaling_factor = (max_interaction_dist - (dist - PARTICLE_DIAMETER)) / max_interaction_dist; 
+                        return -self.interaction_energy * scaling_factor;
+                    }
+                    else {
+                        return -self.interaction_energy;
+                    }
                 }
             }
         }

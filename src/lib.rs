@@ -83,7 +83,7 @@ impl Arbitrary for SimParams {
                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
                 patches.push(patch);
             }
-            shapes.push(Morphology::new(patches));
+            shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
         }
 
         Self {

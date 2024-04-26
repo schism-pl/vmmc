@@ -4,6 +4,8 @@ use crate::position::Orientation;
 use crate::simbox::SimBox;
 use std::f64::consts::PI;
 
+use super::Potential;
+
 // Note: Pairwise potentials are just a filter map
 
 fn calc_angle(or: Orientation, other: Orientation) -> f64 {
@@ -26,16 +28,14 @@ impl PatchyDiscsPotential {
     pub fn new(interaction_energy: f64) -> Self {
         Self { interaction_energy }
     }
+}
 
-    pub fn interaction_energy(&self) -> f64 {
-        self.interaction_energy
+impl Potential for PatchyDiscsPotential {
+    fn interaction_energy(&mut self) -> &mut f64 {
+        &mut self.interaction_energy
     }
 
-    pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
-        self.interaction_energy = interaction_energy
-    }
-
-    pub fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(
+    fn compute_pair_energy<P1: IsParticle, P2: IsParticle>(
         &self,
         simbox: &SimBox,
         particle0: &P1,

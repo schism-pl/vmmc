@@ -7,8 +7,8 @@ use std::{
 use raqote::*;
 
 use crate::{
-    cli::VmmcConfig, particle::IsParticle, polygons::calc_polygon_distribution, position::DimVec,
-    protocol::ProtocolIter, vmmc::Vmmc,
+    cli::VmmcConfig, morphology::CoreShape, particle::IsParticle,
+    polygons::calc_polygon_distribution, position::DimVec, protocol::ProtocolIter, vmmc::Vmmc,
 };
 
 pub struct XYZWriter {
@@ -164,6 +164,26 @@ fn rgba_orange() -> Source<'static> {
 //     }
 // }
 
+fn render_circle_at(x: f32, y: f32, scale: f64) -> Path {
+    let mut pb = PathBuilder::new();
+    // pb.move_to(x,y);
+    pb.arc(x, y, (scale / 2.0) as f32, 0.0, 2.0 * PI);
+    pb.close();
+    pb.finish()
+}
+
+fn render_square_at(x: f32, y: f32, scale: f64) -> Path {
+    unimplemented!()
+    // let mut pb = PathBuilder::new();
+    // // pb.move_to(x,y);
+    // pb.arc(x, y, (scale / 2.0) as f32, 0.0, 2.0 * PI);
+    // pb.close();
+    // pb.finish()
+}
+// fn render_squares(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+
+// }
+
 fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_off = vmmc.simbox().max_x() * scale;
     let y_off = vmmc.simbox().max_y() * scale;
@@ -173,13 +193,12 @@ fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let draw_options = DrawOptions::new();
 
     for p in vmmc.particles().iter() {
-        let mut pb = PathBuilder::new();
         let x = (p.pos().x() * scale + x_off) as f32;
         let y = (p.pos().y() * scale + y_off) as f32;
-        // pb.move_to(x,y);
-        pb.arc(x, y, (scale / 2.0) as f32, 0.0, 2.0 * PI);
-        pb.close();
-        let draw_path = pb.finish();
+        let draw_path = match vmmc.simbox().shapes()[p.shape_id() as usize].shape() {
+            CoreShape::Circle => render_circle_at(x, y, scale),
+            CoreShape::Square => render_square_at(x, y, scale),
+        };
         dt.stroke(&draw_path, &source, &style, &draw_options);
 
         // draw patches

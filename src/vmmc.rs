@@ -2,7 +2,9 @@ use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLA
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::position::DimVec;
 use crate::position::{random_unit_vec, Position};
+use crate::potentials::gradated_patches::GcPotential;
 use crate::potentials::patchy_discs::PatchyDiscsPotential;
+use crate::potentials::Potential;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use anyhow::{anyhow, Result};
@@ -87,11 +89,11 @@ impl ProposedMove {
 
 pub struct Vmmc {
     simbox: SimBox,
-    potential: PatchyDiscsPotential,
+    potential: GcPotential,
 }
 impl Vmmc {
     pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {
-        let potential = PatchyDiscsPotential::new(interaction_energy);
+        let potential = GcPotential::new(interaction_energy);
         Self { simbox, potential }
     }
 
@@ -111,7 +113,7 @@ impl Vmmc {
         &mut self.simbox
     }
 
-    pub fn potential(&self) -> &PatchyDiscsPotential {
+    pub fn potential(&self) -> &GcPotential {
         &self.potential
     }
 
@@ -518,6 +520,6 @@ impl Vmmc {
     }
 
     pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
-        self.potential.set_interaction_energy(interaction_energy)
+        *self.potential.interaction_energy() = interaction_energy;
     }
 }
