@@ -1,12 +1,8 @@
 use crate::consts::PARTICLE_DIAMETER;
-use crate::particle::{IsParticle, Particle, ParticleId};
+use crate::particle::IsParticle;
 use crate::position::Orientation;
 use crate::simbox::SimBox;
 use std::f64::consts::PI;
-
-// fn is_radian(theta: f64) -> bool {
-//     (theta.is_normal() || theta.is_zero()) && theta.is_sign_positive() && theta <= (2.0*PI)
-// }
 
 // Note: Pairwise potentials are just a filter map
 
@@ -89,33 +85,5 @@ impl PatchyDiscsPotential {
             }
         }
         0.0
-    }
-
-    pub fn determine_interactions(&self, simbox: &SimBox, p: &Particle) -> Vec<ParticleId> {
-        let mut interactions = Vec::new();
-        for neighbor_id in simbox.get_neighbors(p.pos()) {
-            let neighbor = simbox.particle(neighbor_id); //&simbox.particles()[neighbor_id as usize];
-            if neighbor == p {
-                continue;
-            }
-            let energy = self.compute_pair_energy(simbox, p, neighbor);
-
-            // particles interact!
-            if energy < 0.0 {
-                let m = simbox.morphology(p);
-                // if interactions.len() == m.patches().len(){
-                //     println!("{:?}", p);
-
-                //     for interacting_p in interactions.iter() {
-                //         println!("{:?}", simbox.particle(*interacting_p));
-                //     }
-                //     println!("{:?}", simbox.particle(neighbor_id));
-                // }
-                assert_ne!(interactions.len(), m.patches().len());
-                interactions.push(neighbor_id);
-            }
-        }
-
-        interactions
     }
 }

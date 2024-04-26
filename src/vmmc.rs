@@ -142,7 +142,25 @@ impl Vmmc {
     }
 
     pub fn determine_interactions(&self, p: &Particle) -> Vec<ParticleId> {
-        self.potential.determine_interactions(&self.simbox, p)
+        let mut interactions = Vec::new();
+        for neighbor_id in self.simbox.get_neighbors(p.pos()) {
+            let neighbor = self.simbox.particle(neighbor_id); //&simbox.particles()[neighbor_id as usize];
+            if neighbor == p {
+                continue;
+            }
+            let energy = self
+                .potential
+                .compute_pair_energy(&self.simbox, p, neighbor);
+
+            // particles interact!
+            if energy < 0.0 {
+                // let m = self.simbox.morphology(p);
+                // assert_ne!(interactions.len(), m.patches().len());
+                interactions.push(neighbor_id);
+            }
+        }
+
+        interactions
     }
 
     // get energy

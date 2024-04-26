@@ -213,7 +213,7 @@ fn render_interactions(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let draw_options = DrawOptions::new();
 
     for p0 in vmmc.particles().iter() {
-        let interactions = vmmc.potential().determine_interactions(vmmc.simbox(), p0);
+        let interactions = vmmc.determine_interactions(p0);
         for &neighbor_id in interactions.iter() {
             let p1 = vmmc.particle(neighbor_id);
             // vector from p0 -> p1
