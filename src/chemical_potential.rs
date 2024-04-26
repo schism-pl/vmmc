@@ -49,7 +49,7 @@ fn maybe_insert_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut Sma
 }
 
 fn particle_exchange(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut SmallRng) {
-    if rng.gen::<f64>() < 0.5 {
+    if rng.gen::<bool>() {
         maybe_remove_particle(vmmc, chemical_potential, rng);
     } else {
         maybe_insert_particle(vmmc, chemical_potential, rng);
