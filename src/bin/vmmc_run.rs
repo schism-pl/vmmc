@@ -9,6 +9,7 @@ use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
 use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
 use vmmc::io::{clear_out_files, write_geometry_png, write_protocols_png, write_stats};
+use vmmc::morphology::CoreShape;
 use vmmc::polygons::{calc_bond_distribution, calc_polygon_distribution};
 use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
@@ -23,8 +24,8 @@ use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
 
-fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
-    let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
+fn packing_fraction(shape: &CoreShape, num_particles: usize, volume: f64) -> f64 {
+    let particle_volume = num_particles as f64 * shape.area();
     particle_volume / volume
 }
 
@@ -49,7 +50,11 @@ impl VmmcCallback for StdCallback {
         println!("# of particles: {:?}", vmmc.particles().num_particles());
         println!(
             "Packing fraction: {:?}",
-            packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
+            packing_fraction(
+                vmmc.simbox().shapes()[0].shape(),
+                vmmc.particles().num_particles(),
+                vmmc.simbox().volume()
+            )
         );
         let polygon_dist = calc_polygon_distribution(vmmc, 12);
         println!("Polygon distribution: {:?}", polygon_dist);
@@ -100,6 +105,7 @@ fn main() -> anyhow::Result<()> {
     let mut rng = SmallRng::seed_from_u64(seed as u64);
 
     let packing_fraction = packing_fraction(
+        ip.sim_params.shapes[0].shape(),
         ip.sim_params.initial_particles,
         ip.sim_params.box_height * ip.sim_params.box_width,
     );

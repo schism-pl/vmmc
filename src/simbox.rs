@@ -1,6 +1,6 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
+use crate::consts::{MAX_PARTICLES_PER_CELL, NC_HALF_DIAG_LEN};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::random_unit_vec;
@@ -380,8 +380,8 @@ impl SimBox {
         let or = p.or();
         let sin_theta = self.morphology(p).sin_theta(patch_idx);
         let cos_theta = self.morphology(p).cos_theta(patch_idx);
-        let x = p.pos().x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
-        let y = p.pos().y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
+        let x = p.pos().x() + NC_HALF_DIAG_LEN * (or.x() * cos_theta - or.y() * sin_theta);
+        let y = p.pos().y() + NC_HALF_DIAG_LEN * (or.x() * sin_theta + or.y() * cos_theta);
         self.map_pos_into_box(Position::new([x, y])) // simbox map into pos
     }
 

@@ -5,20 +5,26 @@ use std::{
 
 use serde::{de, Deserialize, Serialize};
 
+use crate::consts::NC_SIDE_LEN;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CoreShape {
     Circle,
     Square,
 }
 
-// impl CoreShape {
-//     pub fn area(&self) {
-//         match self {
-//             Self::Circle => ,
-//             Self::Square => ,
-//         }
-//     }
-// }
+impl CoreShape {
+    pub fn area(&self) -> f64 {
+        match self {
+            Self::Circle =>
+            /*PARTICLE_RADIUS * PARTICLE_RADIUS * PI*/
+            {
+                unimplemented!()
+            }
+            Self::Square => NC_SIDE_LEN * NC_SIDE_LEN,
+        }
+    }
+}
 
 // a = upper_bound
 // b = lower_bound
@@ -179,52 +185,52 @@ impl Morphology {
     }
 
     // TODO: can probably be optimized
-    /// given an angle, the patch that contains the angle
-    /// if there is no such patch, returns None
-    pub fn closest_patch(&self, theta: f64) -> Option<&Patch> {
-        // println!("Finding closest patch to {theta}");
-        for (p_idx, patch) in self.patches.iter().enumerate() {
-            let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
-                                                          // println!("Finding patch theta = {patch_theta}");
-            let angle_tolerance = self.angle_tolerances[p_idx];
+    // given an angle, the patch that contains the angle
+    // if there is no such patch, returns None
+    // pub fn closest_patch(&self, theta: f64) -> Option<&Patch> {
+    //     // println!("Finding closest patch to {theta}");
+    //     for (p_idx, patch) in self.patches.iter().enumerate() {
+    //         let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
+    //                                                       // println!("Finding patch theta = {patch_theta}");
+    //         let angle_tolerance = self.angle_tolerances[p_idx];
 
-            // println!("Lower bound = {}", (((patch_theta - angle_tolerance) + TAU) % TAU));
-            // println!("Upper bound = {}", ((patch_theta + angle_tolerance) % TAU));
-            if in_modular_range(theta, patch_theta, angle_tolerance) {
-                return Some(patch);
-            }
-            // // TODO: less janky
-            // if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
-            //     && theta <= ((patch_theta + angle_tolerance) % TAU)
-            // {
-            //     return Some(patch);
-            // }
-        }
-        None
-    }
+    //         // println!("Lower bound = {}", (((patch_theta - angle_tolerance) + TAU) % TAU));
+    //         // println!("Upper bound = {}", ((patch_theta + angle_tolerance) % TAU));
+    //         if in_modular_range(theta, patch_theta, angle_tolerance) {
+    //             return Some(patch);
+    //         }
+    //         // // TODO: less janky
+    //         // if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
+    //         //     && theta <= ((patch_theta + angle_tolerance) % TAU)
+    //         // {
+    //         //     return Some(patch);
+    //         // }
+    //     }
+    //     None
+    // }
 
-    pub fn regular_3patch(radius: f64) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 120.0, 0);
-        let p2 = Patch::new(radius, 240.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2])
-    }
+    // pub fn regular_3patch(radius: f64) -> Self {
+    //     let p0 = Patch::new(radius, 0.0, 0);
+    //     let p1 = Patch::new(radius, 120.0, 0);
+    //     let p2 = Patch::new(radius, 240.0, 0);
+    //     Self::new(CoreShape::Circle, vec![p0, p1, p2])
+    // }
 
-    pub fn regular_4patch(radius: f64) -> Self {
+    pub fn regular_4patch_square(radius: f64) -> Self {
         let p0 = Patch::new(radius, 0.0, 0);
         let p1 = Patch::new(radius, 90.0, 0);
         let p2 = Patch::new(radius, 180.0, 0);
         let p3 = Patch::new(radius, 270.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3])
+        Self::new(CoreShape::Square, vec![p0, p1, p2, p3])
     }
 
-    pub fn regular_6patch(radius: f64) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 60.0, 0);
-        let p2 = Patch::new(radius, 120.0, 0);
-        let p3 = Patch::new(radius, 180.0, 0);
-        let p4 = Patch::new(radius, 240.0, 0);
-        let p5 = Patch::new(radius, 300.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3, p4, p5])
-    }
+    // pub fn regular_6patch(radius: f64) -> Self {
+    //     let p0 = Patch::new(radius, 0.0, 0);
+    //     let p1 = Patch::new(radius, 60.0, 0);
+    //     let p2 = Patch::new(radius, 120.0, 0);
+    //     let p3 = Patch::new(radius, 180.0, 0);
+    //     let p4 = Patch::new(radius, 240.0, 0);
+    //     let p5 = Patch::new(radius, 300.0, 0);
+    //     Self::new(CoreShape::Circle, vec![p0, p1, p2, p3, p4, p5])
+    // }
 }

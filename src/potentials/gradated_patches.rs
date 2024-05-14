@@ -1,4 +1,4 @@
-use crate::consts::PARTICLE_DIAMETER;
+// use crate::consts::PARTICLE_DIAMETER;
 use crate::particle::IsParticle;
 use crate::simbox::SimBox;
 
@@ -13,7 +13,10 @@ pub struct GcPotential {
 
 impl GcPotential {
     pub fn new(interaction_energy: f64) -> Self {
-        Self { interaction_energy, repulsed: true }
+        Self {
+            interaction_energy,
+            repulsed: true,
+        }
     }
 }
 
@@ -68,10 +71,10 @@ impl Potential for GcPotential {
                     // TODO: write out exact conditions for this and assert it
                     // appendix E of https://journals.aps.org/prx/pdf/10.1103/PhysRevX.4.011044
                     if self.repulsed {
-                        let scaling_factor = (max_interaction_dist - (dist - PARTICLE_DIAMETER)) / max_interaction_dist; 
+                        let scaling_factor = (max_interaction_dist - (dist - PARTICLE_DIAMETER))
+                            / max_interaction_dist;
                         return -self.interaction_energy * scaling_factor;
-                    }
-                    else {
+                    } else {
                         return -self.interaction_energy;
                     }
                 }

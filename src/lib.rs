@@ -1,8 +1,10 @@
 #![allow(clippy::needless_range_loop)]
 
+use std::f64::consts::SQRT_2;
+
 use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
-use consts::PARTICLE_DIAMETER;
+use consts::NC_SIDE_LEN;
 use morphology::{Morphology, Patch};
 use position::DimVec;
 use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
@@ -41,7 +43,7 @@ pub struct SimParams {
 impl Default for SimParams {
     fn default() -> Self {
         let initial_particles = 400;
-        let shapes = vec![Morphology::regular_4patch(0.05)];
+        let shapes = vec![Morphology::regular_4patch_square(0.05)];
 
         SimParams {
             initial_particles,
@@ -62,7 +64,7 @@ impl Arbitrary for SimParams {
         let mut box_height = 0.0;
 
         // while less than 1.5 cell per particle, pick a new box radius
-        while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
+        while box_width * box_height / (NC_SIDE_LEN + patch_radius + patch_radius).powi(2)
             <= 1.5 * initial_particles as f64
         {
             box_width = f64_in_range(g, 10.0, 200.0);
@@ -97,7 +99,7 @@ impl Arbitrary for SimParams {
 
 impl SimParams {
     pub fn max_interaction_range(&self) -> f64 {
-        PARTICLE_DIAMETER
+        NC_SIDE_LEN * SQRT_2
             + self
                 .shapes
                 .iter()

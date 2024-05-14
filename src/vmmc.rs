@@ -1,9 +1,8 @@
-use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, PARTICLE_RADIUS, PROB_TRANSLATE};
+use crate::consts::{MAX_ROTATION, MAX_TRANSLATION, NC_HALF_DIAG_LEN, PROB_TRANSLATE};
 use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::position::DimVec;
 use crate::position::{random_unit_vec, Position};
 use crate::potentials::gradated_patches::GcPotential;
-use crate::potentials::patchy_discs::PatchyDiscsPotential;
 use crate::potentials::Potential;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
@@ -203,7 +202,7 @@ impl Vmmc {
         stokes_radius /= vmoves.inner.len() as f64;
         stokes_radius = stokes_radius.sqrt();
 
-        let scale_factor = PARTICLE_RADIUS / (PARTICLE_RADIUS + stokes_radius);
+        let scale_factor = NC_HALF_DIAG_LEN / (NC_HALF_DIAG_LEN + stokes_radius);
         if mov.is_rotation {
             scale_factor * scale_factor * scale_factor
         } else {
