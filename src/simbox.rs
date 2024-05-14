@@ -2,9 +2,9 @@ use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{MAX_PARTICLES_PER_CELL, NC_HALF_DIAG_LEN};
 use crate::morphology::{CoreShape, Morphology};
-use crate::particle::{Particles, ShapeId};
-use crate::position::{random_unit_vec, Orientation};
-use crate::{collision_detection, SimParams};
+use crate::particle::Particles;
+use crate::position::random_unit_vec;
+use crate::SimParams;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -76,13 +76,13 @@ impl SimBox {
     }
 
     /// if particle `p_id` were at position `pos`, would it cause any overlaps?
-    pub fn would_overlap(&self, p_id: ParticleId, pos: Position) -> bool {
-        for other_id in self.get_neighbors(pos) {
+    pub fn would_overlap<P: IsParticle>(&self, p: &P) -> bool {
+        for other_id in self.get_neighbors(p.pos()) {
             let other = self.particle(other_id);
-            if other_id == p_id {
+            if other_id == p.id() {
                 continue;
             }
-            if self.sep_in_box(pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
+            if self.overlaps(p, other) {
                 return true;
             }
         }
@@ -91,14 +91,15 @@ impl SimBox {
 
     // check if a particle overlaps any other particles
     /// must work even if p has invalid tenancy info due to its use in commit_moves
-    pub fn overlaps_any(&self, p: &Particle) -> bool {
-        self.would_overlap(p.id(), p.pos())
-    }
+    // pub fn overlaps_any(&self, p: &Particle) -> bool {
+    //     self.would_overlap(p)
+    // }
 
-    pub fn overlaps(&self, shape_id: ShapeId, pos0: Position, or0: Orientation, pos1: Position, or1: Orientation) {
-        match self.shapes()[shape_id].shape {
-            CoreShape::Circle => self.sep_in_box(pos, pos1).l2_norm() < PARTICLE_DIAMETER,
-            CoreShape::Square => self.nc_overlaps_with(a, b),
+    pub fn overlaps<P0: IsParticle, P1: IsParticle>(&self, p0: &P0, p1: &P1) -> bool {
+        assert!(p0.shape_id() == p1.shape_id());
+        match self.morphology(p0).shape() {
+            CoreShape::Circle => unimplemented!(), //self.sep_in_box(p0.pos(), p1.pos()).l2_norm() < PARTICLE_DIAMETER,
+            CoreShape::Square => self.nc_overlaps_with(p0, p1),
         }
     }
 
@@ -201,24 +202,26 @@ impl SimBox {
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn try_new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
         // check if a position overlaps any existing
-        fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
-            for other in simbox.particles.iter() {
-                if simbox.sep_in_box(*pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
-                    return true;
-                }
-            }
-            false
-        }
+        // fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
+        //     for other in simbox.particles.iter() {
+        //         if simbox.sep_in_box(*pos, other.pos()).l2_norm() < PARTICLE_DIAMETER {
+        //             return true;
+        //         }
+        //     }
+        //     false
+        // }
 
         let p_id = self.particles.get_unused_p_id();
         let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
         let pos = self.random_pos(rng);
-        if pos_has_overlap(self, &pos) {
-            self.particles.push_unused_p_id(p_id);
-            return None;
-        }
         let or = random_unit_vec(rng);
-        Some(Particle::new(p_id, pos, or, shape_id))
+        let particle = Particle::new(p_id, pos, or, shape_id);
+        if self.would_overlap(&particle) {
+            self.particles.push_unused_p_id(p_id);
+            None
+        } else {
+            Some(particle)
+        }
     }
 
     pub fn get_cell_id(&self, pos: Position) -> CellId {

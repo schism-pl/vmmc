@@ -32,15 +32,15 @@ impl CoreShape {
 
 // TODO: extensively test
 // Note: assumes theta, target_theta, and tolerance are all in [0, 2pi]
-fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
-    let lower_bound = ((target_theta - tolerance) + TAU) % TAU;
-    let upper_bound = (target_theta + tolerance) % TAU;
-    if lower_bound <= upper_bound {
-        theta >= lower_bound && theta <= upper_bound
-    } else {
-        !(theta < lower_bound && theta > upper_bound)
-    }
-}
+// fn in_modular_range(theta: f64, target_theta: f64, tolerance: f64) -> bool {
+//     let lower_bound = ((target_theta - tolerance) + TAU) % TAU;
+//     let upper_bound = (target_theta + tolerance) % TAU;
+//     if lower_bound <= upper_bound {
+//         theta >= lower_bound && theta <= upper_bound
+//     } else {
+//         !(theta < lower_bound && theta > upper_bound)
+//     }
+// }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Patch {
@@ -93,8 +93,8 @@ pub struct Morphology {
     cos_theta: Vec<f64>,
     // TODO: better docs
     // maps patch -> angle tolerance (+- radians where it can still interact)
-    #[serde(skip_serializing)]
-    angle_tolerances: Vec<f64>,
+    // #[serde(skip_serializing)]
+    // angle_tolerances: Vec<f64>,
 }
 
 // TODO: deserialize needs to read nanocubes
@@ -160,7 +160,7 @@ impl Morphology {
             max_radius,
             sin_theta,
             cos_theta,
-            angle_tolerances,
+            // angle_tolerances,
         }
     }
 

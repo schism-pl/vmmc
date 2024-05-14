@@ -8,6 +8,7 @@ pub type ParticleId = u16;
 pub type ShapeId = u16;
 
 pub trait IsParticle {
+    fn id(&self) -> ParticleId;
     fn pos(&self) -> Position;
     fn or(&self) -> Orientation;
     fn shape_id(&self) -> ShapeId;
@@ -22,6 +23,10 @@ pub struct Particle {
 }
 
 impl IsParticle for Particle {
+    fn id(&self) -> ParticleId {
+        self.id
+    }
+
     fn pos(&self) -> Position {
         self.pos
     }
@@ -45,10 +50,6 @@ impl Particle {
         }
     }
 
-    pub fn id(&self) -> ParticleId {
-        self.id
-    }
-
     pub fn update_pos(&mut self, new_pos: Position) {
         self.pos = new_pos;
     }
@@ -64,40 +65,28 @@ impl Particle {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct VParticle {
-    orig_pos: Position,
-    orig_or: Orientation,
+    id: ParticleId,
     pos: Position,
     or: Orientation,
     shape_id: ShapeId,
 }
 
 impl VParticle {
-    pub fn new(
-        orig_pos: Position,
-        orig_or: Orientation,
-        pos: Position,
-        or: Orientation,
-        shape_id: ShapeId,
-    ) -> Self {
+    pub fn new(id: ParticleId, pos: Position, or: Orientation, shape_id: ShapeId) -> Self {
         Self {
-            orig_pos,
-            orig_or,
+            id,
             pos,
             or,
             shape_id,
         }
     }
-
-    pub fn orig_pos(&self) -> Position {
-        self.orig_pos
-    }
-
-    pub fn orig_or(&self) -> Orientation {
-        self.orig_or
-    }
 }
 
 impl IsParticle for VParticle {
+    fn id(&self) -> ParticleId {
+        self.id
+    }
+
     fn pos(&self) -> Position {
         self.pos
     }

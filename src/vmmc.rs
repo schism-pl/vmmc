@@ -26,21 +26,8 @@ impl From<MoveDir> for f64 {
         }
     }
 }
-#[derive(Debug)]
-pub struct VirtualMoves {
-    // particle moving, delta position, delta orientation
-    inner: Vec<(ParticleId, VParticle)>,
-}
 
-impl VirtualMoves {
-    fn new() -> Self {
-        Self { inner: Vec::new() }
-    }
-
-    fn push(&mut self, id: ParticleId, p: VParticle) {
-        self.inner.push((id, p))
-    }
-}
+// pub type VirtualMoves = Vec<VParticle>;
 
 // particle move
 #[derive(Debug)]
@@ -185,21 +172,22 @@ impl Vmmc {
     }
 
     // TODO: what is this?
-    fn compute_stokes_radius(&self, vmoves: &VirtualMoves, mov: &ProposedMove) -> f64 {
+    fn compute_stokes_radius(&self, vmoves: &[VParticle], mov: &ProposedMove) -> f64 {
         let mut stokes_radius = 0.0;
 
-        for (_, vp) in vmoves.inner.iter() {
+        for vp in vmoves.iter() {
+            let orig_particle = self.particle(vp.id());
             let delta = if !mov.is_rotation {
                 let center_of_mass = self.center_of_mass(vmoves);
-                self.simbox.sep_in_box(vp.orig_pos(), center_of_mass)
+                self.simbox.sep_in_box(orig_particle.pos(), center_of_mass)
             } else {
                 self.simbox
-                    .sep_in_box(vp.orig_pos(), self.particle(mov.seed_id).pos())
+                    .sep_in_box(orig_particle.pos(), self.particle(mov.seed_id).pos())
             };
 
             stokes_radius += delta.cross_prod_sqd(mov.vec);
         }
-        stokes_radius /= vmoves.inner.len() as f64;
+        stokes_radius /= vmoves.len() as f64;
         stokes_radius = stokes_radius.sqrt();
 
         let scale_factor = NC_HALF_DIAG_LEN / (NC_HALF_DIAG_LEN + stokes_radius);
@@ -212,12 +200,13 @@ impl Vmmc {
 
     // get center of mass for vmov set
     // TODO: boundary conditions?
-    fn center_of_mass(&self, vmoves: &VirtualMoves) -> Position {
+    fn center_of_mass(&self, vmoves: &[VParticle]) -> Position {
         let mut com = Position::zeroes();
-        for (_, vp) in vmoves.inner.iter() {
-            com += vp.orig_pos(); //particle.pos();
+        for vp in vmoves.iter() {
+            let orig_particle = self.particle(vp.id());
+            com += orig_particle.pos(); //particle.pos();
         }
-        com.div_by(vmoves.inner.len() as f64)
+        com.div_by(vmoves.len() as f64)
     }
 
     // returns difference in position between final and original
@@ -242,13 +231,7 @@ impl Vmmc {
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);
-        VParticle::new(
-            particle.pos(),
-            particle.or(),
-            final_p,
-            final_or,
-            particle.shape_id(),
-        )
+        VParticle::new(particle.id(), final_p, final_or, particle.shape_id())
     }
 
     fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {
@@ -279,13 +262,13 @@ impl Vmmc {
 
     // Note: each particle gets to attempt to link to every neighbor, even if neighbor
     // has tried to be recruited before
-    fn recruit_cluster(&self, rng: &mut SmallRng, mov: &ProposedMove) -> Result<VirtualMoves> {
+    fn recruit_cluster(&self, rng: &mut SmallRng, mov: &ProposedMove) -> Result<Vec<VParticle>> {
         let seed = self.particle(mov.seed_id);
         // particles in the cluster who still need to make their linking pass
         let mut worklist = VecDeque::from([mov.seed_id]);
         // particles who have made their linking pass
         let mut seen = HashSet::new();
-        let mut vmoves = VirtualMoves::new();
+        let mut vmoves = Vec::new();
 
         let mut cluster_size = 1;
 
@@ -308,7 +291,7 @@ impl Vmmc {
             let final_p = self.calculate_motion(particle, mov, seed, MoveDir::Forward);
 
             // this particle moves
-            vmoves.push(id, final_p.clone());
+            vmoves.push(final_p.clone());
 
             let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
             let interactions = self.determine_interactions(particle);
@@ -377,34 +360,31 @@ impl Vmmc {
     /// This function is a little finicky, since we need to check for overlaps before updating tenancy, or else
     /// we can include > MAX_PARTICLES_PER_CELL in a cell and cause a crash
     /// so we remove all particles involved in the vmove, check for overlaps in the new position, then move all of them
-    fn commit_moves(&mut self, vmoves: &VirtualMoves) -> Result<()> {
+    fn commit_moves(&mut self, vmoves: &[VParticle]) -> Result<()> {
         // let old_pos = self.particle(*p_id).pos();
 
         // 1) remove all moved particles from the tenancy array so we ignore them
         // when checking for overlaps
-        for (p_id, _) in vmoves.inner.iter() {
-            self.simbox.remove_particle_tenancy(*p_id);
+        for vp in vmoves.iter() {
+            self.simbox.remove_particle_tenancy(vp.id());
         }
 
         // 2) check if making any of the moves would cause an overlap
-        let is_overlap = vmoves
-            .inner
-            .iter()
-            .any(|(p_id, vp)| self.simbox.would_overlap(*p_id, vp.pos()));
+        let is_overlap = vmoves.iter().any(|vp| self.simbox.would_overlap(vp));
 
         if is_overlap {
             // if overlap, put the particles back in the tenancy array and return an error
-            for (p_id, _) in vmoves.inner.iter() {
-                self.simbox.insert_particle_tenancy(*p_id);
+            for vp in vmoves.iter() {
+                self.simbox.insert_particle_tenancy(vp.id());
             }
             return Err(anyhow!("Overlap"));
         } else {
             // if no overlap, proceed with commit
-            for (p_id, vp) in vmoves.inner.iter() {
-                let p = self.simbox.particles_mut().particle_mut(*p_id);
+            for vp in vmoves.iter() {
+                let p = self.simbox.particles_mut().particle_mut(vp.id());
                 p.update_pos(vp.pos());
                 p.update_or(vp.or());
-                self.simbox.insert_particle_tenancy(*p_id);
+                self.simbox.insert_particle_tenancy(vp.id());
             }
         };
         Ok(())
@@ -414,10 +394,10 @@ impl Vmmc {
         &mut self,
         rng: &mut SmallRng,
         mov: &ProposedMove,
-        vmoves: &VirtualMoves,
+        vmoves: &[VParticle],
     ) -> Result<()> {
         // approximate Stokes scaling factor
-        let scale_factor = if vmoves.inner.len() > 1 {
+        let scale_factor = if vmoves.len() > 1 {
             self.compute_stokes_radius(vmoves, mov)
         } else {
             1.0
@@ -433,7 +413,9 @@ impl Vmmc {
     }
 
     fn sim_has_overlaps(&self) -> bool {
-        self.particles().iter().any(|p| self.simbox().overlaps(p))
+        self.particles()
+            .iter()
+            .any(|p| self.simbox().would_overlap(p))
     }
 
     // vmoves_well_formed

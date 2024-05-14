@@ -1,4 +1,3 @@
-use std::f64::consts::PI;
 use std::fs::{self, create_dir_all};
 use std::process::exit;
 use std::time::Instant;
@@ -7,7 +6,7 @@ use clap::Parser;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
-use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
+use vmmc::consts::MAX_INITIAL_PACKING_FRACTION;
 use vmmc::io::{clear_out_files, write_geometry_png, write_protocols_png, write_stats};
 use vmmc::morphology::CoreShape;
 use vmmc::polygons::{calc_bond_distribution, calc_polygon_distribution};

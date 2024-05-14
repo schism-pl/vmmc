@@ -1,10 +1,8 @@
 #![allow(clippy::needless_range_loop)]
 
-use std::f64::consts::SQRT_2;
-
 use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
-use consts::NC_SIDE_LEN;
+use consts::{NC_DIAG_LEN, NC_SIDE_LEN};
 use morphology::{Morphology, Patch};
 use position::DimVec;
 use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
@@ -100,7 +98,7 @@ impl Arbitrary for SimParams {
 
 impl SimParams {
     pub fn max_interaction_range(&self) -> f64 {
-        NC_SIDE_LEN * SQRT_2
+        NC_DIAG_LEN
             + self
                 .shapes
                 .iter()
