@@ -1,10 +1,10 @@
 use rand::{rngs::SmallRng, Rng};
 
 use crate::consts::{MAX_PARTICLES_PER_CELL, NC_HALF_DIAG_LEN};
-use crate::morphology::Morphology;
-use crate::particle::Particles;
-use crate::position::random_unit_vec;
-use crate::SimParams;
+use crate::morphology::{CoreShape, Morphology};
+use crate::particle::{Particles, ShapeId};
+use crate::position::{random_unit_vec, Orientation};
+use crate::{collision_detection, SimParams};
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
@@ -91,8 +91,15 @@ impl SimBox {
 
     // check if a particle overlaps any other particles
     /// must work even if p has invalid tenancy info due to its use in commit_moves
-    pub fn overlaps(&self, p: &Particle) -> bool {
+    pub fn overlaps_any(&self, p: &Particle) -> bool {
         self.would_overlap(p.id(), p.pos())
+    }
+
+    pub fn overlaps(&self, shape_id: ShapeId, pos0: Position, or0: Orientation, pos1: Position, or1: Orientation) {
+        match self.shapes()[shape_id].shape {
+            CoreShape::Circle => self.sep_in_box(pos, pos1).l2_norm() < PARTICLE_DIAMETER,
+            CoreShape::Square => self.nc_overlaps_with(a, b),
+        }
     }
 
     // uniform distribution of morphologies present in `shapes`
@@ -243,7 +250,7 @@ impl SimBox {
     }
 
     pub fn get_neighbor(&self, p: &Particle, x: f64, y: f64) -> &Cell {
-        let neighbor_pos = p.pos().translate_by(x, y);
+        let neighbor_pos = p.pos().translated_by(x, y);
         let neighbor_pos = self.map_pos_into_box(neighbor_pos);
         self.get_cell(neighbor_pos)
     }

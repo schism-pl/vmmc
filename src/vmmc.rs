@@ -237,8 +237,8 @@ impl Vmmc {
             let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
             let theta = mov.step_factor(dir);
 
-            final_p += rel_pos.rotated_by(theta);
-            final_or += final_or.rotated_by(theta);
+            final_p += rel_pos.rotated_by(theta) - rel_pos;
+            final_or += final_or.rotated_by(theta) - final_or;
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);

@@ -18,6 +18,7 @@ use vmmc::Vmmc;
 
 pub mod chemical_potential;
 pub mod cli;
+pub mod collision_detection;
 pub mod consts;
 pub mod io;
 pub mod morphology;
