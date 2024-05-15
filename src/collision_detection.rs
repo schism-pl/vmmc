@@ -6,8 +6,6 @@ use crate::{
 };
 use std::f64::consts::FRAC_PI_2;
 
-// TODO: needs lots of testing
-
 impl SimBox {
     /// Calculates the vertices of the square.
     /// Postcondition: all returned positions are in box

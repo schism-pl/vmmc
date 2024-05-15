@@ -48,6 +48,7 @@ impl GcPotential {
             return 0.0;
         }
 
+        let mut energy = 0.0;
         // check all pairs of patches
         for (p_idx0, patch0) in m0.patches().iter().enumerate() {
             // Compute position of patch i on first disc.
@@ -62,17 +63,16 @@ impl GcPotential {
                 let patch_dist = simbox.sep_in_box(pc0, pc1).l2_norm();
 
                 if patch_dist < patch0.radius() + patch1.radius() {
-                    // theres no way for more than 2 patches to interact between 2 particles
-                    // TODO: write out exact conditions for this and assert it
                     // appendix E of https://journals.aps.org/prx/pdf/10.1103/PhysRevX.4.011044
                     let scaling_factor =
                         (max_interaction_dist - (dist - NC_DIAG_LEN)) / max_interaction_dist;
-                    return -self.interaction_energy * scaling_factor;
+
+                    energy -= self.interaction_energy * scaling_factor;
                 }
             }
         }
 
-        0.0
+        energy
     }
 
     pub fn hs_compute_pair_energy<P1: IsParticle, P2: IsParticle>(

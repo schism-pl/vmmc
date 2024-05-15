@@ -1,6 +1,10 @@
+use std::f64::consts::SQRT_2;
+
+use approx::{assert_relative_eq, relative_eq};
 use rand::{rngs::SmallRng, SeedableRng};
 use rand_distr::num_traits::Zero;
 use vmmc::{
+    consts::{NC_DIAG_LEN, NC_SIDE_LEN},
     morphology::Morphology,
     particle::Particle,
     position::{Orientation, Position},
@@ -35,6 +39,179 @@ fn two_particle_vmmc(
     vmmc.simbox_mut().insert_particle(part1);
     vmmc.simbox_mut().insert_particle(part2);
     vmmc
+}
+
+const TEST_EPSILON: f64 = 0.000001;
+
+// check that two adjacent particles interact
+// chack that interaction goes both ways
+#[test]
+fn potential_test_1() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0, 1.0 + NC_DIAG_LEN + 0.01]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_relative_eq!(energy10, -8.0 * 0.8, epsilon = TEST_EPSILON);
+    assert_relative_eq!(energy01, -8.0 * 0.8, epsilon = TEST_EPSILON);
+}
+
+#[test]
+fn potential_test_2() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0 + NC_DIAG_LEN + 0.01, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_relative_eq!(energy10, -8.0 * 0.8, epsilon = TEST_EPSILON);
+    assert_relative_eq!(energy01, -8.0 * 0.8, epsilon = TEST_EPSILON);
+}
+
+#[test]
+fn potential_test_3() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0, 1.0 + NC_DIAG_LEN + 0.01]);
+    let or1 = Orientation::new([1.0, 0.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_relative_eq!(energy10, -8.0 * 0.8, epsilon = TEST_EPSILON);
+    assert_relative_eq!(energy01, -8.0 * 0.8, epsilon = TEST_EPSILON);
+}
+
+#[test]
+fn potential_test_4() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_infinite());
+    assert!(energy10.is_infinite());
+}
+
+// Test overlapping squares
+#[test]
+fn potential_test_5() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0 + NC_DIAG_LEN - 0.01, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert_eq!(energy01, 3.0);
+    assert!(energy01.is_infinite());
+    assert!(energy10.is_infinite());
+}
+
+#[test]
+fn potential_test_6() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([1.0, 1.0 + NC_DIAG_LEN + 0.01]);
+    let or1 = Orientation::new([SQRT_2, SQRT_2]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_zero());
+    assert!(energy10.is_zero());
+}
+
+// testing interaction across periodic boundary
+#[test]
+fn potential_test_7() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([14.99, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([-15.0 + NC_DIAG_LEN, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+
+    assert_relative_eq!(energy10, -8.0 * 0.8, epsilon = TEST_EPSILON);
+    assert_relative_eq!(energy01, -8.0 * 0.8, epsilon = TEST_EPSILON);
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+}
+
+// testing two interactions at once
+#[test]
+fn potential_test_8() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([1.0, 1.0]);
+    let or0 = Orientation::new([SQRT_2, SQRT_2]);
+
+    let p1 = Position::new([1.0 + NC_SIDE_LEN + 0.01, 1.0]);
+    let or1 = Orientation::new([SQRT_2, SQRT_2]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_normal() || energy01.is_zero());
+    assert!(energy10.is_normal() || energy10.is_zero());
+    assert_relative_eq!(energy10, -8.0 * 0.8 * 2.0, epsilon = TEST_EPSILON);
+    assert_relative_eq!(energy01, -8.0 * 0.8 * 2.0, epsilon = TEST_EPSILON);
+}
+
+// Test overlapping squares across boundary
+#[test]
+fn potential_test_9() {
+    let shape = Morphology::regular_4patch_square(0.05);
+
+    let p0 = Position::new([14.99, 1.0]);
+    let or0 = Orientation::new([0.0, 1.0]);
+
+    let p1 = Position::new([-15.0 + NC_DIAG_LEN - 0.02, 1.0]);
+    let or1 = Orientation::new([0.0, 1.0]);
+
+    let vmmc = two_particle_vmmc(shape, p0, or0, p1, or1);
+    let energy01 = vmmc.compute_pair_energy(vmmc.particle(0), vmmc.particle(1));
+    let energy10 = vmmc.compute_pair_energy(vmmc.particle(1), vmmc.particle(0));
+    assert!(energy01.is_infinite());
+    assert!(energy10.is_infinite());
 }
 
 // TODO: make sure pair potential works in both directions

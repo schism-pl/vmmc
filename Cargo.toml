@@ -13,6 +13,7 @@ path = "src/bin/vmmc_run.rs"
 
 [dependencies]
 anyhow = "1.0.75" # better errors
+approx = "0.5.1"
 clap = { version = "4.4.6", features = ["derive"] } # commandline parsing
 env_logger = "0.10.0"
 equationx = "0.1.0"
