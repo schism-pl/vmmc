@@ -3,7 +3,7 @@ seed = 1535420837
 [protocol]
 chemical_potential_eq = "0"
 interaction_energy_eq = "8"
-num_megasteps = 1000
+num_megasteps = 100
 
 [sim_params]
 initial_particles = 400
