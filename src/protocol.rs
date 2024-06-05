@@ -133,7 +133,27 @@ impl<'a> ExactSizeIterator for ProtocolMegastepIter<'a> {
     }
 }
 
-pub trait ProtocolIter: Iterator<Item = ProtocolStep> + ExactSizeIterator {}
+pub trait Peekable {
+    type Output;
+    fn peek(&self) -> Self::Output;
+}
 
-impl<T: Iterator<Item = ProtocolStep> + ExactSizeIterator> ProtocolIter for T {}
+impl<'a> Peekable for ProtocolMegastepIter<'a> {
+    type Output = ProtocolStep;
+    fn peek(&self) -> Self::Output {
+        let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
+        let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
+        ProtocolStep::new(chemical_potential, interaction_energy)
+    }
+}
+
+pub trait ProtocolIter:
+    Iterator<Item = ProtocolStep> + ExactSizeIterator + Peekable<Output = ProtocolStep>
+{
+}
+
+impl<T: Iterator<Item = ProtocolStep> + ExactSizeIterator + Peekable<Output = ProtocolStep>>
+    ProtocolIter for T
+{
+}
 // pub trait Iterator<Item = ProtocolStep>
