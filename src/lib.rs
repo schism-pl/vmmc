@@ -41,7 +41,7 @@ pub struct SimParams {
 
 impl Default for SimParams {
     fn default() -> Self {
-        let initial_particles = 400;
+        let initial_particles = 550;
         let shapes = vec![Morphology::regular_4patch(0.05)];
 
         SimParams {
@@ -136,10 +136,6 @@ pub struct InputParams {
     pub seed: u32,
     pub protocol: SynthesisProtocol,
     pub sim_params: SimParams,
-    // pub initial_particles: usize,
-    // pub shapes: Vec<Morphology>,
-    // pub box_width: f64,
-    // pub box_height: f64,
 }
 
 impl Default for InputParams {
@@ -150,7 +146,7 @@ impl Default for InputParams {
         // let box_width = 30.0;
         // let box_height = 30.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 1000);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 100);
 
         // let shapes = vec![Morphology::regular_4patch(0.05)];
 
