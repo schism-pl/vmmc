@@ -88,15 +88,24 @@ impl ProposedMove {
 pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
+    dynamic_particle_count: bool,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, interaction_energy: f64) -> Self {
+    pub fn new(simbox: SimBox, interaction_energy: f64, dynamic_particle_count: bool) -> Self {
         let potential = PatchyDiscsPotential::new(interaction_energy);
-        Self { simbox, potential }
+        Self {
+            simbox,
+            potential,
+            dynamic_particle_count,
+        }
     }
 
     pub fn particles(&self) -> &Particles {
         self.simbox.particles()
+    }
+
+    pub fn dynamic_particle_count(&self) -> bool {
+        self.dynamic_particle_count
     }
 
     pub fn particles_mut(&mut self) -> &mut Particles {

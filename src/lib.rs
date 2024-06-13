@@ -36,6 +36,7 @@ pub struct SimParams {
     pub shapes: Vec<Morphology>,
     pub box_width: f64,
     pub box_height: f64,
+    pub dynamic_particle_count: bool,
 }
 
 impl Default for SimParams {
@@ -48,6 +49,7 @@ impl Default for SimParams {
             shapes,
             box_width: 30.0,
             box_height: 30.0,
+            dynamic_particle_count: false,
         }
     }
 }
@@ -91,6 +93,7 @@ impl Arbitrary for SimParams {
             shapes,
             box_width,
             box_height,
+            dynamic_particle_count: false,
         }
     }
 }
@@ -243,13 +246,21 @@ pub fn vmmc_from_simparams(
 ) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(sim_params, rng);
 
-    vmmc::Vmmc::new(simbox, initial_interaction_energy)
+    vmmc::Vmmc::new(
+        simbox,
+        initial_interaction_energy,
+        sim_params.dynamic_particle_count,
+    )
 }
 
 pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(&ip.sim_params, rng);
 
-    vmmc::Vmmc::new(simbox, ip.protocol.initial_interaction_energy())
+    vmmc::Vmmc::new(
+        simbox,
+        ip.protocol.initial_interaction_energy(),
+        ip.sim_params.dynamic_particle_count,
+    )
 }
 
 pub trait VmmcCallback {
@@ -284,7 +295,9 @@ pub fn run_vmmc<Cbr>(
         let chemical_potential = protocol_step.chemical_potential();
         for _ in 0..(1000 * 1000) {
             let _ = vmmc.step(rng, &mut run_stats);
-            maybe_particle_exchange(vmmc, chemical_potential, rng);
+            if vmmc.dynamic_particle_count() {
+                maybe_particle_exchange(vmmc, chemical_potential, rng);
+            }
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
     }
