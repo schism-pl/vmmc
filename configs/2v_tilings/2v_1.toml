@@ -1,0 +1,65 @@
+seed = 1535420837
+
+[protocol]
+chemical_potential_eq = "0"
+interaction_energy_eq = "8"
+num_megasteps = 100
+
+[sim_params]
+initial_particles = 400
+box_width = 30.0
+box_height = 30.0
+
+[[shapes]]
+
+[[shapes.patches]]
+radius = 0.05
+theta = 0.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	60.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	120.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	180.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	240.0
+chemtype = 0
+
+[[shapes]]
+
+[[shapes.patches]]
+radius = 0.05
+theta =	0.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	60.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	150.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	210.0
+chemtype = 0
+
+[[shapes.patches]]
+radius = 0.05
+theta =	300.0
+chemtype = 0
