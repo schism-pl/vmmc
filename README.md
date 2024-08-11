@@ -129,7 +129,6 @@ Default Value: `75.0`
 
 ##### dynamic_particle_count
 Description: Allows for number of particles in simbox to change
-
 Expected Values: `true` or `false`
 
 
