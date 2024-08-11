@@ -127,7 +127,9 @@ Type: `f64`
 Expected Value Range: `10.0 <= box_height <= 200.0`  
 Default Value: `75.0`  
 
-
+##### dynamic_particle_count
+Description: Allows for number of particles in simbox to change
+Expected Values: "True" or "False"
 
 
 ##### protocol
