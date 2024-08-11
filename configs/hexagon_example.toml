@@ -7,6 +7,7 @@ num_megasteps = 100
 
 [sim_params]
 initial_particles = 400
+dynamic_particle_count = true
 box_width = 30.0
 box_height = 30.0
 
