@@ -129,9 +129,15 @@ Default Value: `75.0`
 
 ##### dynamic_particle_count
 Description: Allows for number of particles in simbox to change
-Type: `bool`  
+Type: `bool`
+
 Expected Values: `true` or `false`  
 
+##### chemtype
+Description: Patches with the same chemtype can bind to each other
+Type: `int`
+Expected Value range: `0 <= chemtype <= 1`
+Default Value: `0`
 
 ##### protocol
 Description: Synthesis protocol for the simulation. See above for more in-depth description
