@@ -88,9 +88,11 @@ fn main() -> anyhow::Result<()> {
     let config = VmmcConfig::parse();
 
     let ip = if config.input() != "" {
+        println!("Using requested config: = {}", config.input());
         let contents = fs::read_to_string(config.input())?;
         toml::from_str(&contents)?
     } else {
+        println!("No config provided. Using default config");
         InputParams::default()
     };
 

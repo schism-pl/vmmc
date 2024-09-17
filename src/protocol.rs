@@ -156,4 +156,3 @@ impl<T: Iterator<Item = ProtocolStep> + ExactSizeIterator + Peekable<Output = Pr
     ProtocolIter for T
 {
 }
-// pub trait Iterator<Item = ProtocolStep>
