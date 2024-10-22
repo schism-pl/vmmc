@@ -124,10 +124,18 @@ impl SimBox {
             shapes,
         );
 
-        for _ in 0..sim_params.initial_particles {
-            let p = simbox.new_random_particle(rng).unwrap();
-            simbox.insert_particle(p);
+        let mut ctr: usize = 0;
+        while ctr < sim_params.initial_particles {
+            if let Some(p) = simbox.new_random_particle(rng) {
+                simbox.insert_particle(p);
+                ctr += 1;
+            }
         }
+
+        //for _ in 0..sim_params.initial_particles {
+        //    let p = simbox.new_random_particle(rng).unwrap();
+        //    simbox.insert_particle(p);
+        //}
         simbox
     }
 
@@ -180,8 +188,8 @@ impl SimBox {
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
     pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
         let mut attempts = 0;
-        while attempts < 10000 {
-            // arbitrary # of reaatempts
+        while attempts < 2 {
+            // arbitrary # of reattempts
             let p = self.try_new_random_particle(rng);
             if p.is_some() {
                 return p;
