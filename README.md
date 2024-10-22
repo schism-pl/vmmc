@@ -22,6 +22,9 @@ cargo run --release
 //"&" designates a background task
 //log file contains total polygon count and system info per step
 cargo run --release -- --input=config.toml --output-dir=out &> out.log &
+
+//If compiled with the Learning 2 Grow module you will need to specify the l2g binary:
+cargo run --release --bin=l2g -- --input=c1.toml --output-dir=c1 &> c1.log &
 ```
 
 # Inputs
