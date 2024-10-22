@@ -49,7 +49,7 @@ impl Default for SimParams {
             shapes,
             box_width: 30.0,
             box_height: 30.0,
-            dynamic_particle_count: false,
+            dynamic_particle_count: true,
         }
     }
 }
