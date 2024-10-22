@@ -83,6 +83,9 @@ impl PatchyDiscsPotential {
 
         if let Some(patch0) = m0.closest_patch(angle0) {
             if let Some(patch1) = m1.closest_patch(angle1) {
+                if patch0.chemtype() != patch1.chemtype() {
+                    return 0.0;
+                }
                 if dist <= PARTICLE_DIAMETER + patch0.radius().max(patch1.radius()) {
                     return -self.interaction_energy;
                 }
