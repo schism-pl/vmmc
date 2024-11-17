@@ -147,8 +147,14 @@ impl Particles {
             None => panic!("That particle doesn't exist!"),
         }
     }
+
     pub fn num_particles(&self) -> usize {
         self.num_particles
+    }
+
+    // Highest particle ID ever assigned. Used to select random particles
+    pub fn particle_watermark(&self) -> usize {
+        self.particles.len()
     }
 
     pub fn needed_mem(&self) -> usize {

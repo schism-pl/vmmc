@@ -15,6 +15,8 @@ use vmmc::stats::RunStats;
 use vmmc::{
     io::{write_tcl, XYZWriter},
     vmmc::Vmmc,
+    StdCallback,
+    packing_fraction,
 };
 use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
 
@@ -23,63 +25,63 @@ use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
 // 2. particles visibly stick together in visualization
 // 3. values match other impls (approximately)
 
-fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
-    let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
-    particle_volume / volume
-}
+// fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
+//     let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
+//     particle_volume / volume
+// }
 
-struct StdCallback {
-    writer: Box<XYZWriter>,
-    start_time: Instant,
-    timestamp: Instant,
-}
-impl VmmcCallback for StdCallback {
-    type CbResult = ();
-    // runs after every million steps
-    fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
-        self.writer.write_xyz_frame(vmmc);
+// struct StdCallback {
+//     writer: Box<XYZWriter>,
+//     start_time: Instant,
+//     timestamp: Instant,
+// }
+// impl VmmcCallback for StdCallback {
+//     type CbResult = ();
+//     // runs after every million steps
+//     fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
+//         self.writer.write_xyz_frame(vmmc);
 
-        println!(
-            "------------------------------------\nStep {:?} x 10e6",
-            (idx + 1),
-        );
+//         println!(
+//             "------------------------------------\nStep {:?} x 10e6",
+//             (idx + 1),
+//         );
 
-        assert!(vmmc.well_formed());
+//         assert!(vmmc.well_formed());
 
-        println!("# of particles: {:?}", vmmc.particles().num_particles());
-        println!(
-            "Packing fraction: {:?}",
-            packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
-        );
-        let polygon_dist = calc_polygon_distribution(vmmc, 12);
-        println!("Polygon distribution: {:?}", polygon_dist);
-        println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
-        println!(
-            "Interaction Energy (epsilon): {:.4}",
-            step.interaction_energy()
-        );
-        println!("Chemical potential (mu): {:.4}", step.chemical_potential());
-        println!(
-            "Acceptance ratio: {:.4}",
-            run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
-        );
-        for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
-            let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
-            println!(
-                "shape_{:?} bond distribution: {:?} average degree = {:.4}",
-                idx,
-                shape_stats,
-                weighted_sum as f64 / vmmc.particles().num_particles() as f64
-            );
-        }
-        let t = Instant::now();
-        println!("Execution time: {:?}", t - self.timestamp);
-        println!("Total execution time: {:?}", t - self.start_time);
-        self.timestamp = t;
-    }
+//         println!("# of particles: {:?}", vmmc.particles().num_particles());
+//         println!(
+//             "Packing fraction: {:?}",
+//             packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
+//         );
+//         let polygon_dist = calc_polygon_distribution(vmmc, 12);
+//         println!("Polygon distribution: {:?}", polygon_dist);
+//         println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
+//         println!(
+//             "Interaction Energy (epsilon): {:.4}",
+//             step.interaction_energy()
+//         );
+//         println!("Chemical potential (mu): {:.4}", step.chemical_potential());
+//         println!(
+//             "Acceptance ratio: {:.4}",
+//             run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
+//         );
+//         for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
+//             let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
+//             println!(
+//                 "shape_{:?} bond distribution: {:?} average degree = {:.4}",
+//                 idx,
+//                 shape_stats,
+//                 weighted_sum as f64 / vmmc.particles().num_particles() as f64
+//             );
+//         }
+//         let t = Instant::now();
+//         println!("Execution time: {:?}", t - self.timestamp);
+//         println!("Total execution time: {:?}", t - self.start_time);
+//         self.timestamp = t;
+//     }
 
-    fn state(&self) {}
-}
+//     fn state(&self) {}
+// }
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -141,11 +143,7 @@ fn main() -> anyhow::Result<()> {
     writer.write_xyz_frame(&vmmc);
 
     // Run the simulation
-    let cb = Box::new(StdCallback {
-        writer,
-        start_time: Instant::now(),
-        timestamp: Instant::now(),
-    });
+    let cb = Box::new(StdCallback::new());
     run_vmmc(&mut vmmc, ip.protocol.megastep_iter(), cb, &mut rng)?;
 
     // Write visualizations to disc

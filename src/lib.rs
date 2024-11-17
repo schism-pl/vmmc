@@ -1,9 +1,12 @@
 #![allow(clippy::needless_range_loop)]
 
+use std::{f64::consts::PI, time::Instant};
+
 use anyhow::Result;
 use chemical_potential::maybe_particle_exchange;
-use consts::PARTICLE_DIAMETER;
+use consts::{PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use morphology::{Morphology, Patch};
+use polygons::{calc_bond_distribution, calc_polygon_distribution};
 use position::DimVec;
 use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
@@ -286,10 +289,11 @@ pub fn run_vmmc<Cbr>(
     rng: &mut SmallRng,
 ) -> Result<Cbr> {
     for (idx, protocol_step) in protocol_iter.enumerate() {
+        println!("Running VMMC megastep {idx}!");
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();
-        for _ in 0..(1000 * 1000) {
+        for jdx in 0..(1000 * 1000) {
             let _ = vmmc.step(rng, &mut run_stats);
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
@@ -298,4 +302,70 @@ pub fn run_vmmc<Cbr>(
         cb.run(vmmc, &protocol_step, idx, &run_stats);
     }
     Ok(cb.state())
+}
+
+
+pub fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
+    let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
+    particle_volume / volume
+}
+
+pub struct StdCallback {
+    start_time: Instant,
+    timestamp: Instant,
+}
+
+impl StdCallback {
+    pub fn new() -> Self {
+        StdCallback {
+            start_time: Instant::now(),
+            timestamp: Instant::now(),
+        }
+    }
+}
+
+impl VmmcCallback for StdCallback {
+    type CbResult = ();
+    // runs after every million steps
+    fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
+        println!(
+            "------------------------------------\nStep {:?} x 10e6",
+            (idx + 1),
+        );
+
+        assert!(vmmc.well_formed());
+
+        println!("# of particles: {:?}", vmmc.particles().num_particles());
+        println!(
+            "Packing fraction: {:?}",
+            packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
+        );
+        let polygon_dist = calc_polygon_distribution(vmmc, 12);
+        println!("Polygon distribution: {:?}", polygon_dist);
+        println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
+        println!(
+            "Interaction Energy (epsilon): {:.4}",
+            step.interaction_energy()
+        );
+        println!("Chemical potential (mu): {:.4}", step.chemical_potential());
+        println!(
+            "Acceptance ratio: {:.4}",
+            run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
+        );
+        for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
+            let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
+            println!(
+                "shape_{:?} bond distribution: {:?} average degree = {:.4}",
+                idx,
+                shape_stats,
+                weighted_sum as f64 / vmmc.particles().num_particles() as f64
+            );
+        }
+        let t = Instant::now();
+        println!("Execution time: {:?}", t - self.timestamp);
+        println!("Total execution time: {:?}", t - self.start_time);
+        self.timestamp = t;
+    }
+
+    fn state(&self) {}
 }

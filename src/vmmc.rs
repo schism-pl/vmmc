@@ -352,7 +352,7 @@ impl Vmmc {
     pub fn choose_random_p_id(&self, rng: &mut SmallRng) -> ParticleId {
         assert_ne!(self.particles().num_particles(), 0);
         loop {
-            let p_id = rng.gen_range(0..self.particles().num_particles() as u16);
+            let p_id = rng.gen_range(0..self.particles().particle_watermark() as u16);
             if self.particles().is_active_particle(p_id) {
                 return p_id;
             }
@@ -485,6 +485,10 @@ impl Vmmc {
     }
 
     pub fn step(&mut self, rng: &mut SmallRng, stats: &mut RunStats) -> Result<()> {
+        // 0. If there are no particles, just skip
+        if self.particles().num_particles() == 0 {
+            return Ok(());
+        }
         debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);

@@ -1,4 +1,4 @@
-seed = 1535420837
+seed = 3
 
 [protocol]
 chemical_potential_eq = "0"
@@ -21,7 +21,7 @@ chemtype = 0
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	90.0
-chemtype = 0
+chemtype = 2
 
 [[sim_params.shapes.patches]]
 radius = 0.05
@@ -31,7 +31,7 @@ chemtype = 0
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	270.0
-chemtype = 0
+chemtype = 2
 
 
 [[sim_params.shapes]]
@@ -39,24 +39,24 @@ chemtype = 0
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	0.0
-chemtype = 0
+chemtype = 3
 
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	60.0
-chemtype = 0
+chemtype = 4
 
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	120.0
-chemtype = 0
+chemtype = 4
 
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	180.0
-chemtype = 0
+chemtype = 3
 
 [[sim_params.shapes.patches]]
 radius = 0.05
 theta =	270.0
-chemtype = 0
+chemtype = 2
