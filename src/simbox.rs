@@ -251,7 +251,7 @@ impl SimBox {
     }
 
     pub fn get_neighbor(&self, p: &Particle, x: f64, y: f64) -> &Cell {
-        let neighbor_pos = p.pos().translate_by(x, y);
+        let neighbor_pos = p.pos().translated_by(x, y);
         let neighbor_pos = self.map_pos_into_box(neighbor_pos);
         self.get_cell(neighbor_pos)
     }

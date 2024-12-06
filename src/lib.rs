@@ -289,11 +289,10 @@ pub fn run_vmmc<Cbr>(
     rng: &mut SmallRng,
 ) -> Result<Cbr> {
     for (idx, protocol_step) in protocol_iter.enumerate() {
-        println!("Running VMMC megastep {idx}!");
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();
-        for jdx in 0..(1000 * 1000) {
+        for _ in 0..(1000 * 1000) {
             let _ = vmmc.step(rng, &mut run_stats);
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
