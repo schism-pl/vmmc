@@ -7,8 +7,12 @@ use std::{
 use raqote::*;
 
 use crate::{
-    cli::VmmcConfig, particle::IsParticle, polygons::calc_polygon_distribution, position::DimVec,
-    protocol::ProtocolIter, vmmc::Vmmc,
+    cli::VmmcConfig,
+    particle::IsParticle,
+    polygons::calc_polygon_distribution,
+    position::DimVec,
+    protocol::{ProtocolIter, ProtocolStep},
+    vmmc::Vmmc,
 };
 
 pub struct XYZWriter {
@@ -280,10 +284,10 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
 // chemical potential goes from -20 to 20
 // interaction energy goes from 0 to 10
 // timescale =
-pub fn write_protocols_png(protocol_iter: impl ProtocolIter, pathname: &str) {
+pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
     use plotters::prelude::*;
 
-    let num_megasteps = protocol_iter.len() as i32;
+    let num_megasteps = protocol.len() as i32;
 
     let root_area = BitMapBackend::new(pathname, (1000, 800)).into_drawing_area();
     root_area.fill(&WHITE).unwrap();
@@ -310,7 +314,7 @@ pub fn write_protocols_png(protocol_iter: impl ProtocolIter, pathname: &str) {
     let protocol_style = RGBColor(0xf3, 0x70, 0x21).stroke_width(2);
     let mut interaction_energy_line = Vec::new();
     let mut chemical_potential_line = Vec::new();
-    for (t, step) in protocol_iter.enumerate() {
+    for (t, step) in protocol.iter().enumerate() {
         interaction_energy_line.push((t as i32, step.interaction_energy()));
         chemical_potential_line.push((t as i32, step.chemical_potential()));
     }

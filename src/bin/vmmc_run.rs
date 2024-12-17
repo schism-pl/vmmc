@@ -14,9 +14,9 @@ use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
 use vmmc::{
     io::{write_tcl, XYZWriter},
+    packing_fraction,
     vmmc::Vmmc,
     StdCallback,
-    packing_fraction,
 };
 use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
 
@@ -144,12 +144,13 @@ fn main() -> anyhow::Result<()> {
 
     // Run the simulation
     let cb = Box::new(StdCallback::new());
-    run_vmmc(&mut vmmc, ip.protocol.megastep_iter(), cb, &mut rng)?;
+    let proto = Box::new(ip.protocol.megastep_iter());
+    let (protocol, _) = run_vmmc(&mut vmmc, proto, cb, &mut rng)?;
 
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
     write_geometry_png(&vmmc, &config.geometry());
-    write_protocols_png(ip.protocol.megastep_iter(), &config.protocols());
+    write_protocols_png(protocol, &config.protocols());
 
     write_stats(&vmmc, &config.stats());
 

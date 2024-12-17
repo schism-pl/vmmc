@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
+use crate::vmmc::Vmmc;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtocolStep {
     chemical_potential: f64, // mu / KbT
@@ -26,10 +28,6 @@ impl ProtocolStep {
     }
 }
 
-// trait Protocol: Iterator<Item = ProtocolStep> {}
-// impl<T: Iterator<Item = ProtocolStep>> Protocol for T {}
-
-// TODO: [(Equation, Duration)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SynthesisProtocol {
     chemical_potential_eq: Expr,
@@ -97,23 +95,32 @@ impl fmt::Display for SynthesisProtocol {
     }
 }
 
+pub trait ProtocolIter {
+    fn start(&self) -> ProtocolStep;
+    fn peek(&self, vmmc: &Vmmc) -> ProtocolStep;
+    fn next(&mut self, vmmc: &Vmmc) -> Option<ProtocolStep>;
+    fn len(&self) -> usize;
+}
+
 // gets a new protocol step every 1000 steps of the simulation
-pub struct ProtocolMegastepIter<'a> {
-    protocol: &'a SynthesisProtocol,
+pub struct ProtocolMegastepIter {
+    protocol: SynthesisProtocol,
     t: f64,
 }
 
-impl<'a> ProtocolMegastepIter<'a> {
-    fn new(protocol: &'a SynthesisProtocol) -> Self {
-        Self { protocol, t: 0.0 }
+impl ProtocolMegastepIter {
+    fn new(protocol: &SynthesisProtocol) -> Self {
+        Self { protocol: protocol.clone(), t: 0.0 }
     }
 }
 
-// kilostep iterator
-impl<'a> Iterator for ProtocolMegastepIter<'a> {
-    type Item = ProtocolStep;
+// next, len, peek
 
-    fn next(&mut self) -> Option<Self::Item> {
+// kilostep iterator
+impl ProtocolIter for ProtocolMegastepIter {
+    // type Item = ProtocolStep;
+
+    fn next(&mut self, _vmmc: &Vmmc) -> Option<ProtocolStep> {
         if self.t >= self.protocol.num_megasteps as f64 {
             return None;
         }
@@ -124,35 +131,22 @@ impl<'a> Iterator for ProtocolMegastepIter<'a> {
         self.t += 1.0; // t is counted in megasteps
         Some(step)
     }
-}
 
-impl<'a> ExactSizeIterator for ProtocolMegastepIter<'a> {
-    // We can easily calculate the remaining number of iterations.
+    fn start(&self) -> ProtocolStep {
+        let chemical_potential = self.protocol.chemical_potential_eq.eval(0.0);
+        let interaction_energy = self.protocol.interaction_energy_eq.eval(0.0);
+        ProtocolStep::new(chemical_potential, interaction_energy)
+    }
+
+
+    fn peek(&self, _vmmc: &Vmmc) -> ProtocolStep {
+        let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
+        let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
+        ProtocolStep::new(chemical_potential, interaction_energy)
+    }
+
     fn len(&self) -> usize {
         self.protocol.num_megasteps() - self.t as usize
     }
 }
 
-pub trait Peekable {
-    type Output;
-    fn peek(&self) -> Self::Output;
-}
-
-impl<'a> Peekable for ProtocolMegastepIter<'a> {
-    type Output = ProtocolStep;
-    fn peek(&self) -> Self::Output {
-        let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
-        let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
-        ProtocolStep::new(chemical_potential, interaction_energy)
-    }
-}
-
-pub trait ProtocolIter:
-    Iterator<Item = ProtocolStep> + ExactSizeIterator + Peekable<Output = ProtocolStep>
-{
-}
-
-impl<T: Iterator<Item = ProtocolStep> + ExactSizeIterator + Peekable<Output = ProtocolStep>>
-    ProtocolIter for T
-{
-}

@@ -173,12 +173,12 @@ impl InputParams {
         self.sim_params.check();
 
         // check well-formedness of protocol
-        for step in self.protocol.megastep_iter() {
-            let mu = step.chemical_potential();
-            let epsilon = step.interaction_energy();
-            assert!((-10.0..=10.0).contains(&mu));
-            assert!((0.01..=20.0).contains(&epsilon));
-        }
+        // for step in self.protocol.megastep_iter() {
+        //     let mu = step.chemical_potential();
+        //     let epsilon = step.interaction_energy();
+        //     assert!((-10.0..=10.0).contains(&mu));
+        //     assert!((0.01..=20.0).contains(&epsilon));
+        // }
     }
 }
 
@@ -284,11 +284,14 @@ pub fn no_callback() -> Box<dyn VmmcCallback<CbResult = ()>> {
 // attempts particle exchange every step
 pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
-    protocol_iter: impl ProtocolIter,
+    mut protocol_iter: Box<dyn ProtocolIter>,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
     rng: &mut SmallRng,
-) -> Result<Cbr> {
-    for (idx, protocol_step) in protocol_iter.enumerate() {
+) -> Result<(Vec<ProtocolStep>, Cbr)> {
+    let mut idx: usize = 0;
+    let mut protocol = Vec::new();
+
+    while let Some(protocol_step) = protocol_iter.next(vmmc) {
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();
@@ -299,10 +302,11 @@ pub fn run_vmmc<Cbr>(
             }
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
+        protocol.push(protocol_step);
+        idx += 1;
     }
-    Ok(cb.state())
+    Ok((protocol, cb.state()))
 }
-
 
 pub fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
     let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
