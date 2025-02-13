@@ -30,8 +30,8 @@ impl ProtocolStep {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SynthesisProtocol {
-    chemical_potential_eq: Expr,
-    interaction_energy_eq: Expr,
+    chemical_potential_eq: Expr<f64>,
+    interaction_energy_eq: Expr<f64>,
     num_megasteps: usize,
 }
 
