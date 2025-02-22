@@ -10,5 +10,5 @@ pub const MAX_INITIAL_PACKING_FRACTION: f64 = 0.5;
 // less important, there just isn't a reason for users to mess with this
 
 pub const PROB_TRANSLATE: f64 = 0.5;
-pub const MAX_TRANSLATION: f64 = 0.3;
-pub const MAX_ROTATION: f64 = 0.2;
+pub const MAX_TRANSLATION: f64 = 0.15;
+pub const MAX_ROTATION: f64 = 0.23717;

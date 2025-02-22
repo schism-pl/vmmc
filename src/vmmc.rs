@@ -255,13 +255,14 @@ impl Vmmc {
         let step_size = if is_rotation {
             // Rotation
             let r: f64 = rng.gen();
-            MAX_ROTATION * r.powf(0.5)
+            MAX_ROTATION * (2.0 * r - 1.0)
+            // MAX_ROTATION * r.powf(0.5)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
             let r: f64 = rng.gen();
             // random number between (-1.0 and 1.0) * max_translation
-            MAX_TRANSLATION * (2.0 * r - 1.0)
+            MAX_TRANSLATION * (2.0 * r - 1.0) 
         };
 
         ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)
