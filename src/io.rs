@@ -9,7 +9,7 @@ use raqote::*;
 use crate::{
     cli::VmmcConfig,
     particle::IsParticle,
-    polygons::calc_polygon_distribution,
+    polygons::{calc_polygon_distribution, calc_polygons, Polygon},
     position::DimVec,
     protocol::{ProtocolIter, ProtocolStep},
     vmmc::Vmmc,
@@ -129,44 +129,76 @@ fn rgba_orange() -> Source<'static> {
     rgba_solid(0xf3, 0x70, 0x21, 0xff)
 }
 
-// fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
-//     let x_off = vmmc.simbox().max_x() * scale;
-//     let y_off = vmmc.simbox().max_y() * scale;
+fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64) {
+    let x_off = vmmc.simbox().max_x() * scale;
+    let y_off = vmmc.simbox().max_y() * scale;
 
-//     let source = match polygon.vertices().len() {
-//         0 | 1 | 2 => panic!("Detected \"polygon\" with less than 3 sides!"),
-//         3 => rgba_solid(0xff, 0xff, 0, 0xff), // yellow
-//         4 => rgba_solid(0, 0, 0xff, 0xff),    // blue
-//         5 => rgba_solid(0xff, 0, 0, 0xff),    // red
-//         6 => rgba_solid(0x0, 0xff, 0, 0xff),  // green
-//         _ => rgba_solid(0xff, 0, 0xff, 0xff), // purple
-//     };
+    let source = match polygon.vertices().len() {
+        0 | 1 | 2 => panic!("Detected \"polygon\" with less than 3 sides!"),
+        3 => rgba_solid(0xff, 0xff, 0, 0xff), // yellow
+        4 => rgba_solid(0, 0, 0xff, 0xff),    // blue
+        5 => rgba_solid(0xff, 0, 0, 0xff),    // red
+        6 => rgba_solid(0x0, 0xff, 0, 0xff),  // green
+        _ => rgba_solid(0xff, 0, 0xff, 0xff), // purple
+    };
 
-//     let mut pb = PathBuilder::new();
-//     let mut pos = vmmc.particle(polygon.vertices()[0]).pos();
-//     pb.move_to(
-//         (pos.x() * scale + x_off) as f32,
-//         (pos.y() * scale + y_off) as f32,
-//     );
+    let mut pb = PathBuilder::new();
+    let mut pos = vmmc.particle(polygon.vertices()[0]).pos();
+    pb.move_to(
+        (pos.x() * scale + x_off) as f32,
+        (pos.y() * scale + y_off) as f32,
+    );
 
-//     for (src_p, dst_p) in polygon.edge_iter() {
-//         let pos1 = vmmc.particle(dst_p).pos();
-//         let sep = vmmc.simbox().sep_in_box(pos1, pos); // pos -> new_pos
-//         let scaled_sep = sep.scalar_mul(scale);
-//         let final_pos = pos + sep.scalar_mul(scale);
-//         pb.line_to(final_pos.x() as f32, final_pos.y() as f32);
-//         pos = final_pos;
-//     }
+    for (src_p, dst_p) in polygon.edge_iter() {
+        let pos1 = vmmc.particle(dst_p).pos();
+        // let sep = pos1 - pos;
+        // let final_pos = pos + sep.scale_by(scale);
+        pb.line_to(
+            (pos1.x() * scale + x_off) as f32,
+            (pos1.y() * scale + y_off) as f32,
+        );
+        // pb.line_to(final_pos.x() as f32, final_pos.y() as f32);
+    }
 
-//     let draw_path = pb.finish();
-//     dt.fill(&draw_path, &source, &DrawOptions::new());
-// }
+    // for (src_p, dst_p) in polygon.edge_iter() {
+    //     let pos1 = vmmc.particle(dst_p).pos();
+    //     println!("pos1 is {:?}", pos1);
+    //     // let sep = vmmc.simbox().sep_in_box(pos1, pos); // pos -> new_pos
+    //     let sep = pos1 - pos;
+    //     println!("pos1 ({:?}) - pos({:?}) is: {:?}", pos1, pos, sep);
+    //     // let scaled_sep = sep.scalar_mul(scale);
+    //     let final_pos = pos + sep.scale_by(scale);
+    //     // println!("Drawing line to: {:?}", final_pos);
+    //     pb.line_to(final_pos.x() as f32, final_pos.y() as f32);
+    //     // pos = final_pos;
+    // }
+    // pb.close();
 
-// fn color_polygons(vmmc: &Vmmc, polygons: &[Polygon], dt: &mut DrawTarget, scale: f64) {
-//     for polygon in polygons.iter() {
-//         color_polygon(vmmc, polygon, dt, scale);
-//     }
-// }
+    let draw_path = pb.finish();
+    dt.fill(&draw_path, &source, &DrawOptions::new());
+}
+
+fn polygon_in_box(vmmc: &Vmmc, polygon: &Polygon) -> bool {
+    for (src, dst) in polygon.edge_iter() {
+        let src_pos = vmmc.particle(src).pos();
+        let dst_pos = vmmc.particle(dst).pos();
+        if src_pos - dst_pos != vmmc.simbox().sep_in_box(src_pos, dst_pos) {
+            return false;
+        }
+        // let pos = vmmc.particle(dst).pos();
+    }
+    true
+}
+
+fn color_polygons(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
+    let polygons = calc_polygons(vmmc, 12);
+    for polygon in polygons.iter() {
+        if polygon_in_box(vmmc, polygon) {
+            color_polygon(vmmc, polygon, dt, scale);
+        }
+        // break;
+    }
+}
 
 fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
     let x_off = vmmc.simbox().max_x() * scale;
@@ -258,6 +290,21 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
 
     draw_white_background(vmmc, &mut dt, scale);
     render_particles(vmmc, &mut dt, scale);
+    render_interactions(vmmc, &mut dt, scale);
+
+    dt.write_png(pathname).unwrap();
+}
+
+pub fn write_colored_geometry_png(vmmc: &Vmmc, pathname: &str) {
+    // need to adjust from 0-centered to all positive coordinates
+    let scale = 100.0;
+    let x_dim = vmmc.simbox().max_x() * 2.0 * scale;
+    let y_dim = vmmc.simbox().max_y() * 2.0 * scale;
+    let mut dt = DrawTarget::new(x_dim.ceil() as i32, y_dim.ceil() as i32);
+
+    draw_white_background(vmmc, &mut dt, scale);
+    render_particles(vmmc, &mut dt, scale);
+    color_polygons(vmmc, &mut dt, scale);
     render_interactions(vmmc, &mut dt, scale);
 
     dt.write_png(pathname).unwrap();
