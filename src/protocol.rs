@@ -110,7 +110,10 @@ pub struct ProtocolMegastepIter {
 
 impl ProtocolMegastepIter {
     fn new(protocol: &SynthesisProtocol) -> Self {
-        Self { protocol: protocol.clone(), t: 0.0 }
+        Self {
+            protocol: protocol.clone(),
+            t: 0.0,
+        }
     }
 }
 
@@ -138,7 +141,6 @@ impl ProtocolIter for ProtocolMegastepIter {
         ProtocolStep::new(chemical_potential, interaction_energy)
     }
 
-
     fn peek(&self, _vmmc: &Vmmc) -> ProtocolStep {
         let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
         let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
@@ -149,4 +151,3 @@ impl ProtocolIter for ProtocolMegastepIter {
         self.protocol.num_megasteps() - self.t as usize
     }
 }
-

@@ -210,12 +210,44 @@ impl Vmmc {
         com.div_by(vmoves.inner.len() as f64)
     }
 
+    // fn calculate_motion(
+    //     &self,
+    //     particle: &Particle,
+    //     mov: &ProposedMove,
+    //     seed: &Particle,
+    //     dir: MoveDir,
+    // ) -> VParticle {
+    //     let mut final_p = particle.pos();
+    //     let mut final_or = particle.or();
+
+    //     if !mov.is_rotation() {
+    //         final_p += mov.scaled_vec(dir);
+    //     } else {
+    //         let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
+    //         let theta = mov.step_factor(dir);
+
+    //         final_p += rel_pos.rotated_by(theta);
+    //         final_or += final_or.rotated_by(theta);
+    //     }
+
+    //     final_p = self.simbox.map_pos_into_box(final_p);
+    //     VParticle::new(
+    //         particle.pos(),
+    //         particle.or(),
+    //         final_p,
+    //         final_or,
+    //         particle.shape_id(),
+    //     )
+    // }
+
     // returns difference in position between final and original
+    // TODO: simplify
     fn calculate_motion(
         &self,
         particle: &Particle,
         mov: &ProposedMove,
         seed: &Particle,
+        roots: &Option<(VParticle, VParticle)>,
         dir: MoveDir,
     ) -> VParticle {
         let mut final_p = particle.pos();
@@ -224,11 +256,46 @@ impl Vmmc {
         if !mov.is_rotation() {
             final_p += mov.scaled_vec(dir);
         } else {
-            let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
-            let theta = mov.step_factor(dir);
+            // r            let theta = mov.step_factor(dir);
+            if let Some((fwd_root, rev_root)) = roots {
+                // println!("Rotating linked particle! dir = {:?}", dir);
+                // println!("Roots = {:?}", roots);
 
-            final_p += rel_pos.rotated_by(theta);
-            final_or += final_or.rotated_by(theta);
+                assert_eq!(fwd_root.orig_pos(), rev_root.orig_pos());
+                let displacement = self
+                    .simbox()
+                    .sep_in_box(particle.pos(), fwd_root.orig_pos());
+                let theta = mov.step_factor(dir);
+                // println!("Theta = {:?}", theta);
+                let delta = displacement.rotated_by(theta);
+                // println!("Displacement = {:?}", displacement);
+                // println!("Delta = {:?}", delta);
+                final_or += final_or.rotated_by(theta); // why is orientation added?
+                if let MoveDir::Forward = dir {
+                    final_p = fwd_root.pos() + displacement + delta;
+                } else {
+                    final_p = rev_root.pos() + delta;
+                }
+            } else {
+                // println!("Rotating root!");
+                // We are rotating the seed
+                assert_eq!(seed.id(), particle.id());
+                let displacement = self.simbox().sep_in_box(particle.pos(), seed.pos());
+                let theta = mov.step_factor(dir);
+                final_p += displacement.rotated_by(theta);
+                final_or += final_or.rotated_by(theta);
+            }
+
+            // let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
+            // let theta = mov.step_factor(dir);
+
+            // final_p += rel_pos.rotated_by(theta);
+            // final_or += final_or.rotated_by(theta);
+            // let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
+            // let theta = mov.step_factor(dir);
+
+            // final_p += rel_pos.rotated_by(theta);
+            // final_or += final_or.rotated_by(theta);
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);
@@ -262,7 +329,7 @@ impl Vmmc {
             // Scale step-size to uniformly sample unit sphere/circle.
             let r: f64 = rng.gen();
             // random number between (-1.0 and 1.0) * max_translation
-            MAX_TRANSLATION * (2.0 * r - 1.0) 
+            MAX_TRANSLATION * (2.0 * r - 1.0)
         };
 
         ProposedMove::new(seed_id, step_size, is_rotation, cluster_cutoff, rand_vec)
@@ -273,7 +340,7 @@ impl Vmmc {
     fn recruit_cluster(&self, rng: &mut SmallRng, mov: &ProposedMove) -> Result<VirtualMoves> {
         let seed = self.particle(mov.seed_id);
         // particles in the cluster who still need to make their linking pass
-        let mut worklist = VecDeque::from([mov.seed_id]);
+        let mut worklist = VecDeque::from([(mov.seed_id, None)]);
         // particles who have made their linking pass
         let mut seen = HashSet::new();
         let mut vmoves = VirtualMoves::new();
@@ -286,7 +353,7 @@ impl Vmmc {
             }
             cluster_size += 1;
             // A new particle tries to link to its neighbors
-            let id = worklist.pop_front().unwrap();
+            let (id, roots) = worklist.pop_front().unwrap();
 
             // in case we get duplicate entries in worklist
             if seen.contains(&id) {
@@ -296,12 +363,18 @@ impl Vmmc {
 
             seen.insert(id);
 
-            let final_p = self.calculate_motion(particle, mov, seed, MoveDir::Forward);
+            // let final_p = self.calculate_motion(particle, mov, seed, MoveDir::Forward);
+            let final_p = self.calculate_motion(particle, mov, seed, &roots, MoveDir::Forward);
+            // println!("final_p = {:?}", final_p);
+            // println!("final_p2 = {:?}", final_p2);
+            // assert_eq!(final_p, final_p2);
 
             // this particle moves
             vmoves.push(id, final_p.clone());
 
-            let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
+            // let reverse_p = self.calculate_motion(particle, mov, seed, MoveDir::Backward);
+            let reverse_p = self.calculate_motion(particle, mov, seed, &roots, MoveDir::Backward);
+
             let interactions = self.determine_interactions(particle);
 
             for &neighbor_id in interactions.iter() {
@@ -315,7 +388,10 @@ impl Vmmc {
                         // The neighbor has been linked.
                         // Add it to the move and attempt to recruit its neighbors
                         if !seen.contains(&neighbor_id) {
-                            worklist.push_back(neighbor_id);
+                            worklist.push_back((
+                                neighbor_id,
+                                Some((final_p.clone(), reverse_p.clone())),
+                            ));
                         }
                     } else {
                         log::debug!(
@@ -419,7 +495,6 @@ impl Vmmc {
         }
 
         self.commit_moves(vmoves)?;
-
         Ok(())
     }
 
@@ -500,7 +575,14 @@ impl Vmmc {
         if self.attempt_commit(rng, &mov, &virtual_moves).is_ok() {
             stats.record_accept();
         }
-
+        // if self.sim_has_overlaps(){
+        //     println!("Overlap on move: {:?}", mov);
+        //     println!("Step factor = {:?}", mov.step_factor(MoveDir::Forward));
+        //     for (p_id,vmov) in virtual_moves.inner.iter() {
+        //         println!("{}: ({} -> {}) ({} -> {})", p_id, vmov.orig_pos(), vmov.pos(), vmov.orig_or(), vmov.or());
+        //     }
+        //     assert!(false);
+        // }
         Ok(())
     }
 
