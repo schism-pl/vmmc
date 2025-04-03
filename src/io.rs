@@ -1,11 +1,11 @@
+use crate::morphology::CoreShape;
 use crate::particle::Particle;
+use raqote::*;
 use std::{
     f32::consts::PI,
     fs::{self, File},
     io::{BufRead, BufReader, Write},
 };
-
-use raqote::*;
 
 use crate::{
     cli::VmmcConfig,

@@ -88,7 +88,7 @@ impl Arbitrary for SimParams {
                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
                 patches.push(patch);
             }
-            shapes.push(Morphology::new(patches));
+            shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
         }
 
         Self {
@@ -100,6 +100,50 @@ impl Arbitrary for SimParams {
         }
     }
 }
+
+// impl Arbitrary for SimParams {
+//     fn arbitrary(g: &mut Gen) -> Self {
+//         let initial_particles = usize_in_range(g, 0, 2500);
+
+//         let patch_radius = f64_in_range(g, 0.01, 0.1); // radius of patch (in units of particle diameter)
+
+//         let mut box_width = 0.0;
+//         let mut box_height = 0.0;
+
+//         // while less than 1.5 cell per particle, pick a new box radius
+//         while box_width * box_height / (PARTICLE_DIAMETER + patch_radius + patch_radius).powi(2)
+//             <= 1.5 * initial_particles as f64
+//         {
+//             box_width = f64_in_range(g, 10.0, 200.0);
+//             box_height = f64_in_range(g, 10.0, 200.0);
+//         }
+
+//         let mut shapes = Vec::new();
+//         let num_shapes = usize_in_range(g, 1, 3);
+//         for _ in 0..num_shapes {
+//             let mut patches = Vec::new();
+//             let num_patches = usize_in_range(g, 3, 6);
+//             let num_colors = usize_in_range(g, 1, num_patches);
+//             for _ in 0..num_patches {
+//                 let color = usize_in_range(g, 0, num_colors - 1);
+//                 let theta = f64_in_range(g, 0.0, 360.0);
+//                 let radius = f64_in_range(g, 0.01, 0.25);
+//                 let patch = Patch::new(radius, theta, color as u8);
+//                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
+//                 patches.push(patch);
+//             }
+//             shapes.push(Morphology::new(patches));
+//         }
+
+//         Self {
+//             initial_particles,
+//             shapes,
+//             box_width,
+//             box_height,
+//             dynamic_particle_count: false,
+//         }
+//     }
+// }
 
 impl SimParams {
     pub fn max_interaction_range(&self) -> f64 {
@@ -209,6 +253,7 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 // we need num_cells >= 2*initial_particles
 
 // for testing
+
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         // TODO: seed should be generated from arbitrary?
@@ -216,25 +261,10 @@ impl Arbitrary for InputParams {
 
         let num_megasteps = 10;
 
-        // TODO: make this more varied
-        let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
-
-        let mut shapes = Vec::new();
-        let num_shapes = usize_in_range(g, 1, 3);
-        for _ in 0..num_shapes {
-            let mut patches = Vec::new();
-            let num_patches = usize_in_range(g, 3, 6);
-            let num_colors = usize_in_range(g, 1, num_patches);
-            for _ in 0..num_patches {
-                let color = usize_in_range(g, 0, num_colors - 1);
-                let theta = f64_in_range(g, 0.0, 360.0);
-                let radius = f64_in_range(g, 0.01, 0.25);
-                let patch = Patch::new(radius, theta, color as u8);
-                // TODO: check that the morphology makes sense, i.e., patches don't overlap
-                patches.push(patch);
-            }
-            shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
-        }
+        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
+        let chemical_potential = f64_in_range(g, -10.0, 10.0); // kBT
+        let protocol =
+            SynthesisProtocol::flat_protocol(chemical_potential, interaction_energy, num_megasteps);
 
         Self {
             seed,
@@ -243,6 +273,41 @@ impl Arbitrary for InputParams {
         }
     }
 }
+
+// impl Arbitrary for InputParams {
+//     fn arbitrary(g: &mut Gen) -> Self {
+//         // TODO: seed should be generated from arbitrary?
+//         let seed = SmallRng::from_entropy().gen::<u32>();
+
+//         let num_megasteps = 10;
+
+//         // TODO: make this more varied
+//         let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
+
+//         let mut shapes = Vec::new();
+//         let num_shapes = usize_in_range(g, 1, 3);
+//         for _ in 0..num_shapes {
+//             let mut patches = Vec::new();
+//             let num_patches = usize_in_range(g, 3, 6);
+//             let num_colors = usize_in_range(g, 1, num_patches);
+//             for _ in 0..num_patches {
+//                 let color = usize_in_range(g, 0, num_colors - 1);
+//                 let theta = f64_in_range(g, 0.0, 360.0);
+//                 let radius = f64_in_range(g, 0.01, 0.25);
+//                 let patch = Patch::new(radius, theta, color as u8);
+//                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
+//                 patches.push(patch);
+//             }
+//             shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
+//         }
+
+//         Self {
+//             seed,
+//             sim_params: SimParams::arbitrary(g),
+//             protocol,
+//         }
+//     }
+// }
 
 // angle coverage of patch = +- acos 1-(patch_radius^2/2)
 impl Arbitrary for SimBox {
