@@ -216,10 +216,25 @@ impl Arbitrary for InputParams {
 
         let num_megasteps = 10;
 
-        let interaction_energy = f64_in_range(g, 0.01, 20.0); // kBT
-        let chemical_potential = f64_in_range(g, -10.0, 10.0); // kBT
-        let protocol =
-            SynthesisProtocol::flat_protocol(chemical_potential, interaction_energy, num_megasteps);
+        // TODO: make this more varied
+        let protocol = SynthesisProtocol::flat_protocol(0.0, interaction_energy, num_megasteps);
+
+        let mut shapes = Vec::new();
+        let num_shapes = usize_in_range(g, 1, 3);
+        for _ in 0..num_shapes {
+            let mut patches = Vec::new();
+            let num_patches = usize_in_range(g, 3, 6);
+            let num_colors = usize_in_range(g, 1, num_patches);
+            for _ in 0..num_patches {
+                let color = usize_in_range(g, 0, num_colors - 1);
+                let theta = f64_in_range(g, 0.0, 360.0);
+                let radius = f64_in_range(g, 0.01, 0.25);
+                let patch = Patch::new(radius, theta, color as u8);
+                // TODO: check that the morphology makes sense, i.e., patches don't overlap
+                patches.push(patch);
+            }
+            shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
+        }
 
         Self {
             seed,
