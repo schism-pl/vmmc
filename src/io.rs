@@ -1,3 +1,4 @@
+use crate::particle::Particle;
 use std::{
     f32::consts::PI,
     fs::{self, File},
@@ -208,13 +209,38 @@ fn render_circle_at(x: f32, y: f32, scale: f64) -> Path {
     pb.finish()
 }
 
-fn render_square_at(x: f32, y: f32, scale: f64) -> Path {
-    unimplemented!()
-    // let mut pb = PathBuilder::new();
-    // // pb.move_to(x,y);
-    // pb.arc(x, y, (scale / 2.0) as f32, 0.0, 2.0 * PI);
-    // pb.close();
-    // pb.finish()
+// TODO: not actually correct, needs to be at the corners,
+// not the patch centers (middle of the side)
+fn render_square_at(vmmc: &Vmmc, p: &Particle, x_off: f64, y_off: f64, scale: f64) -> Path {
+    // unimplemented!()
+
+    // TODO: get patch_centers
+
+    let mut pb = PathBuilder::new();
+
+    let p0 = vmmc.simbox().patch_center_unmapped(p, 0);
+    let p0_x = (p0.x() * scale + x_off) as f32;
+    let p0_y = (p0.y() * scale + y_off) as f32;
+
+    let p1 = vmmc.simbox().patch_center_unmapped(p, 1);
+    let p1_x = (p1.x() * scale + x_off) as f32;
+    let p1_y = (p1.y() * scale + y_off) as f32;
+
+    let p2 = vmmc.simbox().patch_center_unmapped(p, 2);
+    let p2_x = (p2.x() * scale + x_off) as f32;
+    let p2_y = (p2.y() * scale + y_off) as f32;
+
+    let p3 = vmmc.simbox().patch_center_unmapped(p, 3);
+    let p3_x = (p3.x() * scale + x_off) as f32;
+    let p3_y = (p3.y() * scale + y_off) as f32;
+
+    pb.move_to(p0_x, p0_y);
+    pb.line_to(p1_x, p1_y);
+    pb.line_to(p2_x, p2_y);
+    pb.line_to(p3_x, p3_y);
+    pb.line_to(p0_x, p0_y);
+    pb.close();
+    pb.finish()
 }
 // fn render_squares(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
 
@@ -233,7 +259,7 @@ fn render_particles(vmmc: &Vmmc, dt: &mut DrawTarget, scale: f64) {
         let y = (p.pos().y() * scale + y_off) as f32;
         let draw_path = match vmmc.simbox().shapes()[p.shape_id() as usize].shape() {
             CoreShape::Circle => render_circle_at(x, y, scale),
-            CoreShape::Square => render_square_at(x, y, scale),
+            CoreShape::Square => render_square_at(vmmc, p, x_off, y_off, scale),
         };
         dt.stroke(&draw_path, &source, &style, &draw_options);
 

@@ -385,12 +385,17 @@ impl SimBox {
     }
 
     pub fn patch_center<P: IsParticle>(&self, p: &P, patch_idx: usize) -> Position {
+        let pos = self.patch_center_unmapped(p, patch_idx);
+        self.map_pos_into_box(pos)
+    }
+
+    pub fn patch_center_unmapped<P: IsParticle>(&self, p: &P, patch_idx: usize) -> Position {
         let or = p.or();
         let sin_theta = self.morphology(p).sin_theta(patch_idx);
         let cos_theta = self.morphology(p).cos_theta(patch_idx);
         let x = p.pos().x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
         let y = p.pos().y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
-        self.map_pos_into_box(Position::new([x, y])) // simbox map into pos
+        Position::new([x, y])
     }
 
     pub fn map_pos_into_box(&self, pos: Position) -> Position {
