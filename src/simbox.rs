@@ -1,4 +1,5 @@
 use rand::{rngs::SmallRng, Rng};
+use serde::{Deserialize, Serialize};
 
 use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
@@ -41,7 +42,7 @@ fn map_id_into_range(p: i32, lower: i32, upper: i32) -> i32 {
 // Note: cell_dimensions * cells_per_axis must = dimensions
 
 // Clone is implemented to enable quickcheck
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimBox {
     dimensions: DimVec,
     cells_per_axis: [usize; 2],

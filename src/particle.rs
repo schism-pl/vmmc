@@ -1,4 +1,5 @@
 use rand::rngs::SmallRng;
+use serde::{Deserialize, Serialize};
 
 use crate::consts::MAX_PARTICLES;
 use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
@@ -13,7 +14,7 @@ pub trait IsParticle {
     fn shape_id(&self) -> ShapeId;
 }
 // Clone is implemented to enable quickcheck
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Particle {
     id: ParticleId,
     shape_id: ShapeId,
@@ -113,7 +114,7 @@ impl IsParticle for VParticle {
 
 /// Collection of particles
 /// Need somewhat complicated data structure to efficiently insert/remove particles
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Particles {
     particles: Vec<Option<Particle>>,
     reserve: Vec<ParticleId>,

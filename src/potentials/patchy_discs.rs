@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::consts::PARTICLE_DIAMETER;
 use crate::particle::{IsParticle, Particle, ParticleId};
 use crate::position::Orientation;
@@ -21,6 +23,7 @@ fn calc_angle(or: Orientation, other: Orientation) -> f64 {
         2.0 * PI - dot.acos()
     }
 }
+#[derive(Clone, Debug, Serialize, Deserialize)]
 
 pub struct PatchyDiscsPotential {
     interaction_energy: f64,

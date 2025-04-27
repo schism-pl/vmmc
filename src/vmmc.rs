@@ -8,6 +8,7 @@ use crate::stats::RunStats;
 use anyhow::{anyhow, Result};
 use rand::rngs::SmallRng;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::mem::size_of_val;
 
@@ -85,6 +86,7 @@ impl ProposedMove {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
