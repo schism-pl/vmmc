@@ -20,12 +20,13 @@ log = "0.4.20"
 plotters = "0.3.5"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
-rand = { version = "0.8.5", features = ["small_rng", "serde"] }
+rand_xoshiro = { version = "0.7.0", features = ["serde"] }
 rand_distr = "0.4.3"
 raqote = "0.8.3"
 serde = { version = "1.0.193", features = ["derive"] }
 toml = "0.8.8"
 xyzvec = { version = "0.1.13", features = ["serde"] }
+rand = { version = "0.9.1", features = ["serde"] }
 
 
 

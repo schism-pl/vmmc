@@ -1,8 +1,7 @@
-use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
 
 use crate::consts::MAX_PARTICLES;
-use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
+use crate::position::{Orientation, Position};
 use std::mem::{size_of, size_of_val};
 
 pub type ParticleId = u16;
@@ -58,9 +57,9 @@ impl Particle {
         self.or = new_or;
     }
 
-    pub fn random(rng: &mut SmallRng, id: ParticleId, shape_id: ShapeId) -> Self {
-        Particle::new(id, random_dimvec(rng), random_unit_vec(rng), shape_id)
-    }
+    // pub fn random(rng: &mut Prng, id: ParticleId, shape_id: ShapeId) -> Self {
+    //     Particle::new(id, random_dimvec(rng), random_unit_vec(rng), shape_id)
+    // }
 }
 
 #[derive(PartialEq, Debug, Clone)]

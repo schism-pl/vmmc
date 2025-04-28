@@ -10,8 +10,10 @@ use polygons::{calc_bond_distribution, calc_polygon_distribution};
 use position::DimVec;
 use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::Rng;
+use rand::SeedableRng;
 use rand_distr::num_traits::Zero;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 use stats::RunStats;
@@ -32,6 +34,8 @@ pub mod stats;
 pub mod vmmc;
 
 // TODO: use approx crate for floating point equality
+
+pub type Prng = Xoshiro256PlusPlus;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SimParams {
@@ -143,7 +147,7 @@ pub struct InputParams {
 
 impl Default for InputParams {
     fn default() -> Self {
-        let seed = SmallRng::from_entropy().gen::<u32>();
+        let seed = Prng::from_os_rng().random::<u32>();
 
         // let initial_particles = 400;
         // let box_width = 30.0;
@@ -212,7 +216,7 @@ fn f64_in_range(g: &mut Gen, min: f64, max: f64) -> f64 {
 impl Arbitrary for InputParams {
     fn arbitrary(g: &mut Gen) -> Self {
         // TODO: seed should be generated from arbitrary?
-        let seed = SmallRng::from_entropy().gen::<u32>();
+        let seed = Prng::from_os_rng().random::<u32>();
 
         let num_megasteps = 10;
 
@@ -233,7 +237,7 @@ impl Arbitrary for InputParams {
 impl Arbitrary for SimBox {
     fn arbitrary(g: &mut Gen) -> Self {
         let sim_params = SimParams::arbitrary(g);
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = Prng::from_os_rng();
         SimBox::new_with_randomized_particles(&sim_params, &mut rng)
     }
 }
@@ -241,7 +245,7 @@ impl Arbitrary for SimBox {
 pub fn vmmc_from_simparams(
     sim_params: &SimParams,
     initial_interaction_energy: f64,
-    rng: &mut SmallRng,
+    rng: &mut Prng,
 ) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(sim_params, rng);
 
@@ -252,7 +256,7 @@ pub fn vmmc_from_simparams(
     )
 }
 
-pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc {
+pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut Prng) -> vmmc::Vmmc {
     let simbox = SimBox::new_with_randomized_particles(&ip.sim_params, rng);
 
     vmmc::Vmmc::new(
@@ -286,7 +290,7 @@ pub fn run_vmmc<Cbr>(
     vmmc: &mut Vmmc,
     mut protocol_iter: Box<dyn ProtocolIter>,
     mut cb: Box<dyn VmmcCallback<CbResult = Cbr>>,
-    rng: &mut SmallRng,
+    rng: &mut Prng,
 ) -> Result<(Vec<ProtocolStep>, Cbr)> {
     let mut idx: usize = 0;
     let mut protocol = Vec::new();

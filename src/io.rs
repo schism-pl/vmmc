@@ -11,7 +11,7 @@ use crate::{
     particle::IsParticle,
     polygons::{calc_polygon_distribution, calc_polygons, Polygon},
     position::DimVec,
-    protocol::{ProtocolIter, ProtocolStep},
+    protocol::ProtocolStep,
     vmmc::Vmmc,
 };
 
@@ -143,13 +143,13 @@ fn color_polygon(vmmc: &Vmmc, polygon: &Polygon, dt: &mut DrawTarget, scale: f64
     };
 
     let mut pb = PathBuilder::new();
-    let mut pos = vmmc.particle(polygon.vertices()[0]).pos();
+    let pos = vmmc.particle(polygon.vertices()[0]).pos();
     pb.move_to(
         (pos.x() * scale + x_off) as f32,
         (pos.y() * scale + y_off) as f32,
     );
 
-    for (src_p, dst_p) in polygon.edge_iter() {
+    for (_, dst_p) in polygon.edge_iter() {
         let pos1 = vmmc.particle(dst_p).pos();
         // let sep = pos1 - pos;
         // let final_pos = pos + sep.scale_by(scale);

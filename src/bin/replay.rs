@@ -1,84 +1,18 @@
-use std::f64::consts::PI;
-use std::fs::{self, create_dir_all};
-use std::process::exit;
-use std::time::Instant;
+use std::fs;
 
-use vmmc::protocol::ProtocolStep;
-use vmmc::stats::RunStats;
+use serde::{Deserialize, Serialize};
 use std::env;
 use vmmc::chemical_potential::maybe_particle_exchange;
-use serde::{Serialize, Deserialize};
+use vmmc::protocol::ProtocolStep;
+use vmmc::stats::RunStats;
 use vmmc::vmmc::Vmmc;
-use rand::rngs::SmallRng;
-
-// correctness criteria:
-// 1. average energy monotonically increases (decreases?)
-// 2. particles visibly stick together in visualization
-// 3. values match other impls (approximately)
-
-// fn packing_fraction(num_particles: usize, volume: f64) -> f64 {
-//     let particle_volume = num_particles as f64 * (PI * PARTICLE_RADIUS * PARTICLE_RADIUS);
-//     particle_volume / volume
-// }
-
-// struct StdCallback {
-//     writer: Box<XYZWriter>,
-//     start_time: Instant,
-//     timestamp: Instant,
-// }
-// impl VmmcCallback for StdCallback {
-//     type CbResult = ();
-//     // runs after every million steps
-//     fn run(&mut self, vmmc: &Vmmc, step: &ProtocolStep, idx: usize, run_stats: &RunStats) {
-//         self.writer.write_xyz_frame(vmmc);
-
-//         println!(
-//             "------------------------------------\nStep {:?} x 10e6",
-//             (idx + 1),
-//         );
-
-//         assert!(vmmc.well_formed());
-
-//         println!("# of particles: {:?}", vmmc.particles().num_particles());
-//         println!(
-//             "Packing fraction: {:?}",
-//             packing_fraction(vmmc.particles().num_particles(), vmmc.simbox().volume())
-//         );
-//         let polygon_dist = calc_polygon_distribution(vmmc, 12);
-//         println!("Polygon distribution: {:?}", polygon_dist);
-//         println!("Total polygons: {:?}", polygon_dist.iter().sum::<usize>());
-//         println!(
-//             "Interaction Energy (epsilon): {:.4}",
-//             step.interaction_energy()
-//         );
-//         println!("Chemical potential (mu): {:.4}", step.chemical_potential());
-//         println!(
-//             "Acceptance ratio: {:.4}",
-//             run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
-//         );
-//         for (idx, shape_stats) in calc_bond_distribution(vmmc).iter().enumerate() {
-//             let weighted_sum: usize = shape_stats.iter().enumerate().map(|(i, c)| i * c).sum();
-//             println!(
-//                 "shape_{:?} bond distribution: {:?} average degree = {:.4}",
-//                 idx,
-//                 shape_stats,
-//                 weighted_sum as f64 / vmmc.particles().num_particles() as f64
-//             );
-//         }
-//         let t = Instant::now();
-//         println!("Execution time: {:?}", t - self.timestamp);
-//         println!("Total execution time: {:?}", t - self.start_time);
-//         self.timestamp = t;
-//     }
-
-//     fn state(&self) {}
-// }
+use vmmc::Prng;
 
 #[derive(Serialize, Deserialize)]
 struct Snapshot {
     vmmc: Vmmc,
-    step: ProtocolStep, 
-    rng: SmallRng,
+    step: ProtocolStep,
+    rng: Prng,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -99,7 +33,7 @@ fn main() -> anyhow::Result<()> {
     // // Seed the rng
     // let seed = ip.seed;
     // println!("Using seed = {:x?}", seed);
-    // let mut rng = SmallRng::seed_from_u64(seed as u64);
+    // let mut rng = Prng::seed_from_u64(seed as u64);
 
     // let packing_fraction = packing_fraction(
     //     ip.sim_params.initial_particles,
@@ -140,28 +74,28 @@ fn main() -> anyhow::Result<()> {
     // // Write initial frame
     // writer.write_xyz_frame(&vmmc);
     let args: Vec<String> = env::args().collect();
-    let filename = args[1];
+    let filename = &args[1];
 
     println!("Using snapshot {}", filename);
 
     let contents = fs::read_to_string(filename)?;
     let state: Snapshot = toml::from_str(&contents)?;
 
-    let vmmc = state.vmmc;
+    let mut vmmc = state.vmmc;
     let protocol_step = state.step;
+    let mut rng = state.rng;
 
     // Run the simulation
     let mut run_stats = RunStats::new();
     vmmc.set_interaction_energy(protocol_step.interaction_energy());
     let chemical_potential = protocol_step.chemical_potential();
     for _ in 0..(1000 * 1000) {
-        let _ = vmmc.step(rng, &mut run_stats);
+        let _ = vmmc.step(&mut rng, &mut run_stats);
         if vmmc.dynamic_particle_count() {
-            maybe_particle_exchange(&mut vmmc, chemical_potential, rng);
+            maybe_particle_exchange(&mut vmmc, chemical_potential, &mut rng);
         }
     }
 
-    
     // Write visualizations to disc
     // write_tcl(&vmmc, &config.vmd());
     // write_geometry_png(&vmmc, &config.geometry());

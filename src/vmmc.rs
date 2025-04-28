@@ -5,8 +5,8 @@ use crate::position::{random_unit_vec, Position};
 use crate::potentials::patchy_discs::PatchyDiscsPotential;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
+use crate::Prng;
 use anyhow::{anyhow, Result};
-use rand::rngs::SmallRng;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
@@ -310,26 +310,26 @@ impl Vmmc {
         )
     }
 
-    fn choose_random_move(&self, rng: &mut SmallRng) -> ProposedMove {
+    fn choose_random_move(&self, rng: &mut Prng) -> ProposedMove {
         // 1. Choose a particle that will lead the move
         let seed_id = self.choose_random_p_id(rng);
         // 2. Choose a direction (unit vector) for the move (taken from maxwell-boltzman distribution)
         let rand_vec = random_unit_vec(rng);
         // 3. Choose a move type (translation or rotation)
-        let is_rotation = rng.gen::<f64>() >= PROB_TRANSLATE;
+        let is_rotation = rng.random::<f64>() >= PROB_TRANSLATE;
         // 4. Pick a cluster size cutoff
         // I don't know why we use this distribution, but it has something to do with particle choice fairness
-        let cluster_cutoff = (1.0 / rng.gen::<f64>()).floor() as usize;
+        let cluster_cutoff = (1.0 / rng.random::<f64>()).floor() as usize;
         // 5. Choose a size for the move
         let step_size = if is_rotation {
             // Rotation
-            let r: f64 = rng.gen();
+            let r: f64 = rng.random();
             MAX_ROTATION * (2.0 * r - 1.0)
             // MAX_ROTATION * r.powf(0.5)
         } else {
             // Translate
             // Scale step-size to uniformly sample unit sphere/circle.
-            let r: f64 = rng.gen();
+            let r: f64 = rng.random();
             // random number between (-1.0 and 1.0) * max_translation
             MAX_TRANSLATION * (2.0 * r - 1.0)
         };
@@ -339,7 +339,7 @@ impl Vmmc {
 
     // Note: each particle gets to attempt to link to every neighbor, even if neighbor
     // has tried to be recruited before
-    fn recruit_cluster(&self, rng: &mut SmallRng, mov: &ProposedMove) -> Result<VirtualMoves> {
+    fn recruit_cluster(&self, rng: &mut Prng, mov: &ProposedMove) -> Result<VirtualMoves> {
         let seed = self.particle(mov.seed_id);
         // particles in the cluster who still need to make their linking pass
         let mut worklist = VecDeque::from([(mov.seed_id, None)]);
@@ -385,8 +385,8 @@ impl Vmmc {
                 let (link_weight, reverse_link_weight) =
                     self.compute_link_weights(particle, neighbor, &final_p, &reverse_p);
 
-                if rng.gen::<f64>() <= link_weight {
-                    if rng.gen::<f64>() <= reverse_link_weight / link_weight {
+                if rng.random::<f64>() <= link_weight {
+                    if rng.random::<f64>() <= reverse_link_weight / link_weight {
                         // The neighbor has been linked.
                         // Add it to the move and attempt to recruit its neighbors
                         if !seen.contains(&neighbor_id) {
@@ -428,10 +428,10 @@ impl Vmmc {
         (link_weight, reverse_link_weight)
     }
 
-    pub fn choose_random_p_id(&self, rng: &mut SmallRng) -> ParticleId {
+    pub fn choose_random_p_id(&self, rng: &mut Prng) -> ParticleId {
         assert_ne!(self.particles().num_particles(), 0);
         loop {
-            let p_id = rng.gen_range(0..self.particles().particle_watermark() as u16);
+            let p_id = rng.random_range(0..self.particles().particle_watermark() as u16);
             if self.particles().is_active_particle(p_id) {
                 return p_id;
             }
@@ -481,7 +481,7 @@ impl Vmmc {
 
     fn attempt_commit(
         &mut self,
-        rng: &mut SmallRng,
+        rng: &mut Prng,
         mov: &ProposedMove,
         vmoves: &VirtualMoves,
     ) -> Result<()> {
@@ -492,7 +492,7 @@ impl Vmmc {
             1.0
         };
         // Stokes drag rejection
-        if rng.gen::<f64>() > scale_factor {
+        if rng.random::<f64>() > scale_factor {
             return Err(anyhow!("Stokes drag rejection"));
         }
 
@@ -562,7 +562,7 @@ impl Vmmc {
         true
     }
 
-    pub fn step(&mut self, rng: &mut SmallRng, stats: &mut RunStats) -> Result<()> {
+    pub fn step(&mut self, rng: &mut Prng, stats: &mut RunStats) -> Result<()> {
         // 0. If there are no particles, just skip
         if self.particles().num_particles() == 0 {
             return Ok(());
@@ -588,7 +588,7 @@ impl Vmmc {
         Ok(())
     }
 
-    pub fn step_n(&mut self, n: usize, rng: &mut SmallRng) -> RunStats {
+    pub fn step_n(&mut self, n: usize, rng: &mut Prng) -> RunStats {
         let mut run_stats = RunStats::new();
         for idx in 0..n {
             log::info!("Successful moves: {:?}/{:?}", run_stats.num_accepts(), idx);

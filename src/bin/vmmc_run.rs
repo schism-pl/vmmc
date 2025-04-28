@@ -1,27 +1,21 @@
-use std::f64::consts::PI;
 use std::fs::{self, create_dir_all};
 use std::process::exit;
-use std::time::Instant;
 
 use clap::Parser;
-use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use vmmc::cli::VmmcConfig;
-use vmmc::consts::{MAX_INITIAL_PACKING_FRACTION, PARTICLE_RADIUS};
+use vmmc::consts::MAX_INITIAL_PACKING_FRACTION;
 use vmmc::io::{
     clear_out_files, write_colored_geometry_png, write_geometry_png, write_protocols_png,
     write_stats,
 };
-use vmmc::polygons::{calc_bond_distribution, calc_polygon_distribution};
-use vmmc::protocol::ProtocolStep;
-use vmmc::stats::RunStats;
+
+use vmmc::Prng;
 use vmmc::{
     io::{write_tcl, XYZWriter},
-    packing_fraction,
-    vmmc::Vmmc,
-    StdCallback,
+    packing_fraction, StdCallback,
 };
-use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams, VmmcCallback};
+use vmmc::{run_vmmc, vmmc_from_inputparams, InputParams};
 
 // correctness criteria:
 // 1. average energy monotonically increases (decreases?)
@@ -104,7 +98,7 @@ fn main() -> anyhow::Result<()> {
     // Seed the rng
     let seed = ip.seed;
     println!("Using seed = {:x?}", seed);
-    let mut rng = SmallRng::seed_from_u64(seed as u64);
+    let mut rng = Prng::seed_from_u64(seed as u64);
 
     let packing_fraction = packing_fraction(
         ip.sim_params.initial_particles,

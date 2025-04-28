@@ -1,15 +1,16 @@
-use rand::{rngs::SmallRng, Rng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
+// use rand_xoshiro::rand_core::{SeedableRng, RngCore, Rng};
 
 use crate::consts::{MAX_PARTICLES_PER_CELL, PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use crate::morphology::Morphology;
 use crate::particle::Particles;
 use crate::position::random_unit_vec;
-use crate::SimParams;
 use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
 };
+use crate::{Prng, SimParams};
 
 type CellId = usize;
 type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
@@ -97,7 +98,7 @@ impl SimBox {
     }
 
     // uniform distribution of morphologies present in `shapes`
-    pub fn new_with_randomized_particles(sim_params: &SimParams, rng: &mut SmallRng) -> Self {
+    pub fn new_with_randomized_particles(sim_params: &SimParams, rng: &mut Prng) -> Self {
         let dimensions = sim_params.box_dimensions();
         let max_interaction_range = sim_params.max_interaction_range();
 
@@ -187,7 +188,7 @@ impl SimBox {
 
     // TODO: clean up this accursed function
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
-    pub fn new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
+    pub fn new_random_particle(&mut self, rng: &mut Prng) -> Option<Particle> {
         let mut attempts = 0;
         while attempts < 2 {
             // arbitrary # of reattempts
@@ -201,7 +202,7 @@ impl SimBox {
     }
 
     // Note: removes a particle from reserved particle ids even if particle isn't inserted
-    pub fn try_new_random_particle(&mut self, rng: &mut SmallRng) -> Option<Particle> {
+    pub fn try_new_random_particle(&mut self, rng: &mut Prng) -> Option<Particle> {
         // check if a position overlaps any existing
         fn pos_has_overlap(simbox: &SimBox, pos: &Position) -> bool {
             for other in simbox.particles.iter() {
@@ -213,7 +214,7 @@ impl SimBox {
         }
 
         let p_id = self.particles.get_unused_p_id();
-        let shape_id = rng.gen_range(0..self.shapes.len()) as u16; // choose a uniform random shape
+        let shape_id = rng.random_range(0..self.shapes.len()) as u16; // choose a uniform random shape
         let pos = self.random_pos(rng);
         if pos_has_overlap(self, &pos) {
             self.particles.push_unused_p_id(p_id);
@@ -405,9 +406,9 @@ impl SimBox {
         self.map_pos_into_box(p0 - p1)
     }
 
-    pub fn random_pos(&self, rng: &mut SmallRng) -> Position {
-        let x = rng.gen_range(self.min_x()..self.max_x());
-        let y = rng.gen_range(self.min_y()..self.max_y());
+    pub fn random_pos(&self, rng: &mut Prng) -> Position {
+        let x = rng.random_range(self.min_x()..self.max_x());
+        let y = rng.random_range(self.min_y()..self.max_y());
         Position::new([x, y])
     }
 }
