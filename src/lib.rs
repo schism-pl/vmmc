@@ -1,5 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
+use num_traits::identities::Zero;
 use std::fs::File;
 use std::io::Write;
 use std::{f64::consts::PI, time::Instant};
@@ -14,7 +15,6 @@ use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
 use rand::Rng;
 use rand::SeedableRng;
-use rand_distr::num_traits::Zero;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use serde::{Deserialize, Serialize};
 use simbox::SimBox;
