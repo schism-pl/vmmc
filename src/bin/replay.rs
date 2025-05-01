@@ -1,19 +1,7 @@
-use std::fs;
-
-use serde::{Deserialize, Serialize};
 use std::env;
 use vmmc::chemical_potential::maybe_particle_exchange;
-use vmmc::protocol::ProtocolStep;
 use vmmc::stats::RunStats;
-use vmmc::vmmc::Vmmc;
-use vmmc::Prng;
-
-#[derive(Serialize, Deserialize)]
-struct Snapshot {
-    vmmc: Vmmc,
-    step: ProtocolStep,
-    rng: Prng,
-}
+use vmmc::Snapshot;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -78,8 +66,10 @@ fn main() -> anyhow::Result<()> {
 
     println!("Using snapshot {}", filename);
 
-    let contents = fs::read_to_string(filename)?;
-    let state: Snapshot = toml::from_str(&contents)?;
+    // let contents = fs::read(filename)?;
+    // // let state: Snapshot = toml::from_str(&contents)?;
+    // let state: Snapshot = rmp_serde::from_slice(&contents).unwrap();
+    let state = Snapshot::read_from_disk(filename);
 
     let mut vmmc = state.vmmc;
     let protocol_step = state.step;
@@ -89,7 +79,7 @@ fn main() -> anyhow::Result<()> {
     let mut run_stats = RunStats::new();
     vmmc.set_interaction_energy(protocol_step.interaction_energy());
     let chemical_potential = protocol_step.chemical_potential();
-    for _ in 0..(1000 * 1000) {
+    for _idx in 0..(1000 * 1000) {
         let _ = vmmc.step(&mut rng, &mut run_stats);
         if vmmc.dynamic_particle_count() {
             maybe_particle_exchange(&mut vmmc, chemical_potential, &mut rng);

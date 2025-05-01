@@ -291,7 +291,6 @@ pub fn write_geometry_png(vmmc: &Vmmc, pathname: &str) {
     draw_white_background(vmmc, &mut dt, scale);
     render_particles(vmmc, &mut dt, scale);
     render_interactions(vmmc, &mut dt, scale);
-
     dt.write_png(pathname).unwrap();
 }
 

@@ -25,8 +25,9 @@ rand_distr = "0.4.3"
 raqote = "0.8.3"
 serde = { version = "1.0.193", features = ["derive"] }
 toml = "0.8.8"
-xyzvec = { version = "0.1.13", features = ["serde"] }
+xyzvec = { path = "xyzvec", features = ["serde"] }
 rand = { version = "0.9.1", features = ["serde"] }
+serde_json = { version = "1.0.140", features = ["float_roundtrip"] }
 
 
 

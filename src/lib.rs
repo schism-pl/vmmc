@@ -1,5 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
+use std::fs::File;
+use std::io::Write;
 use std::{f64::consts::PI, time::Instant};
 
 use anyhow::Result;
@@ -36,6 +38,43 @@ pub mod vmmc;
 // TODO: use approx crate for floating point equality
 
 pub type Prng = Xoshiro256PlusPlus;
+
+// Everything we need to resume a snapshot
+#[derive(Serialize, Deserialize)]
+pub struct Snapshot {
+    pub vmmc: Vmmc,
+    pub step: ProtocolStep,
+    pub rng: Prng,
+}
+
+impl Snapshot {
+    pub fn new(vmmc: &Vmmc, step: &ProtocolStep, rng: &Prng) -> Self {
+        Snapshot {
+            vmmc: vmmc.clone(),
+            step: step.clone(),
+            rng: rng.clone(),
+        }
+    }
+
+    pub fn write_to_disk(&self, filename: &str) {
+        // let buf = rmp_serde::to_vec(&self.vmmc.simbox().particles()).unwrap();
+        // let _snap: crate::particle::Particles = rmp_serde::from_slice(&buf).unwrap();
+
+        // let buf = rmp_serde::to_vec(self).unwrap();
+        // let _snap: Snapshot = rmp_serde::from_slice(&buf).unwrap();
+        let buf = serde_json::to_string(&self).unwrap();
+        let _snap: Snapshot = serde_json::from_str(&buf).unwrap();
+        let mut file = File::create(filename).unwrap();
+        file.write_all(buf.as_bytes()).unwrap();
+    }
+
+    pub fn read_from_disk(filename: &str) -> Self {
+        // let buf = std::fs::read(filename).unwrap();
+        let buf = std::fs::read_to_string(filename).unwrap();
+        serde_json::from_str(&buf).unwrap()
+        // rmp_serde::from_slice(&contents).unwrap()
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SimParams {
@@ -296,6 +335,9 @@ pub fn run_vmmc<Cbr>(
     let mut protocol = Vec::new();
 
     while let Some(protocol_step) = protocol_iter.next(vmmc) {
+        let snapshot = Snapshot::new(vmmc, &protocol_step, rng);
+        snapshot.write_to_disk("latest_snapshot.json");
+
         let mut run_stats = RunStats::new();
         vmmc.set_interaction_energy(protocol_step.interaction_energy());
         let chemical_potential = protocol_step.chemical_potential();

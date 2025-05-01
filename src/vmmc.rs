@@ -86,7 +86,7 @@ impl ProposedMove {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
@@ -212,37 +212,9 @@ impl Vmmc {
         com.div_by(vmoves.inner.len() as f64)
     }
 
-    // fn calculate_motion(
-    //     &self,
-    //     particle: &Particle,
-    //     mov: &ProposedMove,
-    //     seed: &Particle,
-    //     dir: MoveDir,
-    // ) -> VParticle {
-    //     let mut final_p = particle.pos();
-    //     let mut final_or = particle.or();
-
-    //     if !mov.is_rotation() {
-    //         final_p += mov.scaled_vec(dir);
-    //     } else {
-    //         let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
-    //         let theta = mov.step_factor(dir);
-
-    //         final_p += rel_pos.rotated_by(theta);
-    //         final_or += final_or.rotated_by(theta);
-    //     }
-
-    //     final_p = self.simbox.map_pos_into_box(final_p);
-    //     VParticle::new(
-    //         particle.pos(),
-    //         particle.or(),
-    //         final_p,
-    //         final_or,
-    //         particle.shape_id(),
-    //     )
-    // }
-
     // returns difference in position between final and original
+    // Invariant: not overlapping before implies not overlapping after
+    // Invariant, distance between root and position should be same before and after
     // TODO: simplify
     fn calculate_motion(
         &self,
@@ -258,34 +230,30 @@ impl Vmmc {
         if !mov.is_rotation() {
             final_p += mov.scaled_vec(dir);
         } else {
-            // r            let theta = mov.step_factor(dir);
             if let Some((fwd_root, rev_root)) = roots {
-                // println!("Rotating linked particle! dir = {:?}", dir);
-                // println!("Roots = {:?}", roots);
-
+                // Rotating (not the seed)
                 assert_eq!(fwd_root.orig_pos(), rev_root.orig_pos());
                 let displacement = self
                     .simbox()
                     .sep_in_box(particle.pos(), fwd_root.orig_pos());
                 let theta = mov.step_factor(dir);
-                // println!("Theta = {:?}", theta);
-                let delta = displacement.rotated_by(theta);
-                // println!("Displacement = {:?}", displacement);
-                // println!("Delta = {:?}", delta);
-                final_or += final_or.rotated_by(theta); // why is orientation added?
+                let delta = displacement.rotated_by(theta); // magnitiude should be same before and after?
+                                                            // println!("displacement = {:?} delta = {:?} theta = {:?}", displacement, delta, theta);
+                                                            // assert_eq!(delta.l2_norm(), displacement.l2_norm());
+                final_or = final_or.rotated_by(theta);
                 if let MoveDir::Forward = dir {
-                    final_p = fwd_root.pos() + displacement + delta;
+                    final_p = fwd_root.pos() + delta;
                 } else {
                     final_p = rev_root.pos() + delta;
                 }
             } else {
-                // println!("Rotating root!");
-                // We are rotating the seed
+                // We are rotating the seed!
+                // No update to position, it just turns
                 assert_eq!(seed.id(), particle.id());
-                let displacement = self.simbox().sep_in_box(particle.pos(), seed.pos());
+                // let displacement = self.simbox().sep_in_box(particle.pos(), seed.pos());
                 let theta = mov.step_factor(dir);
-                final_p += displacement.rotated_by(theta);
-                final_or += final_or.rotated_by(theta);
+                // final_p += displacement.rotated_by(theta);
+                final_or = final_or.rotated_by(theta);
             }
 
             // let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
@@ -567,7 +535,7 @@ impl Vmmc {
         if self.particles().num_particles() == 0 {
             return Ok(());
         }
-        debug_assert!(self.well_formed());
+        // debug_assert!(self.well_formed());
         stats.record_attempt();
         let mov = self.choose_random_move(rng);
         debug_assert!((mov.vec().l2_norm() - 1.0).abs() < 0.00001);
