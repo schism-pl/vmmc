@@ -258,7 +258,7 @@ impl SimBox {
         self.get_cell(neighbor_pos)
     }
 
-    fn delete_p_from_cell(&mut self, p_id: ParticleId, cell_id: CellId) {
+    pub fn delete_p_from_cell(&mut self, p_id: ParticleId, cell_id: CellId) {
         let cell = &mut self.cells[cell_id];
         for idx in 0..MAX_PARTICLES_PER_CELL {
             if cell[idx] == p_id {
@@ -270,7 +270,7 @@ impl SimBox {
         panic!("Tried to delete particle from wrong cell")
     }
 
-    fn insert_p_into_cell(&mut self, p_id: ParticleId, cell_id: CellId) {
+    pub fn insert_p_into_cell(&mut self, p_id: ParticleId, cell_id: CellId) {
         let cell = &mut self.cells[cell_id];
         for idx in 0..MAX_PARTICLES_PER_CELL {
             if cell[idx] == ParticleId::MAX {

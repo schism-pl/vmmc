@@ -255,17 +255,6 @@ impl Vmmc {
                 // final_p += displacement.rotated_by(theta);
                 final_or = final_or.rotated_by(theta);
             }
-
-            // let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
-            // let theta = mov.step_factor(dir);
-
-            // final_p += rel_pos.rotated_by(theta);
-            // final_or += final_or.rotated_by(theta);
-            // let rel_pos = self.simbox().sep_in_box(particle.pos(), seed.pos());
-            // let theta = mov.step_factor(dir);
-
-            // final_p += rel_pos.rotated_by(theta);
-            // final_or += final_or.rotated_by(theta);
         }
 
         final_p = self.simbox.map_pos_into_box(final_p);
@@ -408,42 +397,43 @@ impl Vmmc {
 
     /// Commits a set of virtual moves to simulator state
     /// Returns Ok if commit was accepted, Err if there was an overlap
-    /// Either way, the simulator should be in an invalid state after returning from this function.
-    ///
-    ///
-    /// This function is a little finicky, since we need to check for overlaps before updating tenancy, or else
-    /// we can include > MAX_PARTICLES_PER_CELL in a cell and cause a crash
-    /// so we remove all particles involved in the vmove, check for overlaps in the new position, then move all of them
+    /// The simulator will remain in a valid state regardless of whether this function returns Ok or Err.
     fn commit_moves(&mut self, vmoves: &VirtualMoves) -> Result<()> {
-        // let old_pos = self.particle(*p_id).pos();
-
-        // 1) remove all moved particles from the tenancy array so we ignore them
-        // when checking for overlaps
+        // 1) remove all moved particles from the tenancy array
         for (p_id, _) in vmoves.inner.iter() {
-            self.simbox.remove_particle_tenancy(*p_id);
+            let curr_cell = self.simbox.get_cell_id(self.particle(*p_id).pos());
+            self.simbox.delete_p_from_cell(*p_id, curr_cell);
         }
 
-        // 2) check if making any of the moves would cause an overlap
-        let is_overlap = vmoves
-            .inner
-            .iter()
-            .any(|(p_id, vp)| self.simbox.would_overlap(*p_id, vp.pos()));
+        // 2) check for overlaps while inserting particles into their new positions
+        // We need to insert as we go to detect overlaps between moving particles
+        let mut inserted = Vec::new();
+        for (p_id, vp) in vmoves.inner.iter() {
+            if self.simbox.would_overlap(*p_id, vp.pos()) {
+                // Overlap detected - remove all previously inserted particles
+                for &(restore_id, restore_cell) in inserted.iter() {
+                    self.simbox.delete_p_from_cell(restore_id, restore_cell);
+                }
+                // Restore all particles to their original cells
+                for (p_id, vp) in vmoves.inner.iter() {
+                    let orig_cell = self.simbox.get_cell_id(vp.orig_pos());
+                    self.simbox.insert_p_into_cell(*p_id, orig_cell);
+                }
+                return Err(anyhow!("Overlap"));
+            }
 
-        if is_overlap {
-            // if overlap, put the particles back in the tenancy array and return an error
-            for (p_id, _) in vmoves.inner.iter() {
-                self.simbox.insert_particle_tenancy(*p_id);
-            }
-            return Err(anyhow!("Overlap"));
-        } else {
-            // if no overlap, proceed with commit
-            for (p_id, vp) in vmoves.inner.iter() {
-                let p = self.simbox.particles_mut().particle_mut(*p_id);
-                p.update_pos(vp.pos());
-                p.update_or(vp.or());
-                self.simbox.insert_particle_tenancy(*p_id);
-            }
-        };
+            // No overlap - insert particle into new cell
+            let new_cell = self.simbox.get_cell_id(vp.pos());
+            self.simbox.insert_p_into_cell(*p_id, new_cell);
+            inserted.push((*p_id, new_cell));
+        }
+
+        // 3) No overlaps found - update particle positions
+        for (p_id, vp) in vmoves.inner.iter() {
+            let p = self.simbox.particles_mut().particle_mut(*p_id);
+            p.update_pos(vp.pos());
+            p.update_or(vp.or());
+        }
         Ok(())
     }
 
