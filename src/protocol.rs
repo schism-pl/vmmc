@@ -33,6 +33,10 @@ pub struct SynthesisProtocol {
     chemical_potential_eq: Expr<f64>,
     interaction_energy_eq: Expr<f64>,
     num_megasteps: usize,
+    sigma: f64,
+    h_vec: Vec<f64>,
+    m_vec: Vec<f64>,
+    pressure: f64,
 }
 
 impl SynthesisProtocol {
@@ -40,6 +44,10 @@ impl SynthesisProtocol {
         chemical_potential_s: &str,
         interaction_energy_s: &str,
         num_megasteps: usize,
+        sigma: f64,
+        h_vec: Vec<f64>,
+        m_vec: Vec<f64>,
+        pressure: f64,
     ) -> Self {
         let chemical_potential_eq = Expr::from_str(chemical_potential_s).unwrap();
         let interaction_energy_eq = Expr::from_str(interaction_energy_s).unwrap();
@@ -47,6 +55,10 @@ impl SynthesisProtocol {
             chemical_potential_eq,
             interaction_energy_eq,
             num_megasteps,
+            sigma,
+            h_vec,
+            m_vec,
+            pressure,
         }
     }
 
@@ -74,6 +86,22 @@ impl SynthesisProtocol {
         self.num_megasteps
     }
 
+    pub fn sigma(&self) -> f64 {
+        self.sigma
+    }
+
+    pub fn h_vec(&self) -> Vec<f64> {
+        self.h_vec.clone()
+    }
+
+    pub fn m_vec(&self) -> Vec<f64> {
+        self.m_vec.clone()
+    }
+
+    pub fn pressure(&self) -> f64 {
+        self.pressure
+    }
+
     pub fn megastep_iter(&self) -> ProtocolMegastepIter {
         ProtocolMegastepIter::new(self)
     }
@@ -81,7 +109,7 @@ impl SynthesisProtocol {
     pub fn flat_protocol(chemical_potential: f64, interaction_energy: f64, end: usize) -> Self {
         let chemical_potential_s = format!("{}", chemical_potential);
         let interaction_energy_s = format!("{}", interaction_energy);
-        Self::new(&chemical_potential_s, &interaction_energy_s, end)
+        Self::new(&chemical_potential_s, &interaction_energy_s, end, 0.0,vec![0.0,0.0,0.0],vec![0.0,0.0,0.0],0.0)
     }
 }
 

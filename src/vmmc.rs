@@ -3,6 +3,7 @@ use crate::particle::{IsParticle, Particle, ParticleId, Particles, VParticle};
 use crate::position::DimVec;
 use crate::position::{random_unit_vec, Position};
 use crate::potentials::patchy_discs::PatchyDiscsPotential;
+use crate::magnet::DipoleHamiltonian;
 use crate::simbox::SimBox;
 use crate::stats::RunStats;
 use anyhow::{anyhow, Result};
@@ -10,6 +11,7 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 use std::collections::{HashSet, VecDeque};
 use std::mem::size_of_val;
+use crate::pressure::Volume;
 
 #[derive(Clone, Copy, Debug)]
 pub enum MoveDir {
@@ -89,14 +91,19 @@ pub struct Vmmc {
     simbox: SimBox,
     potential: PatchyDiscsPotential,
     dynamic_particle_count: bool,
+    dipole: DipoleHamiltonian,
+    pressure: f64,
 }
 impl Vmmc {
-    pub fn new(simbox: SimBox, interaction_energy: f64, dynamic_particle_count: bool) -> Self {
-        let potential = PatchyDiscsPotential::new(interaction_energy);
+    pub fn new(simbox: SimBox, interaction_energy: f64, dynamic_particle_count: bool, sigma: f64, H_vec: Vec<f64>,m_vec: Vec<f64>,pressure: f64) -> Self {
+        let potential = PatchyDiscsPotential::new(interaction_energy,sigma);
+        let dipole = DipoleHamiltonian::new(H_vec,m_vec);
         Self {
             simbox,
             potential,
             dynamic_particle_count,
+            dipole,
+            pressure,
         }
     }
 
@@ -123,6 +130,15 @@ impl Vmmc {
     pub fn potential(&self) -> &PatchyDiscsPotential {
         &self.potential
     }
+
+    pub fn dipole(&self) -> &DipoleHamiltonian {
+        &self.dipole
+    }
+
+    pub fn pressure(&self) -> f64 {
+        self.pressure
+    }
+
 
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
         self.simbox.particle(p_id)
@@ -154,13 +170,24 @@ impl Vmmc {
         self.potential.determine_interactions(&self.simbox, p)
     }
 
+    pub fn compute_dipole_energy<P1: IsParticle, P2: IsParticle>(&self, p1: &P1, p2: &P2) -> f64 {
+        self.dipole.compute_pair_energy(&self.simbox,p1, p2)
+    }
+
+    pub fn compute_field_energy<P1: IsParticle>(&self, p1: &P1) -> f64 {
+        self.dipole.field_energy(&self.simbox,p1)
+    }
+
+
     // get energy
     pub fn get_particle_energy(&self, p: &Particle) -> f64 {
         let mut energy = 0.0;
         let interactions = self.determine_interactions(p);
+        energy += self.compute_field_energy(p);//dipole interaction with field
         for &neighbor_id in interactions.iter() {
             let neighbor = self.particle(neighbor_id);
             energy += self.compute_pair_energy(p, neighbor);
+            energy += self.compute_dipole_energy(p, neighbor);//dipole dipole interactions with neighbors
         }
         energy
     }
@@ -583,6 +610,15 @@ impl Vmmc {
         //     }
         //     assert!(false);
         // }
+        //
+        //
+        //Do pressure stuff here, 
+        //DimVec::new([2.0*sim.max_x()*(1.0),2.0*sim.max_y()*(1.0)])
+        if self.pressure > 0.0 {
+            //println!("current simbox volume: {}, {}",self.simbox.max_x()*2.0,self.simbox.max_y()*2.0);
+            //let newSimbox = simboxAtPressure(self.pressure,&self.simbox);
+            self.simbox.modifyVolume(Volume(self.pressure,&self.simbox));
+        }
         Ok(())
     }
 

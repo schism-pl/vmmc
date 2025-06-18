@@ -1,6 +1,6 @@
 use rand::{rngs::SmallRng, Rng};
 
-use crate::{consts::MAX_PARTICLES, vmmc::Vmmc};
+use crate::{consts::MAX_PARTICLES, vmmc::Vmmc, magnet::DipoleHamiltonian};
 
 fn maybe_remove_particle(vmmc: &mut Vmmc, chemical_potential: f64, rng: &mut SmallRng) {
     let num_particles = vmmc.particles().num_particles();

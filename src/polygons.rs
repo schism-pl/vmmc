@@ -155,7 +155,8 @@ pub fn calc_polygon_distribution(vmmc: &Vmmc, max_vertices: usize) -> Vec<usize>
 }
 
 pub fn calc_shape_bond_distribution(vmmc: &Vmmc, shape: &Morphology, shape_id: u16) -> Vec<usize> {
-    let mut bond_counts = vec![0; shape.patches().len() + 1];
+    let mut bond_counts = vec![0; shape.patches().len() + 2];//+2 instead, as the 0th index is
+    println!("len bound counts: {}, patches {}",bond_counts.len(),shape.patches().len());
     for p in vmmc.particles().iter() {
         if p.shape_id() == shape_id {
             let bond_count = vmmc.determine_interactions(p).len();

@@ -9,6 +9,7 @@ use crate::{
     particle::{IsParticle, Particle, ParticleId},
     position::{DimVec, Position},
 };
+use crate::pressure::Volume;
 
 type CellId = usize;
 type Cell = [ParticleId; MAX_PARTICLES_PER_CELL];
@@ -73,6 +74,31 @@ impl SimBox {
             cells,
             tenants,
         }
+    }
+
+    pub fn modifyVolume(&mut self,new_volume: DimVec){
+        let xScalingFactor = new_volume.x()/(self.max_x()*2.0);
+        let yScalingFactor = new_volume.y()/(self.max_y()*2.0);
+
+        let mut ids:Vec<ParticleId> = Vec::new(); 
+        for old_particle in self.particles_mut().iter_mut() {
+            ids.push(old_particle.id())
+            //let new_pos = Position::new([old_particle.pos().x()*(xScalingFactor),old_particle.pos().y()*(yScalingFactor)]);
+            //old_particle.update_pos(new_pos);
+            //let old_pid = old_particle.id();
+            //self.particle_mut(old_pid).update_pos(new_pos); 
+        }
+        //cannot modify self within a mutable or immutable loop, so a different loop is needed
+        for id in ids {
+            let old_pos = self.particle(id).pos();
+            let new_pos = Position::new([old_pos.x()*(xScalingFactor),old_pos.y()*(yScalingFactor)]);
+            self.particle_mut(id).update_pos(new_pos);
+        }
+        //self.cell_dimensions.x() = self.cell_dimensions().x()*(xScalingFactor);
+        //self.cell_dimensions.y() = self.cell_dimensions().y()*(yScalingFactor);
+        self.cell_dimensions = DimVec::new([self.cell_dimensions().x()*(xScalingFactor),self.cell_dimensions().y()*(yScalingFactor)]);
+        self.dimensions = new_volume;
+
     }
 
     /// if particle `p_id` were at position `pos`, would it cause any overlaps?
@@ -393,8 +419,19 @@ impl SimBox {
         let or = p.or();
         let sin_theta = self.morphology(p).sin_theta(patch_idx);
         let cos_theta = self.morphology(p).cos_theta(patch_idx);
-        let x = p.pos().x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
-        let y = p.pos().y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
+        //for now, for simplicity, repulsive patches will always be placed on faces, while
+        //attractive will always be on corners for the square. this is the easiest way to implement
+        //that use case.
+        let mut x = 0.0;
+        let mut y = 0.0;
+        if self.morphology(p).patches()[patch_idx].repulsive() {
+            let sqrt2 = std::f64::consts::SQRT_2;
+            x = p.pos().x() + (PARTICLE_RADIUS/sqrt2) * (or.x() * cos_theta - or.y() * sin_theta);
+            y = p.pos().y() + (PARTICLE_RADIUS/sqrt2) * (or.x() * sin_theta + or.y() * cos_theta);
+        } else {
+            x = p.pos().x() + PARTICLE_RADIUS * (or.x() * cos_theta - or.y() * sin_theta);
+            y = p.pos().y() + PARTICLE_RADIUS * (or.x() * sin_theta + or.y() * cos_theta);
+        }
         Position::new([x, y])
     }
 

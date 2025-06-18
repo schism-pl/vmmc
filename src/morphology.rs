@@ -4,6 +4,8 @@ use std::{
 };
 
 use serde::{de, Deserialize, Serialize};
+use rand::thread_rng;
+use rand_distr::{Distribution, Normal};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CoreShape {
@@ -41,14 +43,25 @@ pub struct Patch {
     radius: f64,  // radius of patch (in units of particle diameter)
     theta: f64,   // angle in degrees
     chemtype: u8, // patches must have same chemtype to be compatible
+    repulsive: bool, //set to false by default
 }
 
 impl Patch {
-    pub fn new(radius: f64, theta: f64, chemtype: u8) -> Self {
+    //pub fn new(radius: f64, theta: f64, chemtype: u8) -> Self {
+    //    Self {
+    //        radius,
+    //        theta,
+    //        chemtype,
+    //        repulsive: false,
+    //    }
+    //}
+
+    pub fn new(radius: f64, theta: f64, chemtype: u8, repulsive: bool) -> Self {
         Self {
             radius,
             theta,
             chemtype,
+            repulsive,
         }
     }
 
@@ -62,6 +75,10 @@ impl Patch {
 
     pub fn chemtype(&self) -> u8 {
         self.chemtype
+    }
+
+    pub fn repulsive(&self) -> bool {
+        self.repulsive
     }
 
     /// TODO: add derivation here
@@ -89,6 +106,7 @@ pub struct Morphology {
     // maps patch -> angle tolerance (+- radians where it can still interact)
     #[serde(skip_serializing)]
     angle_tolerances: Vec<f64>,
+    distribution: Vec<f64>,
 }
 
 // TODO: deserialize needs to read nanocubes
@@ -117,9 +135,16 @@ impl<'de> de::Deserialize<'de> for Morphology {
                     Err(de::Error::missing_field("shapes"))
                 };
 
+                let std_dev = if map.next_key::<String>()?.is_some() {
+                    let std_dev: f64 = map.next_value()?;
+                    Ok(std_dev)
+                } else {
+                    Err(de::Error::missing_field("shapes"))
+                };
+
                 if map.next_key::<String>()?.is_some() {
                     let v1: Vec<Patch> = map.next_value()?;
-                    Ok(Morphology::new(shape?, v1))
+                    Ok(Morphology::new(shape?,std_dev?, v1))
                 } else {
                     Err(de::Error::missing_field("shapes"))
                 }
@@ -131,7 +156,9 @@ impl<'de> de::Deserialize<'de> for Morphology {
 }
 
 impl Morphology {
-    pub fn new(shape: CoreShape, patches: Vec<Patch>) -> Self {
+    pub fn new(shape: CoreShape, std_dev:f64,patches: Vec<Patch>) -> Self {
+        //in simbox.rs the shapes variable is a vector of morphologies. this is created by the
+        //shapes section in the config.toml
         let max_radius = patches
             .iter()
             .map(|p| p.radius)
@@ -146,6 +173,13 @@ impl Morphology {
             cos_theta.push(theta.cos());
             angle_tolerances.push(patch.angle_tolerance());
         }
+        let normal = Normal::new(0.0, std_dev).unwrap();
+        let mut rng = thread_rng();
+        let x = normal.sample(&mut rng);
+        let y = normal.sample(&mut rng);
+        let z = normal.sample(&mut rng);
+
+        let distribution = vec![x,y,z];
 
         // println!("tolerances = {:?}", angle_tolerances);
         Self {
@@ -155,6 +189,7 @@ impl Morphology {
             sin_theta,
             cos_theta,
             angle_tolerances,
+            distribution,
         }
     }
 
@@ -177,6 +212,11 @@ impl Morphology {
     pub fn cos_theta(&self, patch_idx: usize) -> f64 {
         self.cos_theta[patch_idx]
     }
+
+    pub fn dstr(&self) -> &Vec<f64> {
+        return &self.distribution;
+    }
+
 
     // TODO: can probably be optimized
     /// given an angle, the patch that contains the angle
@@ -203,28 +243,64 @@ impl Morphology {
         None
     }
 
+    pub fn closest_patch_index(&self, theta: f64) -> Option<usize> {
+        // println!("Finding closest patch to {theta}");
+        for (p_idx, patch) in self.patches.iter().enumerate() {
+            let patch_theta = patch.theta() * PI / 180.0; // convert degrees to radians
+                                                          // println!("Finding patch theta = {patch_theta}");
+            let angle_tolerance = self.angle_tolerances[p_idx];
+
+            // println!("Lower bound = {}", (((patch_theta - angle_tolerance) + TAU) % TAU));
+            // println!("Upper bound = {}", ((patch_theta + angle_tolerance) % TAU));
+            if in_modular_range(theta, patch_theta, angle_tolerance) {
+                return Some(p_idx);
+            }
+            // // TODO: less janky
+            // if theta >= (((patch_theta - angle_tolerance) + TAU) % TAU)
+            //     && theta <= ((patch_theta + angle_tolerance) % TAU)
+            // {
+            //     return Some(patch);
+            // }
+        }
+        None
+    }
+
+
     pub fn regular_3patch(radius: f64) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 120.0, 0);
-        let p2 = Patch::new(radius, 240.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2])
+        let p0 = Patch::new(radius, 0.0, 0,false);
+        let p1 = Patch::new(radius, 120.0, 0,false);
+        let p2 = Patch::new(radius, 240.0, 0,false);
+        Self::new(CoreShape::Circle,0.0, vec![p0, p1, p2])
     }
 
     pub fn regular_4patch(radius: f64) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 90.0, 0);
-        let p2 = Patch::new(radius, 180.0, 0);
-        let p3 = Patch::new(radius, 270.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3])
+        let p0 = Patch::new(radius, 0.0, 0,false);
+        let p1 = Patch::new(radius, 90.0, 0,false);
+        let p2 = Patch::new(radius, 180.0, 0,false);
+        let p3 = Patch::new(radius, 270.0, 0,false);
+        Self::new(CoreShape::Circle,0.0, vec![p0, p1, p2, p3])
     }
 
     pub fn regular_6patch(radius: f64) -> Self {
-        let p0 = Patch::new(radius, 0.0, 0);
-        let p1 = Patch::new(radius, 60.0, 0);
-        let p2 = Patch::new(radius, 120.0, 0);
-        let p3 = Patch::new(radius, 180.0, 0);
-        let p4 = Patch::new(radius, 240.0, 0);
-        let p5 = Patch::new(radius, 300.0, 0);
-        Self::new(CoreShape::Circle, vec![p0, p1, p2, p3, p4, p5])
+        let p0 = Patch::new(radius, 0.0, 0,false);
+        let p1 = Patch::new(radius, 60.0, 0,false);
+        let p2 = Patch::new(radius, 120.0, 0,false);
+        let p3 = Patch::new(radius, 180.0, 0,false);
+        let p4 = Patch::new(radius, 240.0, 0,false);
+        let p5 = Patch::new(radius, 300.0, 0,false);
+        Self::new(CoreShape::Circle,0.0, vec![p0, p1, p2, p3, p4, p5])
+    }
+
+    pub fn nanocube_8patch(radius: f64) -> Self {
+        let sqrt2 = std::f64::consts::SQRT_2;
+        let p0 = Patch::new(radius,0.0, 0,false);
+        let p1 = Patch::new(radius * sqrt2,45.0,0,true);
+        let p2 = Patch::new(radius, 90.0, 0,false);
+        let p3 = Patch::new(radius * sqrt2,135.0,0,true);
+        let p4 = Patch::new(radius, 180.0, 0,false);
+        let p5 = Patch::new(radius * sqrt2,235.0,0,true);
+        let p6 = Patch::new(radius, 270.0, 0,false);
+        let p7 = Patch::new(radius * sqrt2,315.0,0,true);
+        Self::new(CoreShape::Square,0.0, vec![p0, p1, p2, p3, p4, p5, p6, p7])
     }
 }

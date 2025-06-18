@@ -213,24 +213,37 @@ fn render_circle_at(x: f32, y: f32, scale: f64) -> Path {
 // not the patch centers (middle of the side)
 fn render_square_at(vmmc: &Vmmc, p: &Particle, x_off: f64, y_off: f64, scale: f64) -> Path {
     // unimplemented!()
-
     // TODO: get patch_centers
 
     let mut pb = PathBuilder::new();
+    let mut corner1idx = 0;
+    let mut corner2idx = 1;
+    let mut corner3idx = 2;
+    let mut corner4idx = 3;
 
-    let p0 = vmmc.simbox().patch_center_unmapped(p, 0);
+    if vmmc.simbox().morphology(p).patches().len() == 8
+    {
+        //the odd indexes will be on the faces.
+        //above is set for corners
+        corner1idx = 0;
+        corner2idx = 2;
+        corner3idx = 4;
+        corner4idx = 6;
+    }
+
+    let p0 = vmmc.simbox().patch_center_unmapped(p, corner1idx);
     let p0_x = (p0.x() * scale + x_off) as f32;
     let p0_y = (p0.y() * scale + y_off) as f32;
 
-    let p1 = vmmc.simbox().patch_center_unmapped(p, 1);
+    let p1 = vmmc.simbox().patch_center_unmapped(p, corner2idx);
     let p1_x = (p1.x() * scale + x_off) as f32;
     let p1_y = (p1.y() * scale + y_off) as f32;
 
-    let p2 = vmmc.simbox().patch_center_unmapped(p, 2);
+    let p2 = vmmc.simbox().patch_center_unmapped(p, corner3idx);
     let p2_x = (p2.x() * scale + x_off) as f32;
     let p2_y = (p2.y() * scale + y_off) as f32;
 
-    let p3 = vmmc.simbox().patch_center_unmapped(p, 3);
+    let p3 = vmmc.simbox().patch_center_unmapped(p, corner4idx);
     let p3_x = (p3.x() * scale + x_off) as f32;
     let p3_y = (p3.y() * scale + y_off) as f32;
 

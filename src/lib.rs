@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 use stats::RunStats;
 use vmmc::Vmmc;
+use pressure::{Pressure,Volume};
 
 pub mod chemical_potential;
 pub mod cli;
@@ -30,6 +31,8 @@ pub mod protocol;
 pub mod simbox;
 pub mod stats;
 pub mod vmmc;
+pub mod magnet;
+pub mod pressure;
 
 // TODO: use approx crate for floating point equality
 
@@ -84,11 +87,11 @@ impl Arbitrary for SimParams {
                 let color = usize_in_range(g, 0, num_colors - 1);
                 let theta = f64_in_range(g, 0.0, 360.0);
                 let radius = f64_in_range(g, 0.01, 0.25);
-                let patch = Patch::new(radius, theta, color as u8);
+                let patch = Patch::new(radius, theta, color as u8,false);
                 // TODO: check that the morphology makes sense, i.e., patches don't overlap
                 patches.push(patch);
             }
-            shapes.push(Morphology::new(morphology::CoreShape::Circle, patches));
+            shapes.push(Morphology::new(morphology::CoreShape::Circle,0.0, patches));
         }
 
         Self {
@@ -329,6 +332,10 @@ pub fn vmmc_from_simparams(
         simbox,
         initial_interaction_energy,
         sim_params.dynamic_particle_count,
+        0.0,
+        vec![0.0,0.0,0.0],
+        vec![0.0,0.0,0.0],
+        -1.0,
     )
 }
 
@@ -339,6 +346,10 @@ pub fn vmmc_from_inputparams(ip: &InputParams, rng: &mut SmallRng) -> vmmc::Vmmc
         simbox,
         ip.protocol.initial_interaction_energy(),
         ip.sim_params.dynamic_particle_count,
+        ip.protocol.sigma(),
+        ip.protocol.h_vec(),
+        ip.protocol.m_vec(),
+        ip.protocol.pressure(),
     )
 }
 
@@ -383,6 +394,10 @@ pub fn run_vmmc<Cbr>(
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
         protocol.push(protocol_step);
+        let pres = Pressure(vmmc.simbox());
+        println!("Pressure: {}",pres);
+        //let volReq = Volume(5.0,vmmc.simbox()); 
+        //println!("Volume required for pressure 5.0: {}",volReq);
         idx += 1;
     }
     Ok((protocol, cb.state()))

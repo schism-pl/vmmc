@@ -4,6 +4,7 @@ use crate::consts::MAX_PARTICLES;
 use crate::position::{random_dimvec, random_unit_vec, Orientation, Position};
 use std::mem::{size_of, size_of_val};
 
+
 pub type ParticleId = u16;
 pub type ShapeId = u16;
 
@@ -60,6 +61,7 @@ impl Particle {
     pub fn random(rng: &mut SmallRng, id: ParticleId, shape_id: ShapeId) -> Self {
         Particle::new(id, random_dimvec(rng), random_unit_vec(rng), shape_id)
     }
+
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -195,6 +197,10 @@ impl Particles {
     }
 
     pub fn iter(&self) -> ParticleIterator {
+        ParticleIterator::new(&self.particles)
+    }
+
+    pub fn iter_mut(&mut self) -> ParticleIterator {
         ParticleIterator::new(&self.particles)
     }
 }

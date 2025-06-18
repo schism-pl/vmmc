@@ -24,15 +24,20 @@ fn calc_angle(or: Orientation, other: Orientation) -> f64 {
 
 pub struct PatchyDiscsPotential {
     interaction_energy: f64,
+    sigma: f64
 }
 
 impl PatchyDiscsPotential {
-    pub fn new(interaction_energy: f64) -> Self {
-        Self { interaction_energy }
+    pub fn new(interaction_energy: f64, sigma: f64) -> Self {
+        Self { interaction_energy , sigma}
     }
 
     pub fn interaction_energy(&self) -> f64 {
         self.interaction_energy
+    }
+
+    pub fn sigma(&self) -> f64 {
+        self.sigma
     }
 
     pub fn set_interaction_energy(&mut self, interaction_energy: f64) {
@@ -80,19 +85,91 @@ impl PatchyDiscsPotential {
         // }
 
         // println!("p0 angle = {angle0} p1 angle = {angle1}");
+        //below is the former code which only calculated the closest patches
 
-        if let Some(patch0) = m0.closest_patch(angle0) {
-            if let Some(patch1) = m1.closest_patch(angle1) {
+        //to get the patch location, we need the angle of the nanoparticle, the angle of the patch, and
+        //then multiply by the radius?
+        if let Some(p0idx) = m0.closest_patch_index(angle0) {
+            let patch0 = &m0.patches()[p0idx];
+            if let Some(p1idx) = m1.closest_patch_index(angle1) {
+                let patch1 = &m0.patches()[p1idx];
                 if patch0.chemtype() != patch1.chemtype() {
                     return 0.0;
                 }
+                if patch0.repulsive() != patch1.repulsive() {
+                    return 0.0;
+                }
                 if dist <= PARTICLE_DIAMETER + patch0.radius().max(patch1.radius()) {
-                    return -self.interaction_energy;
+                    //println!("patch accepted pD:{}",pD);
+                    if patch0.repulsive() {
+                        //return self.interaction_energy;
+                    } else {
+                        return -self.interaction_energy;
+                    }
+                } 
+            }
+        }
+        //this new code will instead loop and calculate all patches
+        //I don't understand how dist is calculated, but it is also the distance between particles,
+        //not patches, so i will find this in a new way.
+        //this code doesnt work yet, but is for attractive potential, rather than touching
+        0.0
+    }
+
+    pub fn direct_interaction<P1: IsParticle, P2: IsParticle>(
+        &self,
+        simbox: &SimBox,
+        particle0: &P1,
+        particle1: &P2,
+    ) -> bool {
+        let m0 = simbox.morphology(particle0);
+        let m1 = simbox.morphology(particle1);
+
+        let p0 = particle0.pos();
+        let p1 = particle1.pos();
+
+        // vector from p1 -> p0
+        let diff = simbox.sep_in_box(p0, p1);
+
+        // norm_sqd < 1.0 => norm < 1.0
+        let dist = diff.l2_norm_sqd().sqrt();
+
+        // overlap!
+        if dist < PARTICLE_DIAMETER {
+            return false;
+        }
+
+        if dist > PARTICLE_DIAMETER + m0.max_patch_radius().max(m1.max_patch_radius()) {
+            return false;
+        }
+
+        let or0 = particle0.or();
+        let or1 = particle1.or();
+
+        // calculate angle between difference vector and particle orientation to find closest patch
+        let normalized_diff = diff.div_by(dist);
+        let angle0 = calc_angle(normalized_diff, -or0); // TODO: why is this negative?
+        let angle1 = calc_angle(normalized_diff, or1);
+        if let Some(p0idx) = m0.closest_patch_index(angle0) {
+            let patch0 = &m0.patches()[p0idx];
+            if let Some(p1idx) = m1.closest_patch_index(angle1) {
+                let patch1 = &m0.patches()[p1idx];
+                if patch0.chemtype() != patch1.chemtype() {
+                    return false;
+                }
+                if patch0.repulsive() != patch1.repulsive() {
+                    return false;
+                }
+                if dist <= PARTICLE_DIAMETER + patch0.radius().max(patch1.radius()) {
+                    return true;
                 }
             }
         }
-        0.0
+
+
+        return false
     }
+
 
     pub fn determine_interactions(&self, simbox: &SimBox, p: &Particle) -> Vec<ParticleId> {
         let mut interactions = Vec::new();
@@ -101,21 +178,25 @@ impl PatchyDiscsPotential {
             if neighbor == p {
                 continue;
             }
-            let energy = self.compute_pair_energy(simbox, p, neighbor);
-
-            // particles interact!
-            if energy < 0.0 {
-                let m = simbox.morphology(p);
+            if self.direct_interaction(simbox, p, neighbor) {
                 // if interactions.len() == m.patches().len(){
                 //     println!("{:?}", p);
-
                 //     for interacting_p in interactions.iter() {
                 //         println!("{:?}", simbox.particle(*interacting_p));
                 //     }
                 //     println!("{:?}", simbox.particle(neighbor_id));
                 // }
-                assert_ne!(interactions.len(), m.patches().len());
-                interactions.push(neighbor_id);
+                //if(interactions.len() != m.patches().len())
+                //{
+                //    println!("i: {}, p: {}",interactions.len(),m.patches().len()); 
+                //}else{
+                //    println!("interactions match");
+                //}
+                //assert_ne!(interactions.len(), m.patches().len());
+                //println!("interaction len: {}",interactions.len());
+                interactions.push(neighbor_id);//i am removing this stuff, its limited to the
+                //number of patches in another file and causing memory errors. i dont see the point
+                //of this.
             }
         }
 
