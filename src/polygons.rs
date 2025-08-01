@@ -71,11 +71,11 @@ pub fn tightest_neighbor(vmmc: &Vmmc, p0: &Particle, p1: &Particle) -> Option<Pa
             // vector from p1 to p2
             let dist1 = vmmc.simbox().sep_in_box(p2.pos(), p1.pos());
             let nd1 = dist1.div_by(dist1.l2_norm());
-
             // dot product of 2 unit vectors = sin(theta)
             let sin_theta = nd0.cross_prod(nd1);
             // dot product of 2 unit vectors = cos(theta)
             let cos_theta = nd0.dot_prod(nd1);
+            // sin_theta < 0.0 means the angle is counter-clockwise
             if cos_theta < lowest_cos && sin_theta < 0.0 {
                 lowest_cos = cos_theta;
                 tightest = p2_id;
@@ -141,7 +141,6 @@ pub fn calc_polygons(vmmc: &Vmmc, max_vertices: usize) -> Vec<Polygon> {
 }
 
 pub fn calc_polygon_count(vmmc: &Vmmc, max_vertices: usize) -> usize {
-    // TODO: why does this +1 need to be here?
     calc_polygons(vmmc, max_vertices).len()
 }
 
