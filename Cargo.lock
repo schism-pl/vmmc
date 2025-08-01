@@ -1467,6 +1467,7 @@ dependencies = [
  "equationx",
  "log",
  "num-traits",
+ "petgraph",
  "plotters",
  "quickcheck",
  "quickcheck_macros",

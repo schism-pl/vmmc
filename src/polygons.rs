@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use petgraph::algo::isomorphism::subgraph_isomorphisms_iter;
+use petgraph::graph::UnGraph;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -172,4 +174,72 @@ pub fn calc_bond_distribution(vmmc: &Vmmc) -> Vec<Vec<usize>> {
         bond_counts_per_shape.push(bond_counts);
     }
     bond_counts_per_shape
+}
+
+// There is definitely a faster dynamic programming solution to this, but this is acceptable for now
+// only works for edge-to-edge tilings
+fn generate_polygon_graph(vmmc: &Vmmc, max_vertices: usize) -> UnGraph<Polygon, ()> {
+    let polygons = calc_polygons(vmmc, max_vertices);
+
+    // Create an undirected graph
+    let mut graph = UnGraph::new_undirected();
+
+    // Add each polygon as a node in the graph
+    let mut node_indices = Vec::new();
+    for polygon in polygons {
+        let node_idx = graph.add_node(polygon);
+        node_indices.push(node_idx);
+    }
+
+    // Add edges between polygons that share at least 2 vertices
+    for i in 0..node_indices.len() {
+        for j in (i + 1)..node_indices.len() {
+            let polygon_i = &graph[node_indices[i]];
+            let polygon_j = &graph[node_indices[j]];
+
+            // Count shared vertices
+            let shared_vertices = count_shared_vertices(polygon_i, polygon_j);
+
+            // Add edge if they share at least 2 vertices
+            if shared_vertices == 2 {
+                graph.add_edge(node_indices[i], node_indices[j], ());
+            } else if shared_vertices > 2 {
+                panic!("Polygon graph should not have polygons with more than 2 shared vertices");
+            }
+        }
+    }
+
+    graph
+}
+
+// Technically this is O(n^2) but polygons are small, so it's fine
+fn count_shared_vertices(polygon1: &Polygon, polygon2: &Polygon) -> usize {
+    polygon1
+        .vertices()
+        .iter()
+        .filter(|&v| polygon2.vertices().contains(v))
+        .count()
+}
+
+// Find all subgraph isomorphisms using vf2 subgraph isomorphism algorithm
+// Returns something...
+fn calc_unitcell_matching(
+    polygon_graph: &UnGraph<Polygon, ()>,
+    unitcell: &UnGraph<usize, ()>,
+) -> Vec<Vec<usize>> {
+    // Bind these closures to local variables to avoid borrowing issues
+    let mut node_match: fn(&usize, &Polygon) -> bool = |x, y| *x == y.vertices().len();
+    let mut edge_match: fn(&(), &()) -> bool = |_, _| true;
+
+    // Use subgraph_isomorphisms_iter to find all instances of the unit cell in the polygon graph
+    let isomorphism_iter =
+        subgraph_isomorphisms_iter(&unitcell, &polygon_graph, &mut node_match, &mut edge_match);
+    isomorphism_iter.unwrap().collect()
+}
+
+// use petgraph::visit::IntoEdgesDirected;
+
+pub fn calc_unitcells(vmmc: &Vmmc, max_vertices: usize, unitcell: &UnGraph<usize, ()>) {
+    let polygon_graph = generate_polygon_graph(vmmc, max_vertices);
+    calc_unitcell_matching(&polygon_graph, unitcell);
 }
