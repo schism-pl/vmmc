@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use petgraph::algo::isomorphism::subgraph_isomorphisms_iter;
 use petgraph::graph::UnGraph;
@@ -221,12 +221,16 @@ fn count_shared_vertices(polygon1: &Polygon, polygon2: &Polygon) -> usize {
         .count()
 }
 
+
+// Vec of node indices in the polygon graph where each node is a polygon
+type Isomorphism = Vec<usize>;
+
 // Find all subgraph isomorphisms using vf2 subgraph isomorphism algorithm
 // Returns something...
 fn calc_unitcell_matching(
     polygon_graph: &UnGraph<Polygon, ()>,
     unitcell: &UnGraph<usize, ()>,
-) -> Vec<Vec<usize>> {
+) -> Vec<Isomorphism> {
     // Bind these closures to local variables to avoid borrowing issues
     let mut node_match: fn(&usize, &Polygon) -> bool = |x, y| *x == y.vertices().len();
     let mut edge_match: fn(&(), &()) -> bool = |_, _| true;
@@ -237,9 +241,33 @@ fn calc_unitcell_matching(
     isomorphism_iter.unwrap().collect()
 }
 
-// use petgraph::visit::IntoEdgesDirected;
+fn is_isomorphism_duplicate(isomorphism_set: &HashSet<usize>, existing_isomorphisms: &[Isomorphism]) -> bool {
+    existing_isomorphisms.iter().any(|existing| {
+        if existing.len() != isomorphism_set.len() {
+            return false;
+        }
+        // Convert existing isomorphism to HashSet for comparison
+        let existing_set: HashSet<usize> = existing.iter().cloned().collect();
+        existing_set == *isomorphism_set
+    })
+}
 
-pub fn calc_unitcells(vmmc: &Vmmc, max_vertices: usize, unitcell: &UnGraph<usize, ()>) {
+fn remove_duplicate_isomorphisms(isomorphisms: Vec<Isomorphism>) -> Vec<Isomorphism> {
+    let mut unique_isomorphisms = Vec::new();
+    for isomorphism in isomorphisms {
+        // Convert to HashSet for order-independent comparison
+        let isomorphism_set: HashSet<usize> = isomorphism.iter().cloned().collect();
+        
+        // Check if this isomorphism is already in our unique list
+        if !is_isomorphism_duplicate(&isomorphism_set, &unique_isomorphisms) {
+            unique_isomorphisms.push(isomorphism);
+        }
+    }
+    unique_isomorphisms
+}
+
+pub fn calc_unitcells(vmmc: &Vmmc, max_vertices: usize, unitcell: &UnGraph<usize, ()>) -> Vec<Isomorphism> {
     let polygon_graph = generate_polygon_graph(vmmc, max_vertices);
-    calc_unitcell_matching(&polygon_graph, unitcell);
+    let unitcells = calc_unitcell_matching(&polygon_graph, unitcell);
+    remove_duplicate_isomorphisms(unitcells)
 }
