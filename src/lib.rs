@@ -33,6 +33,7 @@ pub mod potentials;
 pub mod protocol;
 pub mod simbox;
 pub mod stats;
+pub mod tilings;
 pub mod vmmc;
 
 // TODO: use approx crate for floating point equality
@@ -87,14 +88,14 @@ pub struct SimParams {
 
 impl Default for SimParams {
     fn default() -> Self {
-        let initial_particles = 550;
+        let initial_particles = 200;
         let shapes = vec![Morphology::regular_4patch(0.05)];
 
         SimParams {
             initial_particles,
             shapes,
-            box_width: 30.0,
-            box_height: 30.0,
+            box_width: 20.0,
+            box_height: 20.0,
             dynamic_particle_count: true,
         }
     }
@@ -192,7 +193,7 @@ impl Default for InputParams {
         // let box_width = 30.0;
         // let box_height = 30.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 100);
+        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 10);
 
         // let shapes = vec![Morphology::regular_4patch(0.05)];
 

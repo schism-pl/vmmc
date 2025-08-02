@@ -10,6 +10,8 @@ use vmmc::io::{
     write_stats,
 };
 
+use petgraph::graph::UnGraph;
+use vmmc::polygons::calc_unitcells;
 use vmmc::Prng;
 use vmmc::{
     io::{write_tcl, XYZWriter},
@@ -143,6 +145,22 @@ fn main() -> anyhow::Result<()> {
     let cb = Box::new(StdCallback::new());
     let proto = Box::new(ip.protocol.megastep_iter());
     let (protocol, _) = run_vmmc(&mut vmmc, proto, cb, &mut rng)?;
+
+    // create a graph with 4 nodes, each with weight 4
+    let mut g = UnGraph::<usize, ()>::new_undirected();
+    let node0 = g.add_node(4); // Node with weight 10
+    let node1 = g.add_node(4); // Node with weight 20
+    let node2 = g.add_node(4); // Node with weight 30
+    let node3 = g.add_node(4); // Node with weight 40
+
+    // Add edges
+    g.add_edge(node0, node1, ());
+    g.add_edge(node1, node2, ());
+    g.add_edge(node2, node3, ());
+    g.add_edge(node0, node3, ());
+
+    let unitcells = calc_unitcells(&vmmc, 12, &g);
+    println!("Unitcells: {:?} {:?}", unitcells, unitcells.len());
 
     // Write visualizations to disc
     write_tcl(&vmmc, &config.vmd());
