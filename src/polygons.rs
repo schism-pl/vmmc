@@ -237,7 +237,10 @@ fn calc_unitcell_matching(
     // Use subgraph_isomorphisms_iter to find all instances of the unit cell in the polygon graph
     let isomorphism_iter =
         subgraph_isomorphisms_iter(&unitcell, &polygon_graph, &mut node_match, &mut edge_match);
-    isomorphism_iter.unwrap().collect()
+    match isomorphism_iter {
+        Some(iter) => iter.collect(),
+        None => vec![],
+    }
 }
 
 fn is_isomorphism_duplicate(
