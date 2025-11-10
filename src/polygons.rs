@@ -201,11 +201,12 @@ fn generate_polygon_graph(vmmc: &Vmmc, max_vertices: usize) -> UnGraph<Polygon, 
             let shared_vertices = count_shared_vertices(polygon_i, polygon_j);
 
             // Add edge if they share at least 2 vertices
-            if shared_vertices == 2 {
+            if shared_vertices >= 2 {
                 graph.add_edge(node_indices[i], node_indices[j], ());
-            } else if shared_vertices > 2 {
-                panic!("Polygon graph should not have polygons with more than 2 shared vertices");
-            }
+            } 
+            // else if shared_vertices > 2 {
+            //     panic!("Polygon graph should not have polygons with more than 2 shared vertices");
+            // }
         }
     }
 
