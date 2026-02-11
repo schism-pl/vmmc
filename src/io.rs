@@ -327,8 +327,8 @@ pub fn write_colored_geometry_png(vmmc: &Vmmc, pathname: &str) {
 //     ctx
 // }
 
-// chemical potential goes from -20 to 20
-// interaction energy goes from 0 to 10
+// interaction energy goes from 0 to 20
+// chemical potential goes from 0 to 20
 // timescale =
 pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
     use plotters::prelude::*;
@@ -350,7 +350,7 @@ pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
         .set_label_area_size(LabelAreaPosition::Left, 32)
         .set_label_area_size(LabelAreaPosition::Bottom, 32)
         .caption("Chemical Potential", ("sans-serif", 32))
-        .build_cartesian_2d(0..num_megasteps - 1, -10.0..10.0)
+        .build_cartesian_2d(0..num_megasteps - 1, 0.0..20.0)
         .unwrap();
 
     top_ctx.configure_mesh().draw().unwrap();
