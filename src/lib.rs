@@ -11,6 +11,7 @@ use consts::{PARTICLE_DIAMETER, PARTICLE_RADIUS};
 use morphology::{Morphology, Patch};
 use polygons::{calc_bond_distribution, calc_polygon_distribution};
 use position::DimVec;
+use pressure::maybe_volume_change;
 use protocol::{ProtocolIter, ProtocolStep, SynthesisProtocol};
 use quickcheck::{Arbitrary, Gen};
 use rand::Rng;
@@ -20,7 +21,6 @@ use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 use stats::RunStats;
 use vmmc::Vmmc;
-use pressure::maybe_volume_change;
 
 pub mod chemical_potential;
 pub mod cli;
@@ -31,12 +31,12 @@ pub mod particle;
 pub mod polygons;
 pub mod position;
 pub mod potentials;
+pub mod pressure;
 pub mod protocol;
 pub mod simbox;
 pub mod stats;
 pub mod tilings;
 pub mod vmmc;
-pub mod pressure;
 
 // TODO: use approx crate for floating point equality
 
@@ -349,7 +349,12 @@ pub fn run_vmmc<Cbr>(
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
             }
-            maybe_volume_change(vmmc, protocol_step.volume_x(), protocol_step.volume_y(), rng);
+            maybe_volume_change(
+                vmmc,
+                protocol_step.volume_x(),
+                protocol_step.volume_y(),
+                rng,
+            );
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
         protocol.push(protocol_step);
