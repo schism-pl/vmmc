@@ -11,6 +11,15 @@ pub fn maybe_volume_change(
     rng: &mut Prng,
 ) {
     // 1) propose a volume change
+    let proposed_volume_x = propose_log_volume_move(rng, target_volume_x).unwrap();
+    let proposed_volume_y = propose_log_volume_move(rng, target_volume_y).unwrap();
+    log::info!(
+        "Proposed volume change: x: {} -> {}, y: {} -> {}",
+        target_volume_x,
+        proposed_volume_x,
+        target_volume_y,
+        proposed_volume_y
+    );
     // 2) scale particles + box
     // 3) recompute energy + accept/reject
     let _ = vmmc;
