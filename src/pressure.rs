@@ -4,7 +4,7 @@ use crate::{vmmc::Vmmc, Prng};
 
 const EPS_LOGV: f64 = 0.02;
 
-pub fn attempt_volume_change(
+pub fn maybe_volume_change(
     vmmc: &mut Vmmc,
     target_volume_x: f64,
     target_volume_y: f64,

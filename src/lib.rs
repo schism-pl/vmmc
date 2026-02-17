@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use simbox::SimBox;
 use stats::RunStats;
 use vmmc::Vmmc;
+use pressure::maybe_volume_change;
 
 pub mod chemical_potential;
 pub mod cli;
@@ -348,6 +349,7 @@ pub fn run_vmmc<Cbr>(
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
             }
+            maybe_volume_change(vmmc, protocol_step.volume_x(), protocol_step.volume_y(), rng);
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
         protocol.push(protocol_step);
