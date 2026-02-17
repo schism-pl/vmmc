@@ -35,6 +35,7 @@ pub mod simbox;
 pub mod stats;
 pub mod tilings;
 pub mod vmmc;
+pub mod pressure;
 
 // TODO: use approx crate for floating point equality
 
