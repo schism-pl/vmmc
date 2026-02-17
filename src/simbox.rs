@@ -375,6 +375,20 @@ impl SimBox {
         self.cell_dimensions
     }
 
+    pub fn rescale_box(&mut self, scale_x: f64, scale_y: f64) {
+        // TODO: scale dimensions, cell dimensions, and rebuild cell grid/tenancy
+        let _ = scale_x;
+        let _ = scale_y;
+        todo!()
+    }
+
+    pub fn rescale_particles(&mut self, scale_x: f64, scale_y: f64) {
+        // TODO: scale all particle positions and remap into box
+        let _ = scale_x;
+        let _ = scale_y;
+        todo!()
+    }
+
     pub fn cells_per_axis(&self) -> [usize; 2] {
         self.cells_per_axis
     }
