@@ -41,7 +41,7 @@ pub fn propose_log_volume_move(rng: &mut Prng, v_old: f64) -> Result<f64, String
     debug_assert!(EPS_LOGV.is_finite() && EPS_LOGV > 0.0);
 
     // delta is in the range [-eps_logv, +eps_logv]
-    let delta = rng.gen_range(-EPS_LOGV..=EPS_LOGV);
+    let delta = rng.random_range(-EPS_LOGV..=EPS_LOGV);
 
     // V_new = V_old * exp(delta)
     let v_new = v_old * delta.exp();

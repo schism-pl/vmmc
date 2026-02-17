@@ -26,7 +26,7 @@ impl Polygon {
         &self.vertices
     }
 
-    pub fn edge_iter(&self) -> PolygonEdgeIterator {
+    pub fn edge_iter(&self) -> PolygonEdgeIterator<'_> {
         PolygonEdgeIterator::new(&self.vertices)
     }
 }
