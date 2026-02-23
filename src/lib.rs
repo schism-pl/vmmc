@@ -195,7 +195,7 @@ impl Default for InputParams {
         // let box_width = 30.0;
         // let box_height = 30.0;
 
-        let protocol = SynthesisProtocol::flat_protocol(0.0, 8.0, 10);
+        let protocol = SynthesisProtocol::flat_protocol_with_pressure(0.0, 8.0, 0.0, 0.0, 10);
 
         // let shapes = vec![Morphology::regular_4patch(0.05)];
 

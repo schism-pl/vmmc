@@ -36,12 +36,12 @@ impl ProtocolStep {
         self.interaction_energy
     }
 
-    pub fn volume_x(&self) -> f64 {
-        self.volume_x.expect("volume_x protocol value is None")
+    pub fn volume_x(&self) -> Option<f64> {
+        self.volume_x
     }
 
-    pub fn volume_y(&self) -> f64 {
-        self.volume_y.expect("volume_y protocol value is None")
+    pub fn volume_y(&self) -> Option<f64> {
+        self.volume_y
     }
 }
 
@@ -145,7 +145,7 @@ impl SynthesisProtocol {
         )
     }
 
-    pub fn flat_protocol_with_volume(
+    pub fn flat_protocol_with_pressure(
         chemical_potential: f64,
         interaction_energy: f64,
         volume_x: f64,
