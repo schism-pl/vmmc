@@ -349,12 +349,12 @@ pub fn run_vmmc<Cbr>(
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
             }
-            maybe_volume_change(
-                vmmc,
-                protocol_step.volume_x(),
-                protocol_step.volume_y(),
-                rng,
-            );
+            // maybe_volume_change(
+            //     vmmc,
+            //     protocol_step.volume_x(),
+            //     protocol_step.volume_y(),
+            //     rng,
+            // );
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
         protocol.push(protocol_step);
@@ -406,6 +406,17 @@ impl VmmcCallback for StdCallback {
             step.interaction_energy()
         );
         println!("Chemical potential (mu): {:.4}", step.chemical_potential());
+        println!(
+            "Pressure = {:.4} {:.4}",
+            step.volume_x().unwrap_or(0.0),
+            step.volume_y().unwrap_or(0.0)
+        );
+        println!(
+            "Simbox dimensions: x = {:.4}, y = {:.4} (Volume: {:.4})",
+            vmmc.simbox().x(),
+            vmmc.simbox().y(),
+            vmmc.simbox().volume()
+        );
         println!(
             "Acceptance ratio: {:.4}",
             run_stats.num_accepts() as f64 / run_stats.num_attempts() as f64
