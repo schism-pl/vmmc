@@ -9,22 +9,22 @@ use crate::vmmc::Vmmc;
 pub struct ProtocolStep {
     chemical_potential: f64, // mu / KbT
     interaction_energy: f64, // epsilon / KbT
-    volume_x: Option<f64>,   // Lx
-    volume_y: Option<f64>,   // Ly
+    x_pressure: Option<f64>, // P_x
+    y_pressure: Option<f64>, // P_y
 }
 
 impl ProtocolStep {
     pub fn new(
         chemical_potential: f64,
         interaction_energy: f64,
-        volume_x: Option<f64>,
-        volume_y: Option<f64>,
+        x_pressure: Option<f64>,
+        y_pressure: Option<f64>,
     ) -> Self {
         Self {
             chemical_potential,
             interaction_energy,
-            volume_x,
-            volume_y,
+            x_pressure,
+            y_pressure,
         }
     }
 
@@ -36,12 +36,12 @@ impl ProtocolStep {
         self.interaction_energy
     }
 
-    pub fn volume_x(&self) -> Option<f64> {
-        self.volume_x
+    pub fn x_pressure(&self) -> Option<f64> {
+        self.x_pressure
     }
 
-    pub fn volume_y(&self) -> Option<f64> {
-        self.volume_y
+    pub fn y_pressure(&self) -> Option<f64> {
+        self.y_pressure
     }
 }
 
@@ -89,18 +89,12 @@ impl SynthesisProtocol {
         self.chemical_potential_eq.eval(t as f64)
     }
 
-    pub fn volume_x(&self, t: usize) -> f64 {
-        self.volume_x_eq
-            .as_ref()
-            .map(|eq| eq.eval(t as f64))
-            .expect("volume_x protocol value is None")
+    pub fn volume_x(&self, t: usize) -> Option<f64> {
+        self.volume_x_eq.as_ref().map(|eq| eq.eval(t as f64))
     }
 
-    pub fn volume_y(&self, t: usize) -> f64 {
-        self.volume_y_eq
-            .as_ref()
-            .map(|eq| eq.eval(t as f64))
-            .expect("volume_y protocol value is None")
+    pub fn volume_y(&self, t: usize) -> Option<f64> {
+        self.volume_y_eq.as_ref().map(|eq| eq.eval(t as f64))
     }
 
     pub fn initial_interaction_energy(&self) -> f64 {

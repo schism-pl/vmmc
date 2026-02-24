@@ -195,7 +195,7 @@ impl Default for InputParams {
         // let box_width = 30.0;
         // let box_height = 30.0;
 
-        let protocol = SynthesisProtocol::flat_protocol_with_pressure(0.0, 8.0, 0.0, 0.0, 10);
+        let protocol = SynthesisProtocol::flat_protocol_with_pressure(0.0, 8.0, 10.0, 10.0, 10);
 
         // let shapes = vec![Morphology::regular_4patch(0.05)];
 
@@ -349,12 +349,12 @@ pub fn run_vmmc<Cbr>(
             if vmmc.dynamic_particle_count() {
                 maybe_particle_exchange(vmmc, chemical_potential, rng);
             }
-            // maybe_volume_change(
-            //     vmmc,
-            //     protocol_step.volume_x(),
-            //     protocol_step.volume_y(),
-            //     rng,
-            // );
+            maybe_volume_change(
+                vmmc,
+                protocol_step.x_pressure(),
+                protocol_step.y_pressure(),
+                rng,
+            );
         }
         cb.run(vmmc, &protocol_step, idx, &run_stats);
         protocol.push(protocol_step);
@@ -407,9 +407,9 @@ impl VmmcCallback for StdCallback {
         );
         println!("Chemical potential (mu): {:.4}", step.chemical_potential());
         println!(
-            "Pressure = {:.4} {:.4}",
-            step.volume_x().unwrap_or(0.0),
-            step.volume_y().unwrap_or(0.0)
+            "Pressure = {:.4?} {:.4?}",
+            step.x_pressure(),
+            step.y_pressure()
         );
         println!(
             "Simbox dimensions: x = {:.4}, y = {:.4} (Volume: {:.4})",

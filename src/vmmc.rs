@@ -126,7 +126,7 @@ impl Vmmc {
         &self.potential
     }
 
-    pub fn rescaled_simbox(&self, new_x: f64, new_y: f64) -> Result<Self, String> {
+    pub fn rescaled_simbox(&self, new_x: f64, new_y: f64) -> Result<Self> {
         let simbox = self.simbox.rescale_box(new_x, new_y)?;
         Ok(Self {
             simbox,

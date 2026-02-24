@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 // use rand_xoshiro::rand_core::{SeedableRng, RngCore, Rng};
@@ -383,16 +384,16 @@ impl SimBox {
         self.cell_dimensions
     }
 
-    pub fn rescale_box(&self, new_x: f64, new_y: f64) -> Result<Self, String> {
+    pub fn rescale_box(&self, new_x: f64, new_y: f64) -> Result<Self> {
         // scale dimensions, cell dimensions, and rebuild cell grid/tenancy
         if !new_x.is_finite() || !new_y.is_finite() || new_x <= 0.0 || new_y <= 0.0 {
-            return Err("new dimensions must be finite and > 0".to_string());
+            return Err(anyhow!("new dimensions must be finite and > 0"));
         }
 
         let old_x = self.dimensions.x();
         let old_y = self.dimensions.y();
         if !old_x.is_finite() || !old_y.is_finite() || old_x <= 0.0 || old_y <= 0.0 {
-            return Err("current dimensions must be finite and > 0".to_string());
+            return Err(anyhow!("current dimensions must be finite and > 0"));
         }
 
         let scale_x = new_x / old_x;
@@ -405,19 +406,19 @@ impl SimBox {
             .fold(0.0_f64, |a, b| a.max(b));
         let max_interaction_range = PARTICLE_DIAMETER + max_patch_radius;
         if !max_interaction_range.is_finite() || max_interaction_range <= 0.0 {
-            return Err("max interaction range must be finite and > 0".to_string());
+            return Err(anyhow!("max interaction range must be finite and > 0"));
         }
 
         let cells_x_axis = (new_x / max_interaction_range).floor() as usize;
         let cells_y_axis = (new_y / max_interaction_range).floor() as usize;
         if cells_x_axis == 0 || cells_y_axis == 0 {
-            return Err("box too small for interaction range".to_string());
+            return Err(anyhow!("box too small for interaction range"));
         }
 
         let cell_width = new_x / cells_x_axis as f64;
         let cell_height = new_y / cells_y_axis as f64;
         if cell_width < max_interaction_range || cell_height < max_interaction_range {
-            return Err("cell size smaller than interaction range".to_string());
+            return Err(anyhow!("cell size smaller than interaction range"));
         }
 
         let new_dimensions = DimVec::new([new_x, new_y]);
@@ -456,7 +457,7 @@ impl SimBox {
             if proposed.particles.is_active_particle(p_id) {
                 let pos = proposed.particle(p_id).pos();
                 if proposed.would_overlap(p_id, pos) {
-                    return Err("rescale would create particle overlap".to_string());
+                    return Err(anyhow!("rescale would create particle overlap"));
                 }
 
                 let cell_id = proposed.get_cell_id(pos);
@@ -471,7 +472,7 @@ impl SimBox {
                     }
                 }
                 if !inserted {
-                    return Err("cell overflow during rescale".to_string());
+                    return Err(anyhow!("cell overflow during rescale"));
                 }
             }
         }
