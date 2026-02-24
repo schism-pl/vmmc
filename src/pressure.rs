@@ -3,7 +3,7 @@ use rand::Rng;
 use crate::{vmmc::Vmmc, Prng};
 
 // Hyperparameter for log-volume moves: maximum magnitude of log-volume change per move.
-const EPS_LOGV: f64 = 0.01;
+const EPS_LOGV: f64 = 0.005;
 // const GAMMA = 0.02; // step size for axis moves toward target
 
 pub fn maybe_volume_change(
@@ -12,6 +12,10 @@ pub fn maybe_volume_change(
     target_y: Option<f64>,
     rng: &mut Prng,
 ) {
+    // Tune how often we try to volume change
+    if rng.random_range(0_u32..100_000_u32) != 0 {
+        return;
+    }
     // Unpack variables
     let changing_x = target_x.is_some();
     let changing_y = target_y.is_some();
@@ -46,32 +50,42 @@ pub fn maybe_volume_change(
     // 2) scale particles + box
     let proposed_vmmc = match vmmc.rescaled_simbox(x_new, y_new) {
         Ok(sim) => sim,
-        Err(_) => return,
+        Err(_) => {println!("Failed to rescale simbox"); return},
     };
 
     // 3) recompute energy + accept/reject
     // 3a) compute total potential energies for old and proposed states
-    let u_old = vmmc.get_total_energy();
-    let u_new = proposed_vmmc.get_total_energy();
+    let old_energy = vmmc.get_total_energy();
+    let new_energy = proposed_vmmc.get_total_energy();
+    // println!("old energy: {:.4}, new energy: {:.4}", old_energy, new_energy);
 
     // 3b) compute external work increment for anisotropic update convention
-    let d_u = u_new - u_old;
+    let d_u = -(new_energy - old_energy);
+    let d_w = p_x * 20.0 * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
 
-    let d_w = p_x * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
+
 
     // 3c) compute Jacobian term from affine scaling (area change)
     let a_old = x_old * y_old;
     let a_new = x_new * y_new;
     if a_old <= 0.0 || a_new <= 0.0 {
-        return;
+        {println!("Invalid area: a_old = {:.4}, a_new = {:.4}", a_old, a_new); return};
     }
     let log_j = (vmmc.particles().num_particles() as f64) * (a_new / a_old).ln();
 
     // 3d) Metropolis-Hastings accept/reject in log space (beta = 1)
     // energies are already in units of kBT, so beta = 1.0
     let log_alpha = -(d_u + d_w) + log_j;
+        log::info!(
+        "energy change: ΔU = {:.4}, ΔW = {:.4} log_alpha = {:.4})",
+        d_u, d_w, log_alpha
+    );
     let u = rng.random_range(0.0..1.0);
     let u = if u <= 0.0 { f64::MIN_POSITIVE } else { u };
+    log::info!(
+        "volume change energy: ΔU = {:.4}, ΔW = {:.4}, log_J = {:.4}, log_alpha = {:.4}, u = {:.4}",
+        d_u, d_w, log_j, log_alpha, u
+    );
     if u.ln() < log_alpha.min(0.0) {
         // 3e) accept: commit proposed box and scaled positions
         *vmmc.simbox_mut() = proposed_vmmc.simbox().clone();
