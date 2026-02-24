@@ -6,6 +6,8 @@ use crate::{vmmc::Vmmc, Prng};
 const EPS_LOGV: f64 = 0.005;
 // const GAMMA = 0.02; // step size for axis moves toward target
 
+const PRESSURE_SCALE_FACTOR: f64 = 1.0; // Tune how strongly pressure biases volume changes
+
 pub fn maybe_volume_change(
     vmmc: &mut Vmmc,
     x_pressure: Option<f64>,
@@ -61,7 +63,7 @@ pub fn maybe_volume_change(
 
     // 3b) compute external work increment for anisotropic update convention
     let d_u = -(new_energy - old_energy);
-    let d_w = p_x * 20.0 * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
+    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
 
     // 3c) compute Jacobian term from affine scaling (area change)
     let a_old = x_old * y_old;
