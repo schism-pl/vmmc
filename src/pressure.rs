@@ -6,6 +6,8 @@ use crate::{vmmc::Vmmc, Prng};
 const EPS_LOGV: f64 = 0.005;
 // const GAMMA = 0.02; // step size for axis moves toward target
 
+const AVG_PRESSURE_STEP_PER_MEGASTEP: u32 = 10; // Tune how quickly we want to ramp up pressure over the course of the protocol
+
 const PRESSURE_SCALE_FACTOR: f64 = 1.0; // Tune how strongly pressure biases volume changes
 
 pub fn maybe_volume_change(
@@ -15,7 +17,7 @@ pub fn maybe_volume_change(
     rng: &mut Prng,
 ) {
     // Tune how often we try to volume change
-    if rng.random_range(0_u32..100_000_u32) != 0 {
+    if rng.random_range(0_u32..1_000_000_u32 / AVG_PRESSURE_STEP_PER_MEGASTEP) != 0 {
         return;
     }
     // Unpack variables
@@ -38,7 +40,6 @@ pub fn maybe_volume_change(
     } else {
         vmmc.simbox().y()
     };
-    // let v_new = x_new + y_new;
 
     log::info!(
         "proposed volume change: x {:.4} -> {:.4}, y {:.4} -> {:.4}",
@@ -51,7 +52,7 @@ pub fn maybe_volume_change(
     let proposed_vmmc = match vmmc.rescaled_simbox(x_new, y_new) {
         Ok(sim) => sim,
         Err(err) => {
-            println!("Failed to rescale simbox: {}", err);
+            log::error!("Failed to rescale simbox: {}", err);
             return;
         }
     };
@@ -70,7 +71,7 @@ pub fn maybe_volume_change(
     let a_new = x_new * y_new;
     if a_old <= 0.0 || a_new <= 0.0 {
         {
-            println!("Invalid area: a_old = {:.4}, a_new = {:.4}", a_old, a_new);
+            log::error!("Invalid area: a_old = {:.4}, a_new = {:.4}", a_old, a_new);
             return;
         };
     }
