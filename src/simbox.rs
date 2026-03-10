@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 // use rand_xoshiro::rand_core::{SeedableRng, RngCore, Rng};
@@ -358,6 +359,14 @@ impl SimBox {
         r
     }
 
+    pub fn x(&self) -> f64 {
+        self.dimensions.x()
+    }
+
+    pub fn y(&self) -> f64 {
+        self.dimensions.y()
+    }
+
     pub fn min_x(&self) -> f64 {
         -0.5 * self.dimensions.x()
     }
@@ -373,6 +382,101 @@ impl SimBox {
 
     pub fn cell_dimensions(&self) -> DimVec {
         self.cell_dimensions
+    }
+
+    pub fn rescale_box(&self, new_x: f64, new_y: f64) -> Result<Self> {
+        // scale dimensions, cell dimensions, and rebuild cell grid/tenancy
+        if !new_x.is_finite() || !new_y.is_finite() || new_x <= 0.0 || new_y <= 0.0 {
+            return Err(anyhow!("new dimensions must be finite and > 0"));
+        }
+
+        let old_x = self.dimensions.x();
+        let old_y = self.dimensions.y();
+        if !old_x.is_finite() || !old_y.is_finite() || old_x <= 0.0 || old_y <= 0.0 {
+            return Err(anyhow!("current dimensions must be finite and > 0"));
+        }
+
+        let scale_x = new_x / old_x;
+        let scale_y = new_y / old_y;
+
+        let max_patch_radius = self
+            .shapes
+            .iter()
+            .map(|m| m.max_patch_radius())
+            .fold(0.0_f64, |a, b| a.max(b));
+        let max_interaction_range = PARTICLE_DIAMETER + max_patch_radius;
+        if !max_interaction_range.is_finite() || max_interaction_range <= 0.0 {
+            return Err(anyhow!("max interaction range must be finite and > 0"));
+        }
+
+        let cells_x_axis = (new_x / max_interaction_range).floor() as usize;
+        let cells_y_axis = (new_y / max_interaction_range).floor() as usize;
+        if cells_x_axis == 0 || cells_y_axis == 0 {
+            return Err(anyhow!("box too small for interaction range"));
+        }
+
+        let cell_width = new_x / cells_x_axis as f64;
+        let cell_height = new_y / cells_y_axis as f64;
+        if cell_width < max_interaction_range || cell_height < max_interaction_range {
+            return Err(anyhow!("cell size smaller than interaction range"));
+        }
+
+        let new_dimensions = DimVec::new([new_x, new_y]);
+        let new_cells_per_axis = [cells_x_axis, cells_y_axis];
+        let new_cell_dimensions = DimVec::new([cell_width, cell_height]);
+
+        let new_min_x = -0.5 * new_x;
+        let new_max_x = 0.5 * new_x;
+        let new_min_y = -0.5 * new_y;
+        let new_max_y = 0.5 * new_y;
+
+        let mut new_particles = self.particles.clone();
+        for id in 0..new_particles.particle_watermark() {
+            let p_id = id as ParticleId;
+            if new_particles.is_active_particle(p_id) {
+                let pos = new_particles.particle(p_id).pos();
+                let scaled = Position::new([pos.x() * scale_x, pos.y() * scale_y]);
+                let mapped = Position::new([
+                    map_into_range(scaled.x(), new_min_x, new_max_x),
+                    map_into_range(scaled.y(), new_min_y, new_max_y),
+                ]);
+                new_particles.particle_mut(p_id).update_pos(mapped);
+            }
+        }
+
+        let mut proposed = Self::new(
+            new_dimensions,
+            new_cells_per_axis,
+            new_cell_dimensions,
+            new_particles,
+            self.shapes.clone(),
+        );
+
+        for id in 0..proposed.particles.particle_watermark() {
+            let p_id = id as ParticleId;
+            if proposed.particles.is_active_particle(p_id) {
+                let pos = proposed.particle(p_id).pos();
+                if proposed.would_overlap(p_id, pos) {
+                    return Err(anyhow!("rescale would create particle overlap"));
+                }
+
+                let cell_id = proposed.get_cell_id(pos);
+                let cell = &mut proposed.cells[cell_id];
+                let mut inserted = false;
+                for idx in 0..MAX_PARTICLES_PER_CELL {
+                    if cell[idx] == ParticleId::MAX {
+                        cell[idx] = p_id;
+                        proposed.tenants[cell_id] += 1;
+                        inserted = true;
+                        break;
+                    }
+                }
+                if !inserted {
+                    return Err(anyhow!("cell overflow during rescale"));
+                }
+            }
+        }
+        Ok(proposed)
     }
 
     pub fn cells_per_axis(&self) -> [usize; 2] {

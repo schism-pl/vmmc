@@ -194,7 +194,7 @@ impl Particles {
         self.particles[p_id as usize] = None;
     }
 
-    pub fn iter(&self) -> ParticleIterator {
+    pub fn iter(&self) -> ParticleIterator<'_> {
         ParticleIterator::new(&self.particles)
     }
 }

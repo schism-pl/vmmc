@@ -26,7 +26,7 @@ impl Polygon {
         &self.vertices
     }
 
-    pub fn edge_iter(&self) -> PolygonEdgeIterator {
+    pub fn edge_iter(&self) -> PolygonEdgeIterator<'_> {
         PolygonEdgeIterator::new(&self.vertices)
     }
 }
@@ -203,7 +203,7 @@ fn generate_polygon_graph(vmmc: &Vmmc, max_vertices: usize) -> UnGraph<Polygon, 
             // Add edge if they share at least 2 vertices
             if shared_vertices >= 2 {
                 graph.add_edge(node_indices[i], node_indices[j], ());
-            } 
+            }
             // else if shared_vertices > 2 {
             //     panic!("Polygon graph should not have polygons with more than 2 shared vertices");
             // }

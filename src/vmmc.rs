@@ -126,6 +126,15 @@ impl Vmmc {
         &self.potential
     }
 
+    pub fn rescaled_simbox(&self, new_x: f64, new_y: f64) -> Result<Self> {
+        let simbox = self.simbox.rescale_box(new_x, new_y)?;
+        Ok(Self {
+            simbox,
+            potential: self.potential.clone(),
+            dynamic_particle_count: self.dynamic_particle_count,
+        })
+    }
+
     pub fn particle(&self, p_id: ParticleId) -> &Particle {
         self.simbox.particle(p_id)
     }
@@ -167,13 +176,18 @@ impl Vmmc {
         energy
     }
 
-    pub fn get_average_energy(&self) -> f64 {
+    pub fn get_total_energy(&self) -> f64 {
         let mut total_energy = 0.0;
         for p in self.particles().iter() {
             total_energy += self.get_particle_energy(p);
         }
-        // divide by an extra 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
-        total_energy / (self.particles().num_particles() as f64 * 2.0)
+        // divide by 2 so we don't double count bonds (we should only count p0->p1 but not also p1->p0)
+        total_energy / 2.0
+    }
+
+    pub fn get_average_energy(&self) -> f64 {
+        let total_energy = self.get_total_energy();
+        total_energy / (self.particles().num_particles() as f64)
     }
 
     // TODO: what is this?
