@@ -19,7 +19,7 @@ pub use semiregular_tilings::{
     tiling_3_6_3_6, tiling_4_6_12, tiling_4_8_8,
 };
 pub use two_vertex_tilings::{
-    tiling_3_2_6_2_3_4_6, tiling_3_6_3_2_6_2, tiling_3_6_3_6_3_2_6_2, tiling_4_4_3_3_4_2,
+    tiling_3_2_6_2_3_4_6, tiling_3_6_3_2_6_2, tiling_3_6_3_6_3_2_6_2, tiling_4_4_3_3_4_2, tiling_07
 };
 
 /// Returns a tiling based on the canonical name string.
@@ -64,11 +64,14 @@ pub fn tiling_from_str(name: &str) -> Option<UnitCell> {
         "3.12.12" => Some(tiling_3_12_12()),
         "4.6.12" => Some(tiling_4_6_12()),
 
-        // 2-vertex tilings
+        // 2-vertex tilings (simplified unitcells)
         "4_4; 3_3.4_2" => Some(tiling_4_4_3_3_4_2()),
         "3.6.3.6; 3_2.6_2" => Some(tiling_3_6_3_6_3_2_6_2()),
         "3_6; 3_2.6_2" => Some(tiling_3_6_3_2_6_2()),
         "3_2.6_2; 3_4.6" => Some(tiling_3_2_6_2_3_4_6()),
+
+        // 2-vertex tiings (unitcells undergoing testing)
+        "07" => Some(tiling_07()),
 
         _ => None,
     }
@@ -106,6 +109,13 @@ mod tests {
             tiling_from_str("3_2.6_2; 3_4.6"),
             Some(tiling_3_2_6_2_3_4_6())
         );
+
+        //Test 2-vertex unitcells under development
+        assert_eq!(
+            tiling_from_str("07"),
+            Some(tiling_07())
+        );
+
 
         // Test invalid input
         assert_eq!(tiling_from_str("invalid"), None);

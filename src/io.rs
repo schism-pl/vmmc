@@ -327,8 +327,10 @@ pub fn write_colored_geometry_png(vmmc: &Vmmc, pathname: &str) {
 //     ctx
 // }
 
+
+
+// chemical potential goes from -20 to 20
 // interaction energy goes from 0 to 20
-// chemical potential goes from 0 to 20
 // timescale =
 pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
     use plotters::prelude::*;
