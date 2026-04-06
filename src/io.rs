@@ -350,7 +350,7 @@ pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
         .set_label_area_size(LabelAreaPosition::Left, 32)
         .set_label_area_size(LabelAreaPosition::Bottom, 32)
         .caption("Chemical Potential", ("sans-serif", 32))
-        .build_cartesian_2d(0..num_megasteps - 1, 0.0..20.0)
+        .build_cartesian_2d(0..num_megasteps - 1, -20.0..20.0)
         .unwrap();
 
     top_ctx.configure_mesh().draw().unwrap();
