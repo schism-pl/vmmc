@@ -50,7 +50,7 @@ pub fn maybe_volume_change(
     let proposed_vmmc = match vmmc.rescaled_simbox(x_new, y_new) {
         Ok(sim) => sim,
         Err(err) => {
-            log::error!("Failed to rescale simbox: {}", err);
+            log::info!("Volume move rejected (rescale failed): {}", err);
             return;
         }
     };
