@@ -4,11 +4,9 @@ use crate::{vmmc::Vmmc, Prng};
 
 // Hyperparameter for log-volume moves: maximum magnitude of log-volume change per move.
 const EPS_LOGV: f64 = 0.005;
-// const GAMMA = 0.02; // step size for axis moves toward target
 
-const AVG_PRESSURE_STEP_PER_MEGASTEP: u32 = 10; // Tune how quickly we want to ramp up pressure over the course of the protocol
-
-const PRESSURE_SCALE_FACTOR: f64 = 1.0; // Tune how strongly pressure biases volume changes
+// Average number of volume-move attempts per megastep.
+const AVG_PRESSURE_STEP_PER_MEGASTEP: u32 = 10;
 
 pub fn maybe_volume_change(
     vmmc: &mut Vmmc,
@@ -16,13 +14,13 @@ pub fn maybe_volume_change(
     y_pressure: Option<f64>,
     rng: &mut Prng,
 ) {
+    if x_pressure.is_none() && y_pressure.is_none() {
+        return;
+    }
     // Tune how often we try to volume change
     if rng.random_range(0_u32..1_000_000_u32 / AVG_PRESSURE_STEP_PER_MEGASTEP) != 0 {
         return;
     }
-    // Unpack variables
-    let changing_x = x_pressure.is_some();
-    let changing_y = y_pressure.is_some();
     let p_x = x_pressure.unwrap_or(0.0);
     let p_y = y_pressure.unwrap_or(0.0);
 
@@ -30,15 +28,15 @@ pub fn maybe_volume_change(
     let y_old = vmmc.simbox().y();
 
     // 1) propose a volume change
-    let x_new = if changing_x {
+    let x_new = if x_pressure.is_some() {
         propose_axis_move(rng, x_old).unwrap()
     } else {
-        vmmc.simbox().x()
+        x_old
     };
-    let y_new = if changing_y {
+    let y_new = if y_pressure.is_some() {
         propose_axis_move(rng, y_old).unwrap()
     } else {
-        vmmc.simbox().y()
+        y_old
     };
 
     log::info!(
@@ -63,30 +61,27 @@ pub fn maybe_volume_change(
     let new_energy = proposed_vmmc.get_total_energy();
 
     // 3b) compute external work increment for anisotropic update convention
-    let d_u = new_energy - old_energy; // ΔU > 0 means energy increased (unfavorable)
-    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old)
-        + p_y * x_new * (y_new - y_old) * PRESSURE_SCALE_FACTOR;
+    let d_u = new_energy - old_energy; // dU > 0 means energy increased (unfavorable)
+    let d_w = p_x * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
 
     // 3c) compute Jacobian term from affine scaling (area change)
     let a_old = x_old * y_old;
     let a_new = x_new * y_new;
     if a_old <= 0.0 || a_new <= 0.0 {
-        {
-            log::error!("Invalid area: a_old = {:.4}, a_new = {:.4}", a_old, a_new);
-            return;
-        };
+        log::error!("Invalid area: a_old = {:.4}, a_new = {:.4}", a_old, a_new);
+        return;
     }
     // N*ln(A_new/A_old) from the NPT Jacobian, +1 from the Hastings correction for the
     // asymmetry of the log-volume proposal in linear space: q(A_new|A_old) = 1/(2*eps*A_new)
     let log_j = (vmmc.particles().num_particles() as f64 + 1.0) * (a_new / a_old).ln();
 
     // 3d) Metropolis-Hastings accept/reject in log space (beta = 1)
-    // log_alpha = -ΔU - P·ΔV + N·ln(A_new/A_old); energies in units of kBT so beta = 1
+    // log_alpha = -dU - P*dA + (N+1)*ln(A_new/A_old); energies in units of kBT so beta = 1
     let log_alpha = -(d_u + d_w) + log_j;
     let u = rng.random_range(0.0..1.0);
     let u = if u <= 0.0 { f64::MIN_POSITIVE } else { u };
     log::info!(
-        "volume change: ΔU = {:.4}, ΔW = {:.4}, log_J = {:.4}, log_alpha = {:.4}, u = {:.4}",
+        "volume change: dU = {:.4}, dW = {:.4}, log_J = {:.4}, log_alpha = {:.4}, u = {:.4}",
         d_u,
         d_w,
         log_j,
