@@ -63,8 +63,8 @@ pub fn maybe_volume_change(
     let new_energy = proposed_vmmc.get_total_energy();
 
     // 3b) compute external work increment for anisotropic update convention
-    let d_u = -(new_energy - old_energy);
-    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old);
+    let d_u = new_energy - old_energy; // ΔU > 0 means energy increased (unfavorable)
+    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old) * PRESSURE_SCALE_FACTOR;
 
     // 3c) compute Jacobian term from affine scaling (area change)
     let a_old = x_old * y_old;
@@ -78,18 +78,12 @@ pub fn maybe_volume_change(
     let log_j = (vmmc.particles().num_particles() as f64) * (a_new / a_old).ln();
 
     // 3d) Metropolis-Hastings accept/reject in log space (beta = 1)
-    // energies are already in units of kBT, so beta = 1.0
+    // log_alpha = -ΔU - P·ΔV + N·ln(A_new/A_old); energies in units of kBT so beta = 1
     let log_alpha = -(d_u + d_w) + log_j;
-    log::info!(
-        "energy change: ΔU = {:.4}, ΔW = {:.4} log_alpha = {:.4})",
-        d_u,
-        d_w,
-        log_alpha
-    );
     let u = rng.random_range(0.0..1.0);
     let u = if u <= 0.0 { f64::MIN_POSITIVE } else { u };
     log::info!(
-        "volume change energy: ΔU = {:.4}, ΔW = {:.4}, log_J = {:.4}, log_alpha = {:.4}, u = {:.4}",
+        "volume change: ΔU = {:.4}, ΔW = {:.4}, log_J = {:.4}, log_alpha = {:.4}, u = {:.4}",
         d_u,
         d_w,
         log_j,
