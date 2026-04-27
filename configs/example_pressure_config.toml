@@ -1,0 +1,36 @@
+seed = 634079072
+
+[protocol]
+chemical_potential_eq = "0"
+interaction_energy_eq = "8"
+pressure_x_eq = "10"
+pressure_y_eq = "10"
+num_megasteps = 100
+
+[sim_params]
+initial_particles = 50
+box_width = 10.0
+box_height = 10.0
+dynamic_particle_count = false
+
+[[sim_params.shapes]]
+
+[[sim_params.shapes.patches]]
+radius = 0.05
+theta = 0.0
+chemtype = 0
+
+[[sim_params.shapes.patches]]
+radius = 0.05
+theta = 90.0
+chemtype = 0
+
+[[sim_params.shapes.patches]]
+radius = 0.05
+theta = 180.0
+chemtype = 0
+
+[[sim_params.shapes.patches]]
+radius = 0.05
+theta = 270.0
+chemtype = 0
