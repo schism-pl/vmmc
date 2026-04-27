@@ -50,9 +50,9 @@ pub struct SynthesisProtocol {
     chemical_potential_eq: Expr<f64>,
     interaction_energy_eq: Expr<f64>,
     #[serde(default)]
-    volume_x_eq: Option<Expr<f64>>,
+    pressure_x_eq: Option<Expr<f64>>,
     #[serde(default)]
-    volume_y_eq: Option<Expr<f64>>,
+    pressure_y_eq: Option<Expr<f64>>,
     num_megasteps: usize,
 }
 
@@ -60,19 +60,19 @@ impl SynthesisProtocol {
     pub fn new(
         chemical_potential_s: &str,
         interaction_energy_s: &str,
-        volume_x_s: Option<&str>,
-        volume_y_s: Option<&str>,
+        pressure_x_s: Option<&str>,
+        pressure_y_s: Option<&str>,
         num_megasteps: usize,
     ) -> Self {
         let chemical_potential_eq = Expr::from_str(chemical_potential_s).unwrap();
         let interaction_energy_eq = Expr::from_str(interaction_energy_s).unwrap();
-        let volume_x_eq = volume_x_s.map(|s| Expr::from_str(s).unwrap());
-        let volume_y_eq = volume_y_s.map(|s| Expr::from_str(s).unwrap());
+        let pressure_x_eq = pressure_x_s.map(|s| Expr::from_str(s).unwrap());
+        let pressure_y_eq = pressure_y_s.map(|s| Expr::from_str(s).unwrap());
         Self {
             chemical_potential_eq,
             interaction_energy_eq,
-            volume_x_eq,
-            volume_y_eq,
+            pressure_x_eq,
+            pressure_y_eq,
             num_megasteps,
         }
     }
@@ -89,12 +89,12 @@ impl SynthesisProtocol {
         self.chemical_potential_eq.eval(t as f64)
     }
 
-    pub fn volume_x(&self, t: usize) -> Option<f64> {
-        self.volume_x_eq.as_ref().map(|eq| eq.eval(t as f64))
+    pub fn pressure_x(&self, t: usize) -> Option<f64> {
+        self.pressure_x_eq.as_ref().map(|eq| eq.eval(t as f64))
     }
 
-    pub fn volume_y(&self, t: usize) -> Option<f64> {
-        self.volume_y_eq.as_ref().map(|eq| eq.eval(t as f64))
+    pub fn pressure_y(&self, t: usize) -> Option<f64> {
+        self.pressure_y_eq.as_ref().map(|eq| eq.eval(t as f64))
     }
 
     pub fn initial_interaction_energy(&self) -> f64 {
@@ -105,18 +105,18 @@ impl SynthesisProtocol {
         self.chemical_potential_eq.eval(0.0)
     }
 
-    pub fn initial_volume_x(&self) -> f64 {
-        self.volume_x_eq
+    pub fn initial_pressure_x(&self) -> f64 {
+        self.pressure_x_eq
             .as_ref()
             .map(|eq| eq.eval(0.0))
-            .expect("initial volume_x protocol value is None")
+            .expect("initial pressure_x protocol value is None")
     }
 
-    pub fn initial_volume_y(&self) -> f64 {
-        self.volume_y_eq
+    pub fn initial_pressure_y(&self) -> f64 {
+        self.pressure_y_eq
             .as_ref()
             .map(|eq| eq.eval(0.0))
-            .expect("initial volume_y protocol value is None")
+            .expect("initial pressure_y protocol value is None")
     }
 
     pub fn num_megasteps(&self) -> usize {
@@ -142,19 +142,19 @@ impl SynthesisProtocol {
     pub fn flat_protocol_with_pressure(
         chemical_potential: f64,
         interaction_energy: f64,
-        volume_x: f64,
-        volume_y: f64,
+        pressure_x: f64,
+        pressure_y: f64,
         end: usize,
     ) -> Self {
         let chemical_potential_s = format!("{}", chemical_potential);
         let interaction_energy_s = format!("{}", interaction_energy);
-        let volume_x_s = format!("{}", volume_x);
-        let volume_y_s = format!("{}", volume_y);
+        let pressure_x_s = format!("{}", pressure_x);
+        let pressure_y_s = format!("{}", pressure_y);
         Self::new(
             &chemical_potential_s,
             &interaction_energy_s,
-            Some(&volume_x_s),
-            Some(&volume_y_s),
+            Some(&pressure_x_s),
+            Some(&pressure_y_s),
             end,
         )
     }
@@ -164,14 +164,14 @@ impl fmt::Display for SynthesisProtocol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "chemical_potential: {} interaction_energy: {} volume_x: {} volume_y: {} t={}",
+            "chemical_potential: {} interaction_energy: {} pressure_x: {} pressure_y: {} t={}",
             self.chemical_potential_eq,
             self.interaction_energy_eq,
-            match &self.volume_x_eq {
+            match &self.pressure_x_eq {
                 Some(eq) => eq.to_string(),
                 None => "None".to_string(),
             },
-            match &self.volume_y_eq {
+            match &self.pressure_y_eq {
                 Some(eq) => eq.to_string(),
                 None => "None".to_string(),
             },
@@ -215,9 +215,22 @@ impl ProtocolIter for ProtocolMegastepIter {
 
         let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
         let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
-        let volume_x = self.protocol.volume_x_eq.as_ref().map(|eq| eq.eval(self.t));
-        let volume_y = self.protocol.volume_y_eq.as_ref().map(|eq| eq.eval(self.t));
-        let step = ProtocolStep::new(chemical_potential, interaction_energy, volume_x, volume_y);
+        let pressure_x = self
+            .protocol
+            .pressure_x_eq
+            .as_ref()
+            .map(|eq| eq.eval(self.t));
+        let pressure_y = self
+            .protocol
+            .pressure_y_eq
+            .as_ref()
+            .map(|eq| eq.eval(self.t));
+        let step = ProtocolStep::new(
+            chemical_potential,
+            interaction_energy,
+            pressure_x,
+            pressure_y,
+        );
         self.t += 1.0; // t is counted in megasteps
         Some(step)
     }
@@ -225,17 +238,35 @@ impl ProtocolIter for ProtocolMegastepIter {
     fn start(&self) -> ProtocolStep {
         let chemical_potential = self.protocol.chemical_potential_eq.eval(0.0);
         let interaction_energy = self.protocol.interaction_energy_eq.eval(0.0);
-        let volume_x = self.protocol.volume_x_eq.as_ref().map(|eq| eq.eval(0.0));
-        let volume_y = self.protocol.volume_y_eq.as_ref().map(|eq| eq.eval(0.0));
-        ProtocolStep::new(chemical_potential, interaction_energy, volume_x, volume_y)
+        let pressure_x = self.protocol.pressure_x_eq.as_ref().map(|eq| eq.eval(0.0));
+        let pressure_y = self.protocol.pressure_y_eq.as_ref().map(|eq| eq.eval(0.0));
+        ProtocolStep::new(
+            chemical_potential,
+            interaction_energy,
+            pressure_x,
+            pressure_y,
+        )
     }
 
     fn peek(&self, _vmmc: &Vmmc) -> ProtocolStep {
         let chemical_potential = self.protocol.chemical_potential_eq.eval(self.t);
         let interaction_energy = self.protocol.interaction_energy_eq.eval(self.t);
-        let volume_x = self.protocol.volume_x_eq.as_ref().map(|eq| eq.eval(self.t));
-        let volume_y = self.protocol.volume_y_eq.as_ref().map(|eq| eq.eval(self.t));
-        ProtocolStep::new(chemical_potential, interaction_energy, volume_x, volume_y)
+        let pressure_x = self
+            .protocol
+            .pressure_x_eq
+            .as_ref()
+            .map(|eq| eq.eval(self.t));
+        let pressure_y = self
+            .protocol
+            .pressure_y_eq
+            .as_ref()
+            .map(|eq| eq.eval(self.t));
+        ProtocolStep::new(
+            chemical_potential,
+            interaction_energy,
+            pressure_x,
+            pressure_y,
+        )
     }
 
     fn len(&self) -> usize {

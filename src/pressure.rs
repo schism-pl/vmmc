@@ -76,7 +76,9 @@ pub fn maybe_volume_change(
             return;
         };
     }
-    let log_j = (vmmc.particles().num_particles() as f64) * (a_new / a_old).ln();
+    // N*ln(A_new/A_old) from the NPT Jacobian, +1 from the Hastings correction for the
+    // asymmetry of the log-volume proposal in linear space: q(A_new|A_old) = 1/(2*eps*A_new)
+    let log_j = (vmmc.particles().num_particles() as f64 + 1.0) * (a_new / a_old).ln();
 
     // 3d) Metropolis-Hastings accept/reject in log space (beta = 1)
     // log_alpha = -ΔU - P·ΔV + N·ln(A_new/A_old); energies in units of kBT so beta = 1
