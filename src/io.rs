@@ -336,10 +336,31 @@ pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
     use plotters::prelude::*;
 
     let num_megasteps = protocol.len() as i32;
+    let protocol_style = RGBColor(0xf3, 0x70, 0x21).stroke_width(2);
+    let pressure_y_style = RGBColor(0x09, 0x61, 0x91).stroke_width(2);
 
-    let root_area = BitMapBackend::new(pathname, (1000, 800)).into_drawing_area();
+    let mut interaction_energy_line = Vec::new();
+    let mut chemical_potential_line = Vec::new();
+    let mut pressure_x_line = Vec::new();
+    let mut pressure_y_line = Vec::new();
+    for (t, step) in protocol.iter().enumerate() {
+        interaction_energy_line.push((t as i32, step.interaction_energy()));
+        chemical_potential_line.push((t as i32, step.chemical_potential()));
+        if let Some(px) = step.x_pressure() {
+            pressure_x_line.push((t as i32, px));
+        }
+        if let Some(py) = step.y_pressure() {
+            pressure_y_line.push((t as i32, py));
+        }
+    }
+
+    let has_pressure = !pressure_x_line.is_empty() || !pressure_y_line.is_empty();
+    let img_height = if has_pressure { 1200 } else { 800 };
+
+    let root_area = BitMapBackend::new(pathname, (1000, img_height)).into_drawing_area();
     root_area.fill(&WHITE).unwrap();
-    let (top, bot) = root_area.split_vertically(400);
+    let (top, rest) = root_area.split_vertically(400);
+    let (mid, bot) = rest.split_vertically(400);
 
     let mut top_ctx = ChartBuilder::on(&top)
         .set_label_area_size(LabelAreaPosition::Left, 32)
@@ -348,7 +369,7 @@ pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
         .build_cartesian_2d(0..num_megasteps - 1, 0.0..20.0)
         .unwrap();
 
-    let mut bot_ctx = ChartBuilder::on(&bot)
+    let mut mid_ctx = ChartBuilder::on(&mid)
         .set_label_area_size(LabelAreaPosition::Left, 32)
         .set_label_area_size(LabelAreaPosition::Bottom, 32)
         .caption("Chemical Potential", ("sans-serif", 32))
@@ -356,40 +377,47 @@ pub fn write_protocols_png(protocol: Vec<ProtocolStep>, pathname: &str) {
         .unwrap();
 
     top_ctx.configure_mesh().draw().unwrap();
-    bot_ctx.configure_mesh().draw().unwrap();
-    // let x =  (0..num_megasteps).map(|t| (t, protocol_iter.interaction_energy(t as usize)));
+    mid_ctx.configure_mesh().draw().unwrap();
 
-    let protocol_style = RGBColor(0xf3, 0x70, 0x21).stroke_width(2);
-    let mut interaction_energy_line = Vec::new();
-    let mut chemical_potential_line = Vec::new();
-    for (t, step) in protocol.iter().enumerate() {
-        interaction_energy_line.push((t as i32, step.interaction_energy()));
-        chemical_potential_line.push((t as i32, step.chemical_potential()));
-    }
-
-    // let x = protocol_iter.clone().enumerate().map(|(t, step)| (t as i32,step.interaction_energy()));
-    // let line_series = LineSeries::new(x, protocol_style);
     top_ctx
         .draw_series(LineSeries::new(interaction_energy_line, protocol_style))
         .unwrap();
-    bot_ctx
+    mid_ctx
         .draw_series(LineSeries::new(chemical_potential_line, protocol_style))
         .unwrap();
 
-    // top_ctx
-    //     .draw_series(LineSeries::new(
-    //         x,
-    //         // (0..num_megasteps).map(|t| (t, protocol.interaction_energy(t as usize))),
-    //         RGBColor(0xf3, 0x70, 0x21).stroke_width(2),
-    //     ))
-    //     .unwrap();
+    if has_pressure {
+        let all_pressure_vals = pressure_x_line
+            .iter()
+            .chain(pressure_y_line.iter())
+            .map(|(_, v)| *v);
+        let p_min = all_pressure_vals.clone().fold(f64::INFINITY, f64::min) - 1.0;
+        let p_max = all_pressure_vals.fold(f64::NEG_INFINITY, f64::max) + 1.0;
 
-    // bot_ctx
-    //     .draw_series(LineSeries::new(
-    //         protocol_iter.enumerate().map(|(t, step)| (t as i32,step.chemical_potential())),
-    //         protocol_style,
-    //     ))
-    //     .unwrap();
+        let mut bot_ctx = ChartBuilder::on(&bot)
+            .set_label_area_size(LabelAreaPosition::Left, 32)
+            .set_label_area_size(LabelAreaPosition::Bottom, 32)
+            .caption("Pressure", ("sans-serif", 32))
+            .build_cartesian_2d(0..num_megasteps - 1, p_min..p_max)
+            .unwrap();
+        bot_ctx.configure_mesh().draw().unwrap();
+
+        bot_ctx
+            .draw_series(LineSeries::new(pressure_x_line, protocol_style))
+            .unwrap()
+            .label("x")
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], protocol_style));
+        bot_ctx
+            .draw_series(LineSeries::new(pressure_y_line, pressure_y_style))
+            .unwrap()
+            .label("y")
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], pressure_y_style));
+        bot_ctx
+            .configure_series_labels()
+            .border_style(BLACK)
+            .draw()
+            .unwrap();
+    }
 }
 
 fn try_delete(p: String) {
