@@ -64,7 +64,8 @@ pub fn maybe_volume_change(
 
     // 3b) compute external work increment for anisotropic update convention
     let d_u = new_energy - old_energy; // ΔU > 0 means energy increased (unfavorable)
-    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old) + p_y * x_new * (y_new - y_old) * PRESSURE_SCALE_FACTOR;
+    let d_w = p_x * PRESSURE_SCALE_FACTOR * y_old * (x_new - x_old)
+        + p_y * x_new * (y_new - y_old) * PRESSURE_SCALE_FACTOR;
 
     // 3c) compute Jacobian term from affine scaling (area change)
     let a_old = x_old * y_old;
